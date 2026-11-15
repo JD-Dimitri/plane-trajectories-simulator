@@ -170,11 +170,7 @@ function notes(verdict,ko,c,N,hist){ let n=$$('exn'); if(n) n.remove(); n=docume
 function relaunch(mode){ if(window.BR&&BR.launchMode){ BR.launchMode(mode); return; } }
 function review(k){ if(!window.BR||!BR.show) return; BR.show(true,0); const idx=(BR.pages||[]).findIndex(p=>p.si===k); if(idx>0) BR.show(true,idx); }
 
-/* ---------- avance rapide jusqu'à une étape (révision ciblée) ---------- */
-setInterval(()=>{ const F=window.FF; if(!F||!AUTO.on||!GD.on) return; if(GD.i>=F.to){ window.FF=null; if(rate>1&&S.onGround) setRate(1);
-    if(F.then==='guide'){ autoStart(false); GD.peda=true; try{ renderGuide(); }catch(e){} flash('Révision : à vous, étape '+GD.i+' en mode guidé','am'); } else flash('Révision : étape '+GD.i+' — observez','am'); return; }
-  if(AUTO.stage==='read') AUTO.t0-=4000; if(AUTO.stage==='done') AUTO.t0-=2000; AUTO.lastAct-=900;
-  const st=GD.steps[GD.i]; if(st&&st.walk&&rate<8) setRate(8); else if(st&&!st.walk&&S.onGround&&rate>4&&!TX.auto) setRate(1); },200);
+/* avance rapide : voir addon_jump.js */
 
 /* ---------- branchements ---------- */
 const _sm=startMission; startMission=function(){ EX.on=false; const p=$$('exam'); if(p) p.hidden=true; const r=_sm.apply(this,arguments); if(window.EXAM_PENDING&&MI&&MI.full){ window.EXAM_PENDING=false; setTimeout(start,50); } return r; };

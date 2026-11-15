@@ -9,7 +9,7 @@
    ===================================================================================================== */
 (function(){
 'use strict';
-const KEEP=['b-menu','b-pause','b-auto','b-more','b-scr'];
+const KEEP=['b-menu','b-pause','b-auto','b-jump','b-more','b-scr'];
 const css=document.createElement('style'); css.textContent=`
 #bar.compact > *:not([data-v]):not(#${KEEP.join('):not(#')}){display:none!important}
 #bar.compact{flex-wrap:wrap}
@@ -51,3 +51,10 @@ setInterval(recentre,500); syncBtns(); resize();
   setInterval(()=>{ if(typeof LK==='undefined'||!$('menu').hidden){ b.hidden=true; return; } const off=Math.abs(LK.tp)>0.12||Math.abs(LK.ty)>0.25||Math.abs(LK.tz-1)>0.35;
     b.hidden=!(off&&view!=='walk');
     if(view==='ck'&&off&&LK.tp<0.6&&performance.now()-lastIn>4000){ LK.tp*=0.85; LK.ty*=0.85; LK.tz+=(1-LK.tz)*0.1; if(Math.abs(LK.tp)<0.02) LK.tp=0; if(Math.abs(LK.ty)<0.02) LK.ty=0; } },200); })();
+
+/* V8.8 — PC : la bulle d'étape se range en haut à droite, dans le ciel, sans couvrir le bandeau FCU ni les écrans ;
+   le panneau du guide n'est plus affiché en double pendant le mode automatique. */
+(function(){ const st=document.createElement('style'); st.textContent=`@media (min-width:1000px) and (min-aspect-ratio:4/3){ #abub{left:auto;right:12px;transform:none;width:min(470px,34vw)} #abub.cmp,#abub.cmp.tp{top:52px;bottom:auto;width:min(470px,34vw)} } body.ab-on #guide{display:none!important}`; document.head.appendChild(st);
+  setInterval(()=>{ const ab=$('abub'), g=$('guide'); const desk=innerWidth>=1000&&innerWidth/innerHeight>=4/3;
+    if(ab){ if(desk&&view==='ck'){ const f=$('fcu'), c=$('ckc'); let top=innerHeight*0.55; if(f&&!f.hidden&&f.getBoundingClientRect().height) top=f.getBoundingClientRect().top; else if(c) top=c.getBoundingClientRect().top||top; ab.style.maxHeight=Math.max(220,top-60)+'px'; } else ab.style.maxHeight=''; }
+    document.body.classList.toggle('ab-on',!!(ab&&!ab.hidden&&AUTO.on&&!(GD.steps[GD.i]||{}).walk)); },400); })();
