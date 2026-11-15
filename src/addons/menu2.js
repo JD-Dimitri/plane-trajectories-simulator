@@ -24,7 +24,8 @@ function stepsOf(k){ if(CACHE[k]) return CACHE[k]; const sv={ACK,A,MI}; let out=
   try{ ACK=k; A=AC[k]; MI=MISSIONS[FULL(k)]; out=stepsFor().map(s=>({t:s.t,ph:s.ph})); }catch(e){ out=[]; } finally{ ACK=sv.ACK; A=sv.A; MI=sv.MI; }
   return CACHE[k]=out; }
 function mode(){ const p=$('m-peda'), a=$('m-auto'); if(a&&a.checked) return 'auto'; if(p&&!p.checked) return 'free'; return 'guide'; }
-function go(k,step){ selAC=k; ls.set('sim-ac',k); selMI=FULL(k); try{ renderMenu(); }catch(e){} const m=mode();
+let CHOSEN=false;
+function go(k,step){ CHOSEN=true; selAC=k; ls.set('sim-ac',k); selMI=FULL(k); try{ renderMenu(); }catch(e){} const m=mode();
   if(step>0){ window.FF={to:step,then:m==='auto'?'auto':'guide',from:0}; const want=window.FF; BR.launchMode('auto'); window.FF=want; }
   else BR.launchMode(m==='free'?'free':m); }
 function decorate(){ const box=document.querySelector('#menu .box'); if(!box) return; const mi=$('c-mi'), ac=$('c-ac');
@@ -52,4 +53,17 @@ function decorate(){ const box=document.querySelector('#menu .box'); if(!box) re
   if(!box.querySelector('.m2-scn')){ const n=document.createElement('p'); n.className='m2-note m2-scn'; n.innerHTML='Vols libres, scénarios (US Airways 1549, Germanwings 9525, pannes) et examen blanc : boutons <b>« Scénarios »</b> et <b>« Procédures »</b> pendant le vol, ou cartes « Lancer » du dossier.'; box.querySelector('.m2-reset').after(n); } }
 const _rm=renderMenu; renderMenu=function(){ const r=_rm.apply(this,arguments); try{ decorate(); }catch(e){ console.warn('menu',e); } return r; };
 try{ decorate(); }catch(e){}
+
+/* choix explicite de l'appareil : aucun vol ne part avec l'appareil d'une session précédente */
+const pcss=document.createElement('style'); pcss.textContent=`#acpick{position:fixed;inset:0;z-index:95;background:#000c;display:flex;align-items:center;justify-content:center;padding:14px}
+#acpick .w{width:min(520px,100%);background:#0a131c;border:2px solid var(--acc,#e04ad8);border-radius:14px;padding:14px;color:#e8eef2;font:15px/1.45 'Inter',sans-serif}
+#acpick h3{margin:0 0 4px;font:700 22px 'Barlow Condensed',sans-serif}#acpick p{margin:0 0 10px;color:#9fb3c4;font-size:13.5px}
+#acpick .l{display:grid;gap:7px}#acpick button{display:flex;justify-content:space-between;gap:8px;align-items:center;text-align:left;background:#132232;color:#fff;border:1px solid #2b3d50;border-radius:10px;padding:11px 12px;font:600 16px 'Barlow Condensed',sans-serif;letter-spacing:.04em;cursor:pointer}
+#acpick button small{color:#8fa4b8;font:500 12.5px 'Inter',sans-serif;letter-spacing:0}#acpick button.cur{border-color:#3ddc84}#acpick .x{justify-content:center;margin-top:8px;background:none}`; document.head.appendChild(pcss);
+function pick(then){ let m=document.getElementById('acpick'); if(m) m.remove(); m=document.createElement('div'); m.id='acpick';
+  m.innerHTML=`<div class="w"><h3>Quel appareil ?</h3><p>Choisissez l'appareil de ce vol : son parcours, ses commandes et son cockpit seront chargés.</p><div class="l">${Object.keys(AC).filter(k=>AC[k].name).map(k=>`<button type="button" data-k="${k}" class="${k===selAC?'cur':''}"><span>${AC[k].kind==='fw'?'✈':'🚁'} ${AC[k].name}</span><small>${AC[k].kind==='fw'?'avion · JFK → CDG':'hélicoptère · Manhattan → JFK'}</small></button>`).join('')}</div><button type="button" class="x">Annuler</button></div>`;
+  document.body.appendChild(m); m.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b&&e.target!==m) return; m.remove(); if(b&&b.dataset.k) then(b.dataset.k); }); }
+const FLIGHT=['guide','auto','free','exam','libre','scn','radio'];
+const _lm=BR.launchMode; BR.launchMode=function(id){ if(FLIGHT.includes(id)&&!CHOSEN&&!BR.fromSim){ const ff=window.FF; pick(k=>{ CHOSEN=true; selAC=k; ls.set('sim-ac',k); selMI=FULL(k); window.FF=ff; try{ renderMenu(); }catch(e){} _lm(id); }); return; } CHOSEN=true; return _lm.apply(this,arguments); };
+window.AC_PICK=pick;
 })();

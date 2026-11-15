@@ -275,7 +275,7 @@ function dom(){ let b=$('brief'); if(b) return b; b=document.createElement('sect
   $('br-prev').onclick=()=>go(BR.i-1); $('br-next').onclick=()=>go(BR.i+1); $('br-x').onclick=close; $('br-go').onclick=launch; $('br-skip').onclick=launch; $('br-snd').onclick=()=>SND.panel&&SND.panel();
   $('brief-nav-t').onclick=()=>b.classList.toggle('nav'); $('br-all').onclick=()=>{ BR.all=!BR.all; $('br-all').classList.toggle('on',BR.all); render(); };
   b.addEventListener('click',e=>{ const vv=e.target.closest('[data-vis]'); if(vv&&window.VIS){ const [a,c]=vv.dataset.vis.split(':').map(Number); VIS.open(a,c<0?null:c); return; } const t=e.target.closest('[data-launch],[data-go],[data-snd],[data-mode],[data-full]'); if(!t) return;
-    if(t.dataset.launch){ e.stopPropagation(); launchMode(t.dataset.launch); return; }
+    if(t.dataset.launch){ e.stopPropagation(); BR.launchMode(t.dataset.launch); return; }
     if(t.dataset.go!=null){ BR.all=false; $('br-all').classList.remove('on'); go(+t.dataset.go); }
     else if(t.dataset.snd){ SND.unlock&&SND.unlock(); setTimeout(()=>SND.play(t.dataset.snd),60); }
     else if(t.dataset.mode){ setMode(t.dataset.mode); render(); }
