@@ -998,7 +998,7 @@ function buildMarkers(){ if(GD.markers){ MODEL.remove(GD.markers); } GD.markers=
 /* ---- systèmes : alimentation, centrales, moteurs, rotor ---- */
 function hasPower(){ if(!MI.full) return true; if(ACK==='a320') return !SYS.bat1||!SYS.bat2||(SYS.extPwr&&SYS.extAvail)||SYS.apuAvail||S.eng[0]||S.eng[1];
   if(ACK==='lj60') return !!(SYS.batt1||SYS.batt2); return !!SYS.bat1; }
-function irOK(){ return !MI.full || (SYS.irAl||0)>=1; }
+function irOK(){ return !MI.full || A.kind==='rw' || (SYS.irAl||0)>=1; }   // hélicoptères : horizon à gyroscope électrique, pas de centrale à aligner
 function engStep(dt){ if(!S.n2) S.n2=[S.eng[0]?1:0,S.eng[1]?1:0]; const pw=hasPower();
   // centrales inertielles (A320) : durée réelle d'alignement ≈ 6 min à l'équateur → ≈ 10 min au-delà de 45° de latitude [RÉFÉRENCÉ : retours d'exploitation A320, ordre de grandeur]
   if(ACK==='a320'&&MI.full){ const Tal=60*(6+4*Math.min(1,Math.abs(S.lat)/45)); if(pw&&SYS.ir1==='NAV'&&SYS.ir2==='NAV'&&SYS.ir3==='NAV'&&S.onGround&&S.V<0.5) SYS.irAl=Math.min(1,(SYS.irAl||0)+dt/Tal); else if(SYS.ir1==='OFF') SYS.irAl=0; SYS.irMin=Math.ceil((1-(SYS.irAl||0))*Tal/60); }
