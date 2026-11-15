@@ -5396,6 +5396,14 @@ const css=document.createElement('style'); css.textContent=`
 #sysat header{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 9px;border-bottom:1px solid #1d2f40;background:#08111a}
 #sysat header .tt{flex:1 1 180px;min-width:0}#sysat header .tt b{display:block;font:700 19px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase}#sysat header .tt span{color:#8fa4b8;font-size:12px}
 #sysat button,#sysat select{background:#132232;color:#fff;border:1px solid #2b3d50;border-radius:8px;padding:6px 9px;font:600 13px 'Barlow Condensed',sans-serif;letter-spacing:.04em;cursor:pointer}
+#sysat .modes{flex:1 1 100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}#sysat .modes i{font-style:normal}#sysat .strip{grid-column:1/3;font:600 13px/1.3 'Inter',sans-serif;padding:6px 8px;border-radius:8px;background:#16091a;border:2px solid #e04ad8}#sysat .strip.auto{border-color:#3ddc84;background:#071a10}#sysat .strip.exam{border-color:#ff3b30;background:#1a0707}#sysat .strip b{color:#fff}#sysat .modes button{padding:8px 4px;font-size:14px}#sysat .modes button.on{background:#e04ad8;border-color:#e04ad8}
+#sysat .modes button[data-mode=auto].on{background:#1f8a4c;border-color:#3ddc84}#sysat .modes button[data-mode=exam].on{background:#b3261e;border-color:#ff3b30}
+#sysat .pre{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto}#sysat .pre button{font-size:12px;padding:5px 8px}
+#sysat .fneed{outline:3px solid #ff2b2b!important;outline-offset:3px;border-radius:8px;animation:safn 0.9s ease-in-out infinite}@keyframes safn{50%{outline-color:#ff2b2b44;box-shadow:0 0 14px #ff2b2b}}
+#sysat .fok{outline:3px solid #3ddc84!important;outline-offset:3px;border-radius:8px;box-shadow:0 0 14px #3ddc84}
+#sysat .fbad{outline:3px solid #ff2b2b!important;outline-offset:3px;border-radius:8px;background:#ff2b2b33!important;animation:saflash .4s 3}
+#sysat .tour.auto{border-color:#3ddc84;background:#071a10}#sysat .tour.auto b.t{color:#3ddc84}#sysat .tour.exam{border-color:#ff3b30;background:#1a0707}#sysat .tour.exam b.t{color:#ff6a60}
+#sysat .tour .res{font:700 30px 'Barlow Condensed',sans-serif}#sysat .tour ul{margin:4px 0;padding-left:18px;font-size:13px}
 #sysat .hrow{display:flex;gap:4px;align-items:center;flex-wrap:wrap}#sysat .pre{display:flex;gap:4px;flex-wrap:wrap}#sysat header button{white-space:nowrap}#sysat .pre button.on{background:#e04ad8;border-color:#e04ad8}
 #sysat .main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(280px,340px) minmax(300px,1fr) minmax(300px,1fr);grid-template-areas:"ctl mid sch";overflow:hidden}
 #sysat .ctl{grid-area:ctl;overflow:auto;padding:8px;border-right:1px solid #1d2f40;background:#07101a}
@@ -5444,7 +5452,7 @@ const css=document.createElement('style'); css.textContent=`
 #samenu b{display:block;font:700 19px 'Barlow Condensed',sans-serif;letter-spacing:.04em}#samenu .e{font-size:28px}
 @media (max-width:900px){
  #sysat .main{display:block;overflow:auto}
- #sysat .top>*{grid-area:auto!important}#sysat header .tt{flex:1 1 120px}#sysat header .tt b{font-size:16px}#sysat .hrow{order:9;flex:1 1 100%;overflow-x:auto;flex-wrap:nowrap}#sysat .pre{flex-wrap:nowrap}#sysat header select{max-width:46vw}
+ #sysat .top>*{grid-area:auto!important}#sysat header .tt{flex:1 1 120px}#sysat header .tt b{font-size:16px}#sysat .modes button{font-size:12.5px;padding:7px 2px;overflow:hidden}#sysat .modes i{display:none}#sysat header .tt b{font-size:15px}#sysat header .tt .tl{display:none}#sysat header .tt{flex:1 1 90px}#sysat header select{max-width:40vw;font-size:12px}#sysat header{gap:4px}#sysat header select{max-width:46vw}
  #sysat .top{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:58% 42%;gap:4px;background:#050a10;padding:4px;border-bottom:1px solid #1d2f40}
  #sysat .sch,#sysat .mid,#sysat .ctl{overflow:visible;border:0}
  #sysat .top .sch{padding:0}#sysat .top .sch svg.ac{max-height:36vh;height:36vh}
@@ -5934,18 +5942,50 @@ function preset(n){ const s=init(); if(n==='cold') return s;
  Object.assign(s,{bat1:true,bat2:true,ext:true,ir1:'NAV',ir2:'NAV',ir3:'NAV',al:[1,1,1],nav:true}); if(n==='elec') return s;
  Object.assign(s,{beacon:true,m1:true,m2:true,es:[2,2],n2:[58.5,58.5],eg:[410,410],gP:3000,bP:3000,yP:3000,ext:false}); if(n==='run') return s;
  Object.assign(s,{ground:false,gear:'UP',gp:0,pbrake:false,thr:'CL',strobe:'AUTO',n2:[93,93],eg:[690,690],cab:6000}); return s; }
-MOD.a320={name:'Airbus A320',sub:'2 turboréacteurs CFM56-5B / LEAP-1A · commandes électriques · 3 circuits hydrauliques',vb:'0 0 400 600',svg:body+parts+labels,names:NM,ctl,init,step,ev,page,ex,tours,preset,
+const snd=(s,d)=>{ const k=d.k; return {hum:k.acAny?1:0,fan:k.dcAny?(k.acAny?1:0.5):0,apu:s.apuN/100,eng:[0,1].map(i=>({n:s.n2[i],burn:k.burn[i]})),air:((k.sv[0]&&k.duct[0])||(k.sv[1]&&k.duct[1]))?1:((k.pack[0]||k.pack[1])?0.35:0),hyd:(s.hYE&&k.acAny?1:0)+(s.hBE&&k.acAny&&(s.es[0]===2||s.es[1]===2)?0.5:0),motor:Math.abs(s.fp-s.flaps)>0.02||(s.gp>0.01&&s.gp<0.99)||(s.apuMaster&&s.apuFlap>0&&s.apuFlap<1),ptu:k.ptuRun,ign:k.ign[0]||k.ign[1],bell:s.fire1}; };
+MOD.a320={snd,name:'Airbus A320',sub:'2 turboréacteurs CFM56-5B / LEAP-1A · commandes électriques · 3 circuits hydrauliques',vb:'0 0 400 600',svg:body+parts+labels,names:NM,ctl,init,step,ev,page,ex,tours,preset,
  pages:['ELEC','APU','BLEED','ENG','HYD','FUEL','F/CTL','WHEEL','PRESS','FEUX'],legend:['el','dat','fu','hg','hb','hy','ah','ac','me','ig','hot','lt','fire'],
  presets:[['cold','Avion froid'],['elec','Sous tension'],['run','Moteurs en route'],['fly','En vol']],
  ground:{id:'ground',on:s=>{ if(s.ground){ if(s.es[0]!==2&&s.es[1]!==2) return 'Aucun moteur ne tourne : pas de poussée pour voler.'; s.ground=false; s.ext=false; s.pbrake=false; } else { if(s.gp<0.99) return 'Train rentré : sortez le train avant de vous poser !'; s.ground=true; s.rat=false; } }}};
 })();
 
+/* ===== sons de l'atelier (synthèse Web Audio, mixage indicatif) ===== */
+const AU=(function(){ const A={on:true,ctx:null,v:{}}; try{ A.on=localStorage.getItem('sa-snd')!=='0'; }catch(e){}
+ function init(){ if(A.ctx) return true; try{ A.ctx=(window.SND&&SND.ctx)||new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return false; } const x=A.ctx;
+  A.m=x.createGain(); A.m.gain.value=0; A.m.connect(x.destination);
+  const nb=x.createBuffer(1,x.sampleRate*2,x.sampleRate), d=nb.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  const voice=(name,kind,freq,ft,ff,q,lfo)=>{ let src; if(kind==='noise'){ src=x.createBufferSource(); src.buffer=nb; src.loop=true; } else { src=x.createOscillator(); src.type=kind; src.frequency.value=freq; }
+   const f=x.createBiquadFilter(); f.type=ft; f.frequency.value=ff; f.Q.value=q||0.7; const g=x.createGain(); g.gain.value=0; let last=g;
+   src.connect(f); if(lfo){ const am=x.createGain(); am.gain.value=0.5; const lo=x.createOscillator(); lo.type=lfo.t||'square'; lo.frequency.value=lfo.f; const la=x.createGain(); la.gain.value=0.5; lo.connect(la); la.connect(am.gain); lo.start(); f.connect(am); am.connect(g); A.v[name+'_lfo']=lo; } else f.connect(g);
+   g.connect(A.m); src.start(); A.v[name]={src,f,g}; };
+  voice('hum','sine',400,'lowpass',2000); voice('fan','noise',0,'bandpass',1400,0.6); voice('apu','sawtooth',300,'bandpass',900,3); voice('apuN','noise',0,'bandpass',2500,1.2);
+  [0,1].forEach(i=>{ voice('ew'+i,'sawtooth',300,'bandpass',1200,4); voice('er'+i,'noise',0,'lowpass',380); voice('ef'+i,'noise',0,'bandpass',900,0.8); });
+  voice('air','noise',0,'highpass',2400); voice('hyd','square',95,'lowpass',500); voice('motor','sawtooth',150,'lowpass',900); voice('ptu','square',230,'lowpass',900,1,{f:2.6});
+  voice('rot','noise',0,'lowpass',260,1,{f:18,t:'square'}); voice('pist','sawtooth',120,'lowpass',420); voice('ign','noise',0,'highpass',4200,1,{f:1.6}); voice('bell','sine',1150,'lowpass',3000,1,{f:14});
+  return true; }
+ const set=(n,g,f,ff)=>{ const v=A.v[n]; if(!v) return; const t=A.ctx.currentTime; v.g.gain.setTargetAtTime(g,t,0.12); if(f!=null&&v.src.frequency) v.src.frequency.setTargetAtTime(f,t,0.25); if(ff!=null) v.f.frequency.setTargetAtTime(ff,t,0.25); };
+ const lfo=(n,f)=>{ const l=A.v[n+'_lfo']; if(l) l.frequency.setTargetAtTime(f,A.ctx.currentTime,0.2); };
+ function blip(f,dur,type,vol){ if(!A.on||!init()) return; const x=A.ctx, o=x.createOscillator(), g=x.createGain(), t=x.currentTime; o.type=type||'square'; o.frequency.value=f; g.gain.setValueAtTime(vol||0.12,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(x.destination); o.start(t); o.stop(t+dur+0.02); }
+ A.click=()=>{ blip(2200,0.03,'square',0.08); setTimeout(()=>blip(1400,0.025,'square',0.05),25); };
+ A.chime=()=>{ blip(660,0.5,'sine',0.18); };
+ A.ok=()=>{ blip(880,0.12,'sine',0.1); setTimeout(()=>blip(1320,0.18,'sine',0.09),110); };
+ A.mute=()=>{ if(A.m) A.m.gain.setTargetAtTime(0,A.ctx.currentTime,0.1); };
+ A.toggle=()=>{ A.on=!A.on; try{ localStorage.setItem('sa-snd',A.on?'1':'0'); }catch(e){} const b=document.querySelector('#sysat [data-snd]'); if(b) b.textContent=A.on?'🔊':'🔇'; if(!A.on) A.mute(); else { init(); A.ctx.resume&&A.ctx.resume(); } };
+ A.update=()=>{ const b=document.querySelector('#sysat [data-snd]'); if(b&&b.textContent!==(A.on?'🔊':'🔇')) b.textContent=A.on?'🔊':'🔇';
+  if(!A.on||!M||!M.snd||!D) return; if(!init()) return; if(A.ctx.state==='suspended'){ A.ctx.resume(); } A.m.gain.setTargetAtTime(0.9,A.ctx.currentTime,0.2);
+  const x=M.snd(S,D)||{}; set('hum',0.025*(x.hum||0)); set('fan',0.05*(x.fan||0));
+  const ap=x.apu||0; set('apu',ap>0.02?0.035:0,180+ap*820); set('apuN',0.07*ap,null,1200+ap*2600);
+  [0,1].forEach(i=>{ const e=(x.eng||[])[i]||{n:0,burn:0}, n=e.n/100; set('ew'+i,n>0.02?0.035*Math.min(1,n*3):0,140+n*1800,300+n*3000); set('er'+i,e.burn?0.10+0.12*n:0,null,250+n*500); set('ef'+i,0.09*n*n,null,500+n*1600); });
+  set('air',0.06*(x.air||0)); set('hyd',0.03*Math.min(2,x.hyd||0)); set('motor',x.motor?0.04:0); set('ptu',x.ptu?0.09:0); set('ign',x.ign?0.06:0); set('bell',x.bell?0.07:0);
+  const r=x.rot||0; set('rot',r>0.02?0.22*Math.min(1,r):0,null,180+r*200); lfo('rot',Math.max(2,(x.bf||18)*r)); const p=x.pist||0; set('pist',p>0.02?0.08:0,30+p*1.1,300+p*4); };
+ addEventListener('pointerdown',()=>{ if(A.on&&!document.getElementById('sysat')?.hidden) { init(); A.ctx&&A.ctx.resume&&A.ctx.resume(); } },{capture:true});
+ return A; })();
 /* ================= MOTEUR DE L'ATELIER ================= */
 const $s=q=>document.querySelector('#sysat '+q);
 function dom(){ let a=document.getElementById('sysat'); if(a) return a; a=document.createElement('section'); a.id='sysat'; a.hidden=true; a.setAttribute('aria-label','Atelier des systèmes');
- a.innerHTML=`<header><div class="tt"><b>⚙ Atelier des systèmes</b><span>Touchez une commande : les pièces qu'elle actionne se colorent sur le schéma, l'écran système réagit.</span></div>
-  <select data-acsel aria-label="Appareil"></select><div class="hrow"><div class="pre"></div><button type="button" data-tour>▶ Démonstration commentée</button></div><button type="button" data-help>?</button><button type="button" data-x aria-label="Fermer">✕</button></header>
-  <div class="main"><div class="top"><div class="sch"><svg class="ac" xmlns="http://www.w3.org/2000/svg"></svg></div><div class="scrw"><div class="tabs"></div><div class="scr"></div></div></div>
+ a.innerHTML=`<header><div class="tt"><b>⚙ Atelier<span class="tl"> des systèmes</span></b><span>Touchez une commande : les pièces qu'elle actionne se colorent sur le schéma, l'écran système réagit.</span></div>
+  <select data-acsel aria-label="Appareil"></select><button type="button" data-snd aria-label="Son">🔊</button><button type="button" data-help>?</button><button type="button" data-x aria-label="Fermer">✕</button><div class="modes"><button type="button" data-mode="libre">✋ <span>Libre</span></button><button type="button" data-mode="auto">▶ <span>Auto</span><i>matique</i></button><button type="button" data-mode="peda">🎓 <span>Pédago</span><i>gique</i></button><button type="button" data-mode="exam">📝 <span>Examen</span></button></div><div class="pre"></div></header>
+  <div class="main"><div class="top"><div class="sch"><svg class="ac" xmlns="http://www.w3.org/2000/svg"></svg></div><div class="scrw"><div class="tabs"></div><div class="scr"></div></div><div class="strip" hidden></div></div>
   <div class="mid"><div class="tour" hidden></div><div class="ex"></div><div class="pinfo" hidden></div><div class="leg"></div><div class="sitw"></div></div><div class="ctl"></div></div>`;
  document.body.appendChild(a);
  a.addEventListener('click',e=>{ const b=e.target.closest('button,[data-p]'); if(!b) return; const d=b.dataset;
@@ -5954,9 +5994,13 @@ function dom(){ let a=document.getElementById('sysat'); if(a) return a; a=docume
   if(d.c!=null) return act(d.c, d.v!=null?parseV(d.v):undefined);
   if(d.pg!=null){ PAGE=d.pg; pgPrev=''; paint(true); return; }
   if(d.pre!=null){ setPreset(d.pre); return; }
-  if(d.tour!=null) return tourPick();
-  if(d.tp!=null) return tourStart(d.tp);
-  if(d.tdo!=null) return tourDo(); if(d.tnx!=null) return tourNext(); if(d.tq!=null){ TOUR=null; renderTour(); return; }
+  if(d.tour!=null) return tourPick(MODE==='libre'?'peda':MODE);
+  if(d.mode!=null) return setMode(d.mode);
+  if(d.snd!=null) return AU.toggle();
+  if(d.tpa!=null){ AUTO.pause=!AUTO.pause; renderTour(); return; }
+  if(d.thint!=null) return hint();
+  if(d.tp!=null) return tourStart(d.tp,d.tm);
+  if(d.tdo!=null) return tourDo(); if(d.tnx!=null) return tourNext(); if(d.tq!=null){ return setMode('libre'); }
   if(d.go!=null) return flashCtl(d.go);
   if(d.hp!=null) return touch([d.hp]);
   if(d.help!=null) return help();
@@ -5977,13 +6021,14 @@ function load(ac){ M=MOD[ac]; if(!M) return; AC=ac; S=M.preset?M.preset(PRE='col
  a.querySelector('.ctl').innerHTML=(M.ground?`<div class="grp"><h4>Situation <small>simulée</small></h4><div class="row"><div class="sel"><span class="l">L'AVION EST</span><div class="seg"><button type="button" data-sit>…</button></div></div></div></div>`:'')+
   M.ctl.map(g=>`<div class="grp"><h4>${g.g}<small>${g.w||''}</small></h4><div class="row">${g.c.map(cHTML).join('')}</div></div>`).join('');
  a.querySelector('.tabs').innerHTML=M.pages.map(p=>`<button type="button" data-pg="${p}">${p}</button>`).join('');
- explainIntro(); renderTour(); relayout(); D=M.ev(S); paint(true); }
+ explainIntro(); MODE='libre'; setMode('libre'); relayout(); D=M.ev(S); paint(true); }
 function cHTML(c){ if(c.t==='pb'||c.t==='mom') return `<button type="button" class="pb ${c.t==='mom'?'mom':''} ${c.grd?'grd':''}" data-c="${c.id}" title="${c.l}"><span class="k"><i class="u"></i><i class="d"></i></span><span class="l">${c.l}</span></button>`;
  if(c.t==='sw') return `<div class="sel" data-cw="${c.id}"><span class="l">${c.l}</span><div class="seg"><button type="button" data-c="${c.id}" data-v="false">OFF</button><button type="button" data-c="${c.id}" data-v="true">ON</button></div></div>`;
  if(c.t==='sel') return `<div class="sel" data-cw="${c.id}"><span class="l">${c.l}</span><div class="seg">${c.o.map((v,i)=>`<button type="button" data-c="${c.id}" data-v="${v}">${c.ol[i]}</button>`).join('')}</div></div>`;
  if(c.t==='pad') return `<div class="sel" data-cw="${c.id}"><span class="l">${c.l}</span><div class="seg">${c.o.map(o=>`<button type="button" data-c="${c.id}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div></div>`; return ''; }
 function findC(id){ for(const g of M.ctl) for(const c of g.c) if(c.id===id) return c; return null; }
-function act(id,v){ if(!M) return; let c=findC(id);
+function act(id,v){ if(!M) return; let c=findC(id); AU.click();
+ if(TOUR&&(MODE==='peda'||MODE==='exam')&&!SELF){ const st=TOUR.st[TI]; if(st&&!st.done&&!matches(st,id,v)){ wrong(id,v,st); return; } }
  if(id==='ground'&&M.ground){ const r=M.ground.on(S); LAST='ground'; LASTV=S.ground; if(r){ showBlock('Situation',r); return; } D=M.ev(S); explain(true); paint(true); return; }
  if(!c) return; const prev=S[id];
  if(c.t==='pb') S[id]=!S[id]; else if(c.t==='mom'){ v=true; } else if(c.t==='pad'){ S[id]=v; S[id+'T']=1.8; } else S[id]=v;
@@ -5998,12 +6043,12 @@ function defaultOn(id,prev,v){ const s=S; /* A320 */
  if(id==='gear'&&s.ground&&v==='UP'){ s.gear='DOWN'; }
  if(id==='rat'){ s.rat=true; } if(id==='fireSim'){ s.fire1=true; s.ag1=false; s.agT=0; } if(id==='ff1'){ s.ff1=true; } if(id==='ag1'){ if(s.ff1) s.ag1=true; }
  if(id==='ext'&&!s.ground) s.ext=false; }
-function showBlock(h,t){ const e=$s('.ex'); e.innerHTML=`<h3>${h}</h3><div class="blk">⚠ ${t}</div>`; exPrev=''; }
+function showBlock(h,t){ AU.chime(); const e=$s('.ex'); e.innerHTML=`<h3>${h}</h3><div class="blk">⚠ ${t}</div>`; exPrev=''; }
 function touch(ids){ TCH=ids.slice(); tTch=performance.now()+4500; const svg=$s('svg.ac'), g=svg.querySelector('.tags'); g.innerHTML='';
  const seen={}; ids.forEach(id=>{ const el=svg.querySelector(`[data-p="${id}"]`); if(!el||seen[id]) return; seen[id]=1; let bb; try{ bb=el.getBBox(); }catch(e){ return; }
   const nm=(M.names[id]||id).split(/[(:,—]/)[0].trim().slice(0,30), vb=svg.viewBox.baseVal, cx=bb.x+bb.width/2, cy=bb.y+bb.height/2, mid=Math.abs(cx-vb.width/2)<vb.width*0.07, right=mid||cx>vb.width/2, tx=right?Math.min(vb.width-6,(mid?vb.width/2+40:cx+26)):Math.max(6,cx-26), ty=cy-4+(Object.keys(seen).length%3)*8-8;
 g.insertAdjacentHTML('beforeend',`<line x1="${cx}" y1="${cy}" x2="${tx}" y2="${ty}"/><text x="${tx}" y="${ty-2}" text-anchor="${right?'start':'end'}">${nm}</text>`); }); }
-function flashCtl(id){ const el=document.querySelector(`#sysat [data-c="${id}"]`); if(!el) return; const w=el.closest('.sel')||el; w.scrollIntoView({block:'center',behavior:'smooth'}); w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); }
+function flashCtl(id){ const el=document.querySelector(`#sysat [data-c="${id}"]`); if(!el) return; const w=el.closest('.sel')||el; w.scrollIntoView({block:matchMedia('(max-width:900px)').matches?'end':'center',behavior:'smooth'}); w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); }
 function partInfo(id){ const el=$s('.pinfo'); const by=[]; M.ctl.forEach(g=>g.c.forEach(c=>{ if((c.pt||[]).includes(id)) by.push(c); }));
  el.hidden=false; el.innerHTML=`<b>${M.names[id]||id}</b>${by.length?`<div class="chips">Actionnée par : ${by.map(c=>`<button type="button" data-go="${c.id}">${c.l}</button>`).join('')}</div>`:''}`; touch([id]); }
 function explainIntro(){ $s('.ex').innerHTML=`<h3>${M.name} — comment lire l'atelier</h3><div class="w">${M.sub}</div><ol>
@@ -6030,24 +6075,69 @@ function paint(force){ if(!M||!D) return; const a=dom(), svg=a.querySelector('sv
  a.querySelectorAll('.tabs [data-pg]').forEach(b=>b.classList.toggle('on',b.dataset.pg===PAGE));
  const ph=M.page(PAGE,S,D); if(ph!==pgPrev){ a.querySelector('.scr').innerHTML=ph; pgPrev=ph; }
  if(force||Math.floor(now/600)!==Math.floor(tPrev/600)) explain(); tPrev=now; }
-function loop(){ if(!M||dom().hidden) return; const now=performance.now(), dt=Math.min(1,(now-(loop.t||now))/1000); loop.t=now; M.step(S,dt); D=M.ev(S); paint(); if(TOUR) renderTour(true); }
+function loop(){ if(!M||dom().hidden) return; const now=performance.now(), dt=Math.min(1,(now-(loop.t||now))/1000); loop.t=now; M.step(S,dt); D=M.ev(S); paint(); if(TOUR){ tourTick(); renderTour(true); } AU.update(); }
 function setPreset(n){ PRE=n; S=M.preset(n); LAST=null; exPrev=''; pgPrev=''; dom().querySelectorAll('.pre button').forEach(b=>b.classList.toggle('on',b.dataset.pre===n)); explainIntro(); D=M.ev(S); paint(true); }
-/* démonstrations commentées */
-function tourPick(){ const t=M.tours||{}; const e=$s('.tour'); e.hidden=false; TOUR=null;
- e.innerHTML=`<b class="t">Démonstrations commentées · ${M.name}</b><p>Chaque étape actionne une vraie commande, dans l'ordre réel. Observez le schéma et l'écran.</p><div class="bt">${Object.keys(t).map(k=>`<button type="button" class="go" data-tp="${k}">${t[k].n}</button>`).join('')}<button type="button" data-tq>Fermer</button></div>`; }
-function tourStart(k){ const t=M.tours[k]; TOUR=t; TI=0; setPreset(t.pre||'cold'); renderTour(); $s('.tour').scrollIntoView({block:'nearest'}); }
-function renderTour(live){ const e=$s('.tour'); if(!TOUR){ if(!live) e.hidden=true; return; } e.hidden=false; const st=TOUR.st[TI]; if(!st){ e.innerHTML=`<b class="t">${TOUR.n}</b><p>✓ Démonstration terminée. Rejouez-la ou essayez vous-même dans un autre ordre pour voir ce qui bloque.</p><div class="bt"><button type="button" data-tour>Autre démonstration</button><button type="button" data-tq>Fermer</button></div>`; return; }
- const c=findC(st[0]), lab=st[0]==='ground'?'Situation : '+(st[1]?'au sol':'en vol'):(c?c.l:st[0])+(c&&c.t!=='pb'&&c.t!=='mom'?' → '+(c.ol?c.ol[c.o.indexOf(st[1])]:st[1]):(c&&c.t==='pb'?' → '+(st[1]?'ON':'OFF'):'')), done=st.done, wt=st[3]&&done&&!st[3](S);
- const html=`<b class="t">${TOUR.n} · étape ${TI+1}/${TOUR.st.length}</b><p><b>${lab}</b></p><p>${st[2]}</p>${wt?`<p class="wt">⏳ ${st[4]}…</p>`:''}<div class="bt">${done?'':`<button type="button" class="go" data-tdo>Faire l'action</button>`}<button type="button" data-tnx ${wt?'disabled':''}>Étape suivante ▶</button><button type="button" data-tq>Arrêter</button></div>`;
- if(e._h!==html){ e.innerHTML=html; e._h=html; } }
-function tourDo(){ const st=TOUR.st[TI]; const c=findC(st[0]); flashCtl(st[0]);
- if(st[0]==='ground'){ if(S.ground!==st[1]) act('ground'); }
- else if(c.t==='pb'){ if(!!S[st[0]]!==st[1]) act(st[0]); } else act(st[0],st[1]); st.done=true; renderTour(); }
-function tourNext(){ const st=TOUR.st[TI]; if(!st.done){ tourDo(); if(st[3]&&!st[3](S)) return; } if(st[3]&&!st[3](S)) return; st.done=false; TI++; renderTour(); if(TOUR.st[TI]) flashCtl(TOUR.st[TI][0]); }
-function tourCheck(id,v){ if(!TOUR) return; const st=TOUR.st[TI]; if(st&&st[0]===id){ st.done=true; renderTour(); } }
+/* ===== modes : libre, automatique, pédagogique, examen ===== */
+let MODE='libre', SELF=false; const AUTO={phase:'',t:0,pause:false}, EXM={err:0,steps:{},hints:0,log:[],t0:0};
+const MLAB={auto:'Mode automatique',peda:'Mode pédagogique',exam:'Examen'};
+function setMode(m){ MODE=m; dom().querySelectorAll('.modes [data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===m)); dom().querySelector('.pre').style.display=m==='libre'?'':'none';
+ if(m==='libre'){ TOUR=null; clearFrames(); const te=$s('.tour'); te.innerHTML=''; te.hidden=true; strip(); explainIntro(); return; }
+ const ks=Object.keys(M.tours||{}); if(ks.length===1) tourStart(ks[0],m); else tourPick(m); }
+function tourPick(m){ MODE=m||MODE; const t=M.tours||{}; const e=$s('.tour'); e.hidden=false; e.className='tour '+MODE; TOUR=null; clearFrames();
+ const what={auto:'L\'atelier actionne lui-même chaque commande : cadre ROUGE sur la commande, puis VERT une fois activée, et les pièces touchées s\'éclairent sur le schéma.',peda:'À vous : la commande à utiliser est encadrée en ROUGE ; touchez-la, elle passe au VERT et les pièces qu\'elle actionne s\'éclairent. Une mauvaise commande est refusée et expliquée.',exam:'Aucune aide : réalisez la procédure dans l\'ordre. Chaque erreur est comptée et sa conséquence expliquée ; note sur 20 à la fin.'}[MODE];
+ e.innerHTML=`<b class="t">${MLAB[MODE]} · ${M.name}</b><p>${what}</p><p>Choisissez la procédure :</p><div class="bt">${Object.keys(t).map(k=>`<button type="button" class="go" data-tp="${k}" data-tm="${MODE}">${t[k].n}</button>`).join('')}<button type="button" data-tq>Fermer</button></div>`;
+ e.scrollIntoView({block:'nearest'}); }
+function tourStart(k,m){ if(m) MODE=m; if(MODE==='libre') MODE='peda'; dom().querySelectorAll('.modes [data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===MODE)); dom().querySelector('.pre').style.display='none';
+ const t=M.tours[k]; TOUR=t; TI=0; t.st.forEach(x=>{ x.done=false; x.tDone=0; }); setPreset(t.pre||'cold'); AUTO.phase=''; AUTO.pause=false; Object.assign(EXM,{err:0,steps:{},hints:0,log:[],wc:{},t0:performance.now()});
+ if(MODE==='exam') $s('.ex').innerHTML=`<h3>📝 Examen : ${t.n}</h3><div class="w">${M.name} · ${t.st.length} actions à réaliser dans l'ordre, sans aide.</div>`;
+ renderTour(); stepEnter(); $s('.tour').scrollIntoView({block:'nearest'}); }
+function ctlEl(id){ return document.querySelector(`#sysat [data-cw="${id}"]`)||document.querySelector(`#sysat [data-c="${id}"]`)||(id==='ground'?document.querySelector('#sysat [data-sit]'):null); }
+function clearFrames(){ document.querySelectorAll('#sysat .fneed,#sysat .fok').forEach(e=>e.classList.remove('fneed','fok')); }
+function frame(id,cls){ clearFrames(); const el=ctlEl(id); if(!el) return; el.classList.add(cls); }
+function badFrame(id){ const el=ctlEl(id); if(!el) return; el.classList.remove('fbad'); void el.offsetWidth; el.classList.add('fbad'); setTimeout(()=>el.classList.remove('fbad'),1600); }
+const MOB=()=>matchMedia('(max-width:900px)').matches;
+function scrollTo(id){ const el=ctlEl(id); if(el) el.scrollIntoView({block:MOB()?'end':'center',behavior:'smooth'}); }
+function satisfied(st){ const id=st[0], c=findC(id); if(id==='ground') return S.ground===st[1]; if(!c||c.t==='mom'||c.t==='pad') return false; if(c.t==='pb') return !!S[id]===st[1]; return String(S[id])===String(st[1]); }
+function matches(st,id,v){ if(st[0]!==id) return false; const c=findC(id); if(id==='ground') return true; if(c.t==='pb') return !S[id]===st[1]; if(c.t==='mom') return true; return String(v)===String(st[1]); }
+function stepLabel(st){ const c=findC(st[0]); if(st[0]==='ground') return 'Situation : '+(st[1]?'se poser':'passer en vol'); if(c&&c.t==='sw') return c.l+' → '+(st[1]?'ON':'OFF'); return (c?c.l:st[0])+(c&&c.t!=='pb'&&c.t!=='mom'?' → '+(c.ol?c.ol[c.o.findIndex(x=>String(x)===String(st[1]))]:(c.o.find(x=>String(x[0])===String(st[1]))||[0,st[1]])[1]):(c&&c.t==='pb'?' → '+(st[1]?'ON':'OFF'):'')); }
+function stepEnter(){ const st=TOUR&&TOUR.st[TI]; if(!st) return; if(satisfied(st)){ st.done=true; st.tDone=performance.now()-2000; }
+ if(MODE==='auto'){ AUTO.phase='need'; AUTO.t=performance.now(); frame(st[0],'fneed'); scrollTo(st[0]); }
+ else if(MODE==='peda'){ frame(st[0],st.done?'fok':'fneed'); scrollTo(st[0]); } else clearFrames(); }
+function stepDone(){ const st=TOUR.st[TI]; st.done=true; st.tDone=performance.now(); if(MODE!=='exam'||true) frame(st[0],'fok'); if(MODE==='exam'){ if(!EXM.steps[TI]) EXM.steps[TI]='ok'; setTimeout(()=>{ const el=ctlEl(st[0]); el&&el.classList.remove('fok'); },1200); } AU.ok(); renderTour(); }
+function wrong(id,v,st){ const c=findC(id); badFrame(id); AU.chime(); let o={ln:[]}; const S0=S, LV=LASTV; try{ S=JSON.parse(JSON.stringify(S0)); if(c&&c.t==='pb') S[id]=!S[id]; else if(c&&c.t!=='mom') S[id]=v; LASTV=c&&c.t==='pb'?S[id]:v; o=(id==='ground'?M.ex('ground',S,M.ev(S)):M.ex(id,S,M.ev(S)))||o; }catch(e){} S=S0; LASTV=LV; const cons=o.blk?o.blk:(o.ln[0]||['',''])[1];
+ if(MODE==='exam'){ EXM.err++; EXM.steps[TI]='err'; EXM.log.push([c?c.l:id,stepLabel(st)]); EXM.wc=EXM.wc||{}; EXM.wc[TI]=(EXM.wc[TI]||0)+1; EXM.wrongCount=EXM.wc[TI];
+  $s('.ex').innerHTML=`<h3>✗ Erreur ${EXM.err}</h3><div class="blk">⚠ « ${c?c.l:id} » n'est pas l'action attendue à ce moment de la procédure. Elle est refusée.${cons?'<br><b>Ce qu\'elle aurait fait :</b> '+cons:''}${EXM.wrongCount>=2?'<br><b>Après deux erreurs, la réponse :</b> '+stepLabel(st):''}</div>`; if(EXM.wrongCount>=2) frame(st[0],'fneed'); }
+ else { $s('.ex').innerHTML=`<h3>Pas cette commande</h3><div class="blk">⚠ « ${c?c.l:id} » : pas maintenant. L'étape demandée est <b>${stepLabel(st)}</b> (encadrée en rouge).${cons?'<br><b>Cette commande :</b> '+cons:''}<br><button type="button" data-go="${st[0]}">Montrer la commande attendue</button></div>`; }
+ exPrev=''; renderTour(); }
+function hint(){ const st=TOUR&&TOUR.st[TI]; if(!st) return; EXM.hints++; EXM.steps[TI]='hint'; frame(st[0],'fneed'); scrollTo(st[0]); $s('.ex').innerHTML=`<h3>Indice (−½ point)</h3><div class="blk">L'action attendue : <b>${stepLabel(st)}</b></div>`; exPrev=''; renderTour(); }
+function doStep(){ const st=TOUR.st[TI]; if(!st) return; const c=findC(st[0]); SELF=true; try{ if(st[0]==='ground'){ if(S.ground!==st[1]) act('ground'); } else if(c.t==='pb'){ if(!!S[st[0]]!==st[1]) act(st[0]); } else act(st[0],st[1]); } finally{ SELF=false; } if(!st.done) stepDone(); }
+function tourDo(){ doStep(); }
+function advance(){ TI++; if(TOUR.st[TI]){ renderTour(); stepEnter(); } else { clearFrames(); finish(); } }
+function tourNext(){ const st=TOUR.st[TI]; if(!st) return; if(!st.done) doStep(); if(st[3]&&!st[3](S)) return; advance(); }
+function tourCheck(id,v){ if(!TOUR||SELF) return; const st=TOUR.st[TI]; if(st&&!st.done&&st[0]===id) stepDone(); }
+function finish(){ AU.ok(); if(MODE==='exam'){ const N=TOUR.st.length, bad=Object.values(EXM.steps).filter(x=>x==='err').length, note=Math.max(0,Math.round(20*(N-bad-EXM.hints*0.5)/N*2)/2), dur=Math.round((performance.now()-EXM.t0)/1000);
+  EXM.res=`<b class="t">Résultat · ${TOUR.n}</b><p class="res" style="color:${note>=14?'#3ddc84':note>=10?'#ffa21a':'#ff3b30'}">${note} / 20</p><p>${N} actions · ${bad} étape(s) avec erreur · ${EXM.err} erreur(s) au total · ${EXM.hints} indice(s) · ${Math.floor(dur/60)} min ${dur%60} s · ${note>=14?'Réussi':note>=10?'Juste : à retravailler':'Insuffisant'}</p>${EXM.log.length?`<ul>${EXM.log.map(l=>`<li>« ${l[0]} » au lieu de : ${l[1]}</li>`).join('')}</ul>`:''}`; }
+ renderTour(); }
+function renderTour(live){ const e=$s('.tour'); if(!TOUR){ if(!live&&MODE==='libre') e.hidden=true; strip(); return; } e.hidden=false; e.className='tour '+MODE; const st=TOUR.st[TI];
+ let html;
+ if(!st){ html=MODE==='exam'?EXM.res+`<div class="bt"><button type="button" class="go" data-mode="peda">🎓 Revoir en mode pédagogique</button><button type="button" data-mode="exam">↺ Repasser l'examen</button><button type="button" data-tq>Fermer</button></div>`:`<b class="t">${MLAB[MODE]} · ${TOUR.n}</b><p>✓ Procédure terminée.</p><div class="bt">${MODE==='auto'?'<button type="button" class="go" data-mode="peda">🎓 À vous en mode pédagogique</button>':'<button type="button" class="go" data-mode="exam">📝 Passer l\'examen</button>'}<button type="button" data-tour>Autre procédure</button><button type="button" data-tq>Fermer</button></div>`; }
+ else { const wt=st[3]&&st.done&&!st[3](S), head=`<b class="t">${MLAB[MODE]} · ${TOUR.n} · étape ${TI+1}/${TOUR.st.length}</b>`;
+  if(MODE==='exam') html=head+`<p>${st.done?'✓ Action correcte.':'Quelle est la prochaine action ? Utilisez les commandes.'}</p>${wt?`<p class="wt">⏳ ${st[4]}…</p>`:''}<p class="wt">Erreurs : ${EXM.err} · indices : ${EXM.hints}</p><div class="bt"><button type="button" data-thint ${st.done?'disabled':''}>💡 Indice (−½ point)</button><button type="button" data-tq>Abandonner</button></div>`;
+  else if(MODE==='auto') html=head+`<p><b>${stepLabel(st)}</b></p><p>${st[2]}</p><p class="wt">${AUTO.pause?'⏸ En pause':(st.done?(wt?'⏳ '+st[4]+'…':'✓ Activée (cadre vert)'):'▶ Commande à activer (cadre rouge)…')}</p><div class="bt"><button type="button" class="go" data-tpa>${AUTO.pause?'▶ Reprendre':'⏸ Pause'}</button><button type="button" data-tnx ${wt?'disabled':''}>⏭ Étape suivante</button><button type="button" data-tq>■ Arrêter</button></div>`;
+  else html=head+`<p><b>${stepLabel(st)}</b></p><p>${st[2]}</p><p class="wt">${st.done?(wt?'⏳ '+st[4]+'…':'✓ Bien. Étape suivante…'):'👉 Touchez la commande encadrée en ROUGE.'}</p><div class="bt">${st.done?'':`<button type="button" data-go="${st[0]}">Montrer</button><button type="button" data-tdo>Le faire pour moi</button>`}<button type="button" data-tq>Arrêter</button></div>`; }
+ if(e._h!==html){ e.innerHTML=html; e._h=html; } strip(st); }
+function strip(st){ const el=$s('.strip'); if(!el) return; if(!TOUR){ el.hidden=true; return; } el.hidden=false; el.className='strip '+MODE; let t;
+ if(!st) t=MODE==='exam'?'📝 Examen terminé : résultat ci-dessous.':'✓ Procédure terminée.';
+ else { const wt=st[3]&&st.done&&!st[3](S), n=`${TI+1}/${TOUR.st.length}`;
+  if(MODE==='exam') t=`📝 Examen · étape ${n} · ${st.done?'✓ correct':'à vous : quelle commande ?'} · erreurs ${EXM.err}`;
+  else t=`${MODE==='auto'?'▶ Auto':'🎓 Pédago'} · ${n} · <b>${stepLabel(st)}</b> · ${st.done?(wt?'⏳ '+st[4]:'✓ activée (vert)'):(MODE==='auto'?'cadre rouge : activation…':'👉 touchez le cadre ROUGE')}`; }
+ if(el._h!==t){ el.innerHTML=t; el._h=t; } }
+function tourTick(){ if(!TOUR) return; const st=TOUR.st[TI]; if(!st) return; const now=performance.now(), cond=!st[3]||st[3](S);
+ if(MODE==='auto'){ if(AUTO.pause) return; if(!st.done&&now-AUTO.t>1900) doStep(); else if(st.done&&cond&&now-st.tDone>2600) advance(); }
+ else if(st.done&&cond&&now-st.tDone>1500) advance(); }
 function help(){ explainIntro(); }
-function open(ac,tour){ const a=dom(); a.hidden=false; if(!M||(ac&&ac!==AC)) load(ac&&MOD[ac]?ac:(typeof selAC!=='undefined'&&selAC&&MOD[selAC]?selAC:'a320')); else relayout(); clearInterval(timer); loop.t=0; timer=setInterval(loop,100); if(tour&&M.tours&&M.tours[tour]) tourStart(tour); }
-function close(){ dom().hidden=true; clearInterval(timer); }
+function open(ac,tour){ const a=dom(); a.hidden=false; if(!M||(ac&&ac!==AC)) load(ac&&MOD[ac]?ac:(typeof selAC!=='undefined'&&selAC&&MOD[selAC]?selAC:'a320')); else relayout(); clearInterval(timer); loop.t=0; timer=setInterval(loop,100); if(tour&&M.tours&&M.tours[tour]) tourStart(tour,MODE==='libre'?'peda':MODE); }
+function close(){ dom().hidden=true; clearInterval(timer); AU.mute(); }
 addEventListener('resize',()=>{ if(M&&!dom().hidden) relayout(); });
 window.SYSAT={open,close,MOD,C,LEGN,helpers:{mir,P,F,R,Ci,RR,CC,PP,FF,Lb,T,BX,LN,ARC,SCR,OFFSCR,G,AM,W,CY,RD,GY},get S(){return S;},act,load};
 /* entrée dans le menu */
@@ -6200,7 +6290,8 @@ const tours={start:{n:'Démarrage des deux moteurs',st:[['bat1',true,'Batteries 
  ['st2',true,'START 2 : le démarreur-génératrice fait tourner le moteur 2 (électricité en bleu clair vers le moteur).',s=>s.n2[1]>=10,'Attendre N2 > 10 %'],['tl2','IDLE','Manette 2 sur IDLE : carburant et allumage, l\'ITT monte.',s=>s.es[1]===2,'Attendre le ralenti'],['gen2',true,'La même machine devient génératrice : elle recharge les batteries (le courant change de sens).'],
  ['sb1',true,''],['st1',true,'START 1.',s=>s.n2[0]>=10,'Attendre N2 > 10 %'],['tl1','IDLE','',s=>s.es[0]===2,'Attendre le ralenti'],['gen1',true,''],['gpu',false,'GPU débranché.'],['yoke','L','Volant à gauche : les câbles (magenta) bougent les ailerons, sans calculateur.'],['flaps',8,'Volets 8° : hydraulique.']]}};
 function preset(n){ const s=init(); if(n==='cold') return s; Object.assign(s,{bat1:true,bat2:true,gpu:true,inv:true,nav:true}); if(n==='elec') return s; Object.assign(s,{gpu:false,sb1:true,sb2:true,gen1:true,gen2:true,es:[2,2],n2:[56,56],itt:[520,520],tl1:'IDLE',tl2:'IDLE',hP:1500,beacon:true}); return s; }
-MOD.lj60={name:'Learjet 60',sub:'2 réacteurs PW305A à l\'arrière · électricité 28 V continu · commandes de vol par câbles',vb:'0 0 400 600',svg:body+parts+labels,names:NM,ctl,init,step,ev,page,ex,on,tours,preset,
+const snd=(s,d)=>{ const k=d.k; return {hum:k.ac?1:0,fan:k.dc?1:0,eng:[0,1].map(i=>({n:s.n2[i],burn:k.burn[i]})),motor:k.motor[0]||k.motor[1]||Math.abs(s.fp-s.flaps)>0.5||(s.gp>0.01&&s.gp<0.99),hyd:s.hAux&&k.dc?1:0,ign:k.ign[0]||k.ign[1],air:k.air?0.3:0}; };
+MOD.lj60={snd,name:'Learjet 60',sub:'2 réacteurs PW305A à l\'arrière · électricité 28 V continu · commandes de vol par câbles',vb:'0 0 400 600',svg:body+parts+labels,names:NM,ctl,init,step,ev,page,ex,on,tours,preset,
  pages:['ÉLEC','MOTEURS','CARBURANT','HYDRAU','COMMANDES','AIR'],legend:['el','dat','fu','hg','ah','ac','me','ig','hot','lt','fire'],presets:[['cold','Avion froid'],['elec','Sous tension'],['run','Moteurs en route']],
  ground:{on:s=>{ if(s.ground){ if(s.es[0]!==2&&s.es[1]!==2) return 'Aucun moteur ne tourne.'; s.ground=false; s.gpu=false; } else { if(s.gp<0.99) return 'Train rentré !'; s.ground=true; } }}};
 })();
@@ -6303,7 +6394,8 @@ function heli(o){
   ...ids.flatMap(i=>[['eng'+i,'IDLE','Démarrage : démarreur (bleu clair), allumage (jaune), carburant (orange), puis le rotor se met à tourner.',s=>s.es[i]===2,'Attendre le ralenti'],['gen'+i,true,'Génératrice en ligne.']]),
   ...ids.map(i=>['eng'+i,'FLIGHT','Régime de vol : le rotor accélère au régime nominal.']),['coll',1,'Collectif : le pas augmente, décollage en stationnaire.',s=>!s.ground,'Attendre le décollage'],['cyc','F','Cyclique en avant : le disque s\'incline.']]}};
  function preset(nm){ const s=init(); if(nm==='cold') return s; s.bat=true; s.nav=true; if(nm==='elec') return s; ids.forEach(i=>{ s['bp'+i]=true; s['fso'+i]=true; s['eng'+i]='FLIGHT'; s['gen'+i]=true; s.es[i]=2; s.ng[i]=o.ngFl; s.t4[i]=560; }); s.rbrake=false; s.nr=o.nrNom; s.hp=[1,1]; s.acol=true; return s; }
- return {ctl,init,step,ev,page,ex,on,tours,preset,presets:[['cold','Appareil froid'],['elec','Sous tension'],['run','Moteur(s) en route']],legend:o.legend,pages:[o.pM,o.pE,o.pF,'HYD'],
+ const snd=(s,d)=>{ const k=d.k; return {fan:k.dc?0.7:0,eng:ids.map(i=>({n:s.ng[i],burn:k.burn[i]})),rot:s.nr/o.nrNom,bf:o.bf,hyd:k.H?0.5:0,motor:k.motor.some((m,i)=>m&&s.es[i]===1),ign:k.ign.some(x=>x)}; };
+ return {snd,ctl,init,step,ev,page,ex,on,tours,preset,presets:[['cold','Appareil froid'],['elec','Sous tension'],['run','Moteur(s) en route']],legend:o.legend,pages:[o.pM,o.pE,o.pF,'HYD'],
   ground:{on:s=>{ const k=kk(s); if(s.ground){ if(!k.fl||s.nr<o.nrNom*0.95) return 'Régime rotor de vol nécessaire (moteurs sur FLIGHT).'; s.coll=Math.max(1,s.coll); s.ground=false; } else { s.coll=0; s.ground=true; } }}}; }
 
 /* --- H125 --- */
@@ -6321,7 +6413,7 @@ const parts=R('tank',178,200,44,62,6)+P('disc','M200 50 A180 180 0 1 1 199.9 50 
 const labels=Lb(200,132,'NEZ')+Lb(250,262,'BTP','start')+Lb(232,300,'MOTEUR ARRIEL 2D','start')+Lb(214,560,'ROTOR ANTICOUPLE','start')+Lb(150,206,'PATINS','end');
 const NM={tank:'Réservoir carburant (sous la boîte de transmission)',disc:'Disque rotor : la portance',f_bat:'Câble batterie',f_gen0:'Câble démarreur-génératrice → barres',f_dc:'Alimentation 28 V console',f_fu0:'Tuyauterie carburant vers le moteur',f_hyd:'Circuit hydraulique vers les servocommandes',shaft:'Arbre de transmission moteur → BTP',tds:'Arbre de transmission arrière (vers le rotor anticouple)',mgb:'BTP : boîte de transmission principale (réduction, renvoi d\'angle)',head:'Moyeu rotor Starflex et plateau cyclique',rbrk:'Frein rotor',fw0:'Roue libre (le rotor peut tourner plus vite que le moteur : autorotation)',
  e0g:'Réducteur et prise de mouvement du moteur',e0c:'Compresseur axial + centrifuge (générateur de gaz, Ng)',e0b:'Chambre de combustion annulaire',e0n:'Turbine libre (entraîne la transmission)',e0ig:'Bougies d\'allumage',e0x:'Tuyère d\'échappement',fadec0:'FADEC (régulation numérique)',sg0:'Démarreur-génératrice 28 V',oil:'Radiateurs d\'huile moteur et BTP',bp0:'Pompe de gavage électrique',fsv0:'Robinet d\'arrêt carburant',hp0:'Pompe hydraulique (entraînée par la BTP)',srv:'Servocommandes du rotor principal (3)',acc:'Accumulateurs hydrauliques',srvT:'Servocommande du rotor anticouple',tgb:'Boîte de transmission arrière (BTA)',tr:'Rotor anticouple (2 pales)',bat:'Batterie 24 V',dcbus:'Barres 28 V DC',scr:'VEMD : écran moteur et véhicule',pitot:'Sonde Pitot',land:'Phare d\'atterrissage',navL:'Feu de navigation gauche',navR:'Feu de navigation droit',navT:'Feu arrière',acol:'Feu anticollision',rotor:'Pales du rotor principal (3, composite)'};
-const h=heli({n:1,hyd:1,gear:false,ngIdle:67,ngFl:84,nrNom:390,nrIdle:300,nrU:'tr/min',rbMax:'moins de 170 tr/min',t4lim:865,ff:160,fuel:420,engName:'turbomoteur Safran Arriel 2D',pM:'VEMD',pE:'ÉLEC',pF:'CARBU',wElec:'console centrale',wFuel:'levier au plancher, console',wEng:'levier frein rotor (plafond), sélecteur moteur',wHyd:'interrupteur sur le collectif',
+const h=heli({bf:19.5,n:1,hyd:1,gear:false,ngIdle:67,ngFl:84,nrNom:390,nrIdle:300,nrU:'tr/min',rbMax:'moins de 170 tr/min',t4lim:865,ff:160,fuel:420,engName:'turbomoteur Safran Arriel 2D',pM:'VEMD',pE:'ÉLEC',pF:'CARBU',wElec:'console centrale',wFuel:'levier au plancher, console',wEng:'levier frein rotor (plafond), sélecteur moteur',wHyd:'interrupteur sur le collectif',
  tBat:'La batterie 24 V (dans la poutre avant) se connecte aux barres 28 V continu : console, VEMD, régulation moteur.',legend:['el','dat','fu','hg','me','ig','hot','oil','ac','lt','fire']});
 MOD.h125=Object.assign(h,{name:'Airbus H125 (Écureuil)',sub:'1 turbomoteur Arriel 2D à turbine libre · rotor 3 pales · 1 circuit hydraulique',vb:'0 0 400 600',svg:body+parts+labels,names:NM});
 })();
@@ -6341,7 +6433,7 @@ const labels=Lb(200,112,'NEZ')+Lb(150,290,'MOTEUR 1','end')+Lb(250,290,'MOTEUR 2
 const NM={tank:'Réservoirs carburant (sous le plancher arrière)',disc:'Disque rotor',f_bat:'Câble batterie',f_gen0:'Câble génératrice 1',f_gen1:'Câble génératrice 2',f_dc:'Alimentation du poste',f_fu0:'Carburant moteur 1',f_fu1:'Carburant moteur 2',f_hyd:'Circuits hydrauliques 1 et 2',shaft:'Arbres moteurs → BTP',tds:'Arbre de transmission arrière',mgb:'BTP (boîte de transmission principale)',head:'Moyeu rotor 4 pales et plateau cyclique',rbrk:'Frein rotor',fw0:'Roue libre moteur 1',fw1:'Roue libre moteur 2',
  e0c:'Compresseur moteur 1 (générateur de gaz)',e1c:'Compresseur moteur 2',e0b:'Chambre de combustion moteur 1',e1b:'Chambre de combustion moteur 2',e0n:'Turbine libre moteur 1',e1n:'Turbine libre moteur 2',e0ig:'Allumeurs 1',e1ig:'Allumeurs 2',e0x:'Échappement 1',e1x:'Échappement 2',sg0:'Démarreur-génératrice 1',sg1:'Démarreur-génératrice 2',fadec0:'FADEC moteur 1',fadec1:'FADEC moteur 2',oil:'Refroidisseur d\'huile BTP',
  bp0:'Pompe de gavage 1',bp1:'Pompe de gavage 2',fsv0:'Robinet carburant 1',fsv1:'Robinet carburant 2',xfv:'Vanne d\'intercommunication',hp0:'Pompe hydraulique 1 (sur la BTP)',hp1:'Pompe hydraulique 2 (sur la BTP)',srv:'Servocommandes principales (double corps)',srvT:'Servocommande anticouple',tgb:'Boîte arrière',tr:'Rotor anticouple 4 pales',bat:'Batterie',dcbus:'Barres DC',scr:'Écrans du poste (EFIS, paramètres moteur)',pitot:'Sondes Pitot',land:'Phare',gearN:'Train avant (escamotable)',gearL:'Train principal gauche',gearR:'Train principal droit',navL:'Feu de navigation gauche',navR:'Feu de navigation droit',navT:'Feu arrière',acol:'Anticollision',rotor:'Pales du rotor principal (4)'};
-const h=heli({n:2,hyd:2,gear:true,ngIdle:66,ngFl:86,nrNom:107,nrIdle:80,nrU:'%',rbMax:'NR faible, moteurs arrêtés',t4lim:900,ff:150,fuel:800,engName:'turbomoteur Safran Arriel 2S2',pM:'MOTEURS',pE:'ÉLEC',pF:'CARBU',wElec:'panneau supérieur',wFuel:'panneau supérieur',wEng:'leviers moteurs (plafond)',wHyd:'panneau supérieur',
+const h=heli({bf:19.6,n:2,hyd:2,gear:true,ngIdle:66,ngFl:86,nrNom:107,nrIdle:80,nrU:'%',rbMax:'NR faible, moteurs arrêtés',t4lim:900,ff:150,fuel:800,engName:'turbomoteur Safran Arriel 2S2',pM:'MOTEURS',pE:'ÉLEC',pF:'CARBU',wElec:'panneau supérieur',wFuel:'panneau supérieur',wEng:'leviers moteurs (plafond)',wHyd:'panneau supérieur',
  tBat:'La batterie se connecte aux barres continues : poste, régulations moteurs (FADEC), démarreurs.',legend:['el','dat','fu','hg','hb','me','ig','hot','oil','ac','lt','fire']});
 MOD.s76=Object.assign(h,{name:'Sikorsky S-76',sub:'2 turbomoteurs Arriel 2S2 · rotor 4 pales · 2 circuits hydrauliques · train escamotable',vb:'0 0 400 600',svg:body+parts+labels,names:NM});
 })();
@@ -6412,7 +6504,8 @@ function ex(id,s,d){ const k=d.k, o={ln:[]}, ln=(c,t)=>o.ln.push([c,t]), blk=(t,
  return o; }
 const tours={start:{n:'Démarrage et embrayage',st:[['master',true,'Batterie ON.'],['fv',true,'Robinet carburant : l\'essence descend par gravité.'],['mix','RICH','Mélange riche.'],['acol',true,''],['clutch',false,'Vérifier : DÉBRAYÉ.'],['rbrake',false,'Frein rotor desserré.'],['key','START','Démarreur, puis les magnétos allument le moteur (jaune).',s=>s.run,'Attendre le moteur'],['alt',true,'Alternateur : il recharge la batterie (le courant change de sens).'],['clutch',true,'Embrayage : l\'actionneur tend les courroies, le rotor commence à tourner.',s=>s.cl>=1,'Attendre la fin de l\'embrayage'],['gov',true,'Régulateur ON : régime 102 %.',s=>s.nr>=99,'Attendre le régime'],['ch',true,'Réchauffage carburateur : air chaud de l\'échappement vers le carburateur.'],['coll',1,'Décollage.']]}};
 function preset(n){ const s=init(); if(n==='cold') return s; s.master=true; s.nav=true; if(n==='elec') return s; Object.assign(s,{fv:true,mix:'RICH',key:'BOTH',run:true,rpm:102,clutch:true,cl:1,gov:true,alt:true,rbrake:false,nr:102,acol:true,cht:380}); return s; }
-MOD.r44={name:'Robinson R44 Raven I',sub:'1 moteur à pistons Lycoming O-540 · transmission par courroies et embrayage · commandes mécaniques',vb:'0 0 400 600',svg:body+parts+labels,names:NM,ctl,init,step,ev,page,ex,on,tours,preset,pages:['MOTEUR'],legend:['el','fu','ig','hot','ah','me','oil','ac','lt','fire'],presets:[['cold','Appareil froid'],['elec','Sous tension'],['run','Moteur en route']],
+const snd=(s,d)=>({fan:0,pist:s.run||s.crank>0?s.rpm:0,rot:s.nr/102,bf:13.6,motor:d.k.clMove||s.crank>0,hum:s.master?0.3:0});
+MOD.r44={snd,name:'Robinson R44 Raven I',sub:'1 moteur à pistons Lycoming O-540 · transmission par courroies et embrayage · commandes mécaniques',vb:'0 0 400 600',svg:body+parts+labels,names:NM,ctl,init,step,ev,page,ex,on,tours,preset,pages:['MOTEUR'],legend:['el','fu','ig','hot','ah','me','oil','ac','lt','fire'],presets:[['cold','Appareil froid'],['elec','Sous tension'],['run','Moteur en route']],
  ground:{on:s=>{ if(s.ground){ if(s.nr<99||!s.gov) return 'Régime rotor au vert et régulateur ON nécessaires.'; s.coll=1; s.ground=false; } else { s.coll=0; s.ground=true; } }}};
 })();
 
