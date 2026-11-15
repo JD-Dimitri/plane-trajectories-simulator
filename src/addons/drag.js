@@ -6,7 +6,7 @@
    ===================================================================================================== */
 (function(){
 'use strict';
-const IDS=['guide','abub','snd','atc','ped','fail','scn','qcm','help','hud'];
+const IDS=['guide','abub','snd','atc','ped','fail','scn','qcm','help','hud','exam'];
 const POS={}; let D=null, lastTap={id:null,t:0};
 const css=document.createElement('style'); css.textContent=`
 ${IDS.filter(i=>i!=='hud').map(i=>'#'+i).join(',')}{--grip:1}

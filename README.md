@@ -21,6 +21,10 @@ Il faut une connexion internet pour three.js et les polices (CDN).
 - **Modes** (exclusifs) : pédagogique guidé, automatique (observation), sans guide, vol libre, scénarios et pannes, QCM, radio ATC.
 - **Dossier de vol pas à pas** affiché avant le vol : modes expliqués, METAR décodé, tour avion, calculs détaillés (masse et centrage, carburant, V1/VR/V2, vent, descente).
 - **Mode automatique** : bulle par étape avec chronomètre, hiérarchie `PILOTER L'APPAREIL › PARTIE › ÉTAPE › SOUS-ÉTAPE n/N`, commandes encadrées en rouge et numérotées (vert quand c'est fait), sous-étape finale sur l'écran du résultat.
+- **Académie** (avant le simulateur) : cours débutant (l'avion et ses parties, comment il vole, moteurs, instruments, météo, navigation et radio, le métier de pilote), cours du simulateur (phases, calculs), le vrai pilotage (LAPL / PPL, médical, école, examen théorique à 9 épreuves, budget) et la reconversion vers pilote de ligne (médical classe 1, voies ENAC / cadets / intégré / modulaire, financement, formation). Questions en fin de module, progression gardée.
+- **Examen blanc** : vol complet sans aide, blocs et écrans encadrés `[ ? ]` sans nommer la commande, QCM d'aide après 30 s, questions de calcul (masse, carburant, VR, descente, VAPP) et de tour avion, décollage seulement si tout est validé (sinon épreuve éliminatoire), tableau ✓ / ✗ et bloc-notes final avec renvoi vers le dossier, le mode automatique ou le mode guidé de l'étape ratée.
+- **Scénarios guidés** (US Airways 1549, sécurité du poste après Germanwings 9525 — sans reconstitution du crash —, fuite carburant fictive, pannes) avec le même système de cadres rouges / verts numérotés.
+- **Bouton « Lancer »** sur chaque carte de mode du dossier : le parcours correspondant démarre directement.
 - **Son** 100 % synthétisé (Web Audio) : moteurs, rotors, vent, roulage, alarmes réelles, annonces radiosonde, équipage et cabine, météo, aéroport.
 - **Mobile** : image recentrée pour voir la piste, barre compacte, panneaux déplaçables et fermables, glisser pour changer de page.
 
@@ -32,9 +36,10 @@ Les valeurs marquées [ESTIMÉ] sont des approximations pédagogiques et les sys
 | --- | --- |
 | `index.html` | Le simulateur complet, prêt à publier (généré) |
 | `src/base.html` | Moteur du simulateur (monde, appareils, cockpit, guide, ATC, météo…) |
-| `src/addons/*.js` | Modules V7 : `audio`, `brief` (dossier pas à pas), `bubble` (bulle du mode automatique et fiabilité des étapes), `drag`, `close`, `view` (affichage mobile), `frames` (cadres numérotés, hiérarchie, pushback) |
+| `src/addons/*.js` | Modules : `audio`, `brief` (dossier pas à pas, boutons Lancer), `bubble` (bulle du mode automatique et fiabilité des étapes), `drag`, `close`, `view` (affichage mobile), `frames` (cadres numérotés, hiérarchie, pushback), `scn` (scénarios guidés), `exam` (examen blanc), `acad` (Académie) |
 | `tools/build.py` | Assemble `src/` en `index.html` |
 | `tests/auto_flight.py` | Vol complet automatique accéléré, détecte les blocages d'étape |
+| `tests/exam_blanc.py` | Examen blanc piloté par un élève simulé (`perfect` : réussite et décollage ; `wrong` : épreuve éliminatoire) |
 
 Après une modification dans `src/` :
 
@@ -51,12 +56,14 @@ cd tests && python3 -m http.server 8765 &
 python3 auto_flight.py a320     # puis lj60, h125, r44, s76
 ```
 
-Dernière vérification (V7.3) : vol automatique complet sans blocage sur les 5 appareils.
+Dernière vérification (V8.0) : examen blanc A320 complet réussi (25/25, décollage puis atterrissage et parking) et cas éliminatoire vérifié ; vol automatique complet sans blocage sur les 5 appareils (V7.3).
 
 ## Historique récent
 
 | Version | Changement |
 | --- | --- |
+| V8.0 | Examen blanc, Académie (cours débutant → brevet → reconversion), boutons « Lancer » sur les cartes du dossier |
+| V7.8 | Scénarios guidés avec cadres rouges / verts : US Airways 1549, sécurité du poste (Germanwings 9525), fuite carburant fictive, pannes |
 | V7.7 | Fin du repoussage dans l'axe de la voie : roulage vers l'avant, piste devant soi ; repoussage expliqué et accéléré ×4 en mode automatique |
 | V7.6 | Cadres rouges numérotés « sous-étape n/N » sur les commandes et écrans, bulle explicative, hiérarchie visible |
 | V7.5 | Piste et décor visibles sur téléphone, barre compacte, bouton « masquer écrans » |

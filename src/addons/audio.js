@@ -375,7 +375,7 @@ addEventListener('pointerdown',e=>{ if(!SND.ready||!SND.on) return; const el=e.t
   if(/knob|sel/.test(el.className||'')||el.tagName==='SELECT') { click(v*0.7,'prev'); setTimeout(()=>click(v*0.5,'prev'),40); } else { click(v,'prev'); if(/guard|mw|mc/.test(el.className||'')) burst('brown',0.08,'lowpass',300,0.3,'prev'); } },true);
 
 /* remise à zéro à chaque mission */
-SND.reset=function(){ Object.assign(ST,{ground:true,gear:S.gear,flap:S.flap,ap:false,mc:false,ra:9999,co:{},ph:MI&&MI.full?'pre':(S.onGround?'lineup':'climb'),cruiseT:0,apuN:0,tko:{},gi:-1,altBand:null,firstEng:false,engRun:[!!S.eng[0],!!S.eng[1]],lit:[false,false],pb:S.pbrake,tdT:0,rev:false,belts:null,jetT:now()+20,thunT:now()+8});
+SND.reset=function(){ Object.assign(ST,{ground:true,gear:S.gear,flap:S.flap,ap:false,mc:false,ra:9999,co:{},ph:MI&&MI.full?'pre':(S.onGround?'lineup':'climb'),cruiseT:0,apuN:0,tko:{},gi:-1,altBand:null,firstEng:false,engRun:[!!S.eng[0],!!S.eng[1]],lit:[false,false],pb:S.pbrake,tdT:0,rev:false,belts:null,jetT:(SND.ctx?now():0)+20,thunT:(SND.ctx?now():0)+8});
   if(SND.ready) SND.P.eng.forEach((e,i)=>{ e.n1=S.eng[i]?0.2:0; e.n2=S.eng[i]?0.7:0; }); if(window.speechSynthesis) speechSynthesis.cancel(); };
 
 /* ---------- banque de sons (écoute + explication) ---------- */

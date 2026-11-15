@@ -29,7 +29,7 @@ const css=document.createElement('style'); css.textContent=`
 #abub ul{list-style:none;padding:0;margin:6px 0}#abub li{padding:2px 0}#abub li.ok{color:var(--grn)}#abub li.cur{color:var(--am);font-weight:600}
 #abub .bar{height:5px;background:#132233;border-radius:3px;overflow:hidden;margin:6px 0 2px}#abub .bar i{display:block;height:100%;background:var(--am);transition:width .25s}
 #abub .af{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line);flex-wrap:wrap}#abub .af button{font-size:11px;padding:5px 9px}
-#abub.min .ab,#abub.min .af{display:none}
+#abub.min .ab,#abub.min .af{display:none}#abub.cmp.sg .af{display:flex!important}
 #abub.cmp{top:auto;bottom:calc(var(--barh,64px) + 6px);width:min(620px,calc(100vw - 20px))}#abub.cmp.tp{top:8px;bottom:auto}#abub.cmp .ab>*:not(.now):not(.bar):not(.subs):not(.crumb){display:none}#abub.cmp .subs li:not(.cur){display:none}#abub.cmp .af{display:none}#abub.cmp .ah{padding:6px 10px}#abub.cmp .an{flex-basis:32px;height:32px;font-size:16px}
 #ahl{position:fixed;z-index:30;max-width:280px;background:#2a0f2a;border:1px solid var(--acc);color:#fff;border-radius:9px;padding:8px 10px;font:500 12.5px/1.4 Inter;box-shadow:0 6px 24px #000b;pointer-events:none;animation:abIn2 .25s ease}
 #ahl b{display:block;font:700 13px 'Barlow Condensed';letter-spacing:.06em;color:var(--am)}#ahl:after{content:'';position:absolute;left:var(--ax,20px);width:12px;height:12px;background:#2a0f2a;transform:rotate(45deg)}
@@ -49,28 +49,29 @@ function nowText(st){ const el=(performance.now()-AUTO.t0)/1000;
   if(AUTO.stage==='act'&&c){ const airFly=st.fly&&!S.onGround;
     if(airFly&&!c.it[2]) return [`✈ Le pilote automatique vole : objectif « ${c.it[0]} ». Observez les écrans et l'extérieur.`,0.5];
     if(!c.it[2]) return [`⏳ Attente : « ${c.it[0]} » (le système travaille, en temps réel — l'accélération du temps est utilisée pendant les longues attentes).`,c.j/st.items.length];
-    return [`👆 Action en cours — sous-étape ${c.j+1}/${st.items.length+1} : <b>${c.it[0]}</b>${c.it[3]?' — la commande clignote, regardez où elle se trouve':''}.`,c.j/st.items.length]; }
+    return [`${window.SCNG&&SCNG.on&&!SCNG.demo?'👉 À vous':'👆 Action en cours'} — sous-étape ${c.j+1}/${st.items.length+1} : <b>${c.it[0]}</b>${c.it[3]?' — la commande clignote, regardez où elle se trouve':''}.`,c.j/st.items.length]; }
   if(AUTO.stage==='done') return ['✅ Étape terminée : passage à la suivante…',1];
   return ['…',0]; }
 function flightRow(){ try{ const ad=airdata(), d=MI.dest&&APTS[MI.dest]?gcKm(S.lat,S.lon,APTS[MI.dest].lat,APTS[MI.dest].lon):0, eta=ad.gs>30?d/1.852/ad.gs*3600:null;
   return `<div class="row3"><div><i>Altitude</i><b>${fmt(ad.alt,0)} ft</b></div><div><i>Vitesse</i><b>${fmt(Math.max(0,ad.cas),0)} kt</b></div><div><i>Vario</i><b>${(ad.vs>=0?'+':'')+fmt(ad.vs,0)}</b></div><div><i>Cap</i><b>${pad(ad.hdg)}°</b></div><div><i>Reste</i><b>${fmt(d,0)} km</b></div><div><i>Arrivée dans</i><b>${eta?ck(eta):'—'}</b></div></div>`; }catch(e){ return ''; } }
-function render(){ let b=$('abub'); const on=!window.ABUB_X&&AUTO.on&&GD.on&&$('menu').hidden&&!(document.getElementById('brief')&&!document.getElementById('brief').hidden);
+function render(){ let b=$('abub'); const SGO=!!(window.SCNG&&SCNG.on); const on=!window.ABUB_X&&!(window.EXAM&&EXAM.on)&&(AUTO.on||SGO)&&GD.on&&$('menu').hidden&&!(document.getElementById('brief')&&!document.getElementById('brief').hidden);
   if(!on){ if(b) b.hidden=true; hideHl(); return; }
   const st=GD.steps[GD.i]; if(!st) return; const N=GD.steps.length-1;
   if(GD.i!==BB.i){ BB.i=GD.i; BB.t0=performance.now(); BB.s0=simMs; if(!BB.m0){ BB.m0=performance.now(); BB.ms0=simMs; } if(b){ b.remove(); b=null; } }
   if(!b){ b=document.createElement('aside'); b.id='abub'; b.className='panel'+(BB.min?' min':''); document.body.appendChild(b);
     b.innerHTML=`<div class="ah"><span class="an"></span><div class="at"><span></span><b></b></div><div class="clk"></div><button type="button" class="mini" data-m title="Réduire / agrandir">–</button></div><div class="ab"></div><div class="af"><button type="button" data-p>❚❚ Pause</button><button type="button" data-s>Passer la lecture ▶</button><button type="button" data-d>📋 Page du dossier</button><button type="button" data-x>Reprendre la main</button></div>`;
     b.querySelector('[data-m]').onclick=()=>{ BB.min=!BB.min; b.classList.toggle('min',BB.min); };
-    b.querySelector('[data-p]').onclick=()=>{ AUTO.paused=!AUTO.paused; };
-    b.querySelector('[data-s]').onclick=()=>{ AUTO.stage='act'; AUTO.lastAct=0; };
-    b.querySelector('[data-d]').onclick=()=>{ if(window.BR){ BR.show(true,0); const k=BR.pages.findIndex(q=>q.si===GD.i); if(k>=0) document.querySelector(`#br-nav [data-go="${k}"]`).click(); } };
+    b.querySelector('[data-p]').onclick=()=>{ if(window.SCNG&&SCNG.on){ SCNG.doNow(); return; } AUTO.paused=!AUTO.paused; };
+    b.querySelector('[data-s]').onclick=()=>{ if(window.SCNG&&SCNG.on){ SCNG.demo=!SCNG.demo; return; } AUTO.stage='act'; AUTO.lastAct=0; };
+    b.querySelector('[data-d]').onclick=()=>{ if(window.SCNG&&SCNG.on){ try{ scnOpen(true); }catch(e){} return; } if(window.BR){ BR.show(true,0); const k=BR.pages.findIndex(q=>q.si===GD.i); if(k>=0) document.querySelector(`#br-nav [data-go="${k}"]`).click(); } };
     b.querySelector('[data-x]').onclick=()=>{ autoStart(false); flash('Mode automatique arrêté : à vous','am'); }; }
-  b.hidden=false; const panels=(!$('ovh').hidden)||($('ped')&&!$('ped').hidden); b.classList.toggle('cmp',panels&&!BB.min);
+  b.hidden=false; b.classList.toggle('sg',SGO); const panels=(!$('ovh').hidden)||($('ped')&&!$('ped').hidden); b.classList.toggle('cmp',(panels||window.PT_TARGET)&&!BB.min);
   if(!BB.gmin){ BB.gmin=1; const g=$('guide'); if(g) g.classList.add('min'); }
   const elR=(performance.now()-BB.t0)/1000, elS=(simMs-BB.s0)/1000, tot=(simMs-BB.ms0)/1000;
   b.querySelector('.an').textContent=GD.i; b.querySelector('.at span').textContent=`${st.ph} · étape ${GD.i} / ${N}`; b.querySelector('.at b').textContent=strip(st.t);
   b.querySelector('.clk').innerHTML=`⏱ ${ck(elR)}<small>${Math.abs(elS-elR)>2?'simulé '+ck(elS)+(rate>1?' (×'+rate+')':'')+' · ':''}vol ${ck(tot)}</small>`;
-  b.querySelector('[data-p]').textContent=AUTO.paused?'▶ Reprendre':'❚❚ Pause'; b.querySelector('[data-s]').hidden=AUTO.stage!=='read';
+  if(SGO){ b.querySelector('[data-p]').textContent='👆 Faire la sous-étape'; const ds=b.querySelector('[data-s]'); ds.hidden=false; ds.textContent=SCNG.demo?'❚❚ Arrêter la démonstration':'▶ Démonstration'; b.querySelector('[data-d]').textContent='⚠ Scénario'; b.querySelector('[data-x]').hidden=true; }
+  else { b.querySelector('[data-p]').textContent=AUTO.paused?'▶ Reprendre':'❚❚ Pause'; b.querySelector('[data-s]').hidden=AUTO.stage!=='read'; }
   const [nt,f]=nowText(st), x=window.BR&&BR.extraFor?BR.extraFor(st.t):{}, items=(st.items||[]).map(it=>{ let ok=false; try{ ok=it[1](); }catch(e){} return [it[0],ok]; }), c=curItem(st);
   let extra=''; if(st.walk&&view==='walk'){ const w=walkNow(); if(w&&BR.whyW){ const y=BR.whyW(w.p[2]); if(y) extra=`<div class="why"><b>Pourquoi ce point ?</b> ${y}</div>`; } }
   b.querySelector('.ab').innerHTML=`${window.PT?PT.crumb(st,GD.i):''}<div class="now">${nt}</div><div class="bar"><i style="width:${Math.round(Math.min(1,f||0)*100)}%"></i></div>

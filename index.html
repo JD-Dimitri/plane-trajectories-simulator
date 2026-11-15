@@ -3216,7 +3216,7 @@ addEventListener('pointerdown',e=>{ if(!SND.ready||!SND.on) return; const el=e.t
   if(/knob|sel/.test(el.className||'')||el.tagName==='SELECT') { click(v*0.7,'prev'); setTimeout(()=>click(v*0.5,'prev'),40); } else { click(v,'prev'); if(/guard|mw|mc/.test(el.className||'')) burst('brown',0.08,'lowpass',300,0.3,'prev'); } },true);
 
 /* remise à zéro à chaque mission */
-SND.reset=function(){ Object.assign(ST,{ground:true,gear:S.gear,flap:S.flap,ap:false,mc:false,ra:9999,co:{},ph:MI&&MI.full?'pre':(S.onGround?'lineup':'climb'),cruiseT:0,apuN:0,tko:{},gi:-1,altBand:null,firstEng:false,engRun:[!!S.eng[0],!!S.eng[1]],lit:[false,false],pb:S.pbrake,tdT:0,rev:false,belts:null,jetT:now()+20,thunT:now()+8});
+SND.reset=function(){ Object.assign(ST,{ground:true,gear:S.gear,flap:S.flap,ap:false,mc:false,ra:9999,co:{},ph:MI&&MI.full?'pre':(S.onGround?'lineup':'climb'),cruiseT:0,apuN:0,tko:{},gi:-1,altBand:null,firstEng:false,engRun:[!!S.eng[0],!!S.eng[1]],lit:[false,false],pb:S.pbrake,tdT:0,rev:false,belts:null,jetT:(SND.ctx?now():0)+20,thunT:(SND.ctx?now():0)+8});
   if(SND.ready) SND.P.eng.forEach((e,i)=>{ e.n1=S.eng[i]?0.2:0; e.n2=S.eng[i]?0.7:0; }); if(window.speechSynthesis) speechSynthesis.cancel(); };
 
 /* ---------- banque de sons (écoute + explication) ---------- */
@@ -3311,7 +3311,7 @@ const css=document.createElement('style'); css.textContent=`
 #brief .modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:10px}
 #brief .mode{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0a141e;display:flex;flex-direction:column;gap:6px}
 #brief .mode.sel{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset;background:#170b1b}
-#brief .mode h4{margin:0;font:700 19px 'Barlow Condensed'}#brief .mode .k{font:600 10px 'Barlow Condensed';letter-spacing:.12em;text-transform:uppercase;color:var(--cy)}
+#brief .mode .m-go{margin-top:auto;align-self:flex-start;background:var(--acc);color:#fff;border:0;border-radius:9px;padding:9px 14px;font:700 15px 'Barlow Condensed';letter-spacing:.06em;text-transform:uppercase;cursor:pointer}#brief .mode h4{margin:0;font:700 19px 'Barlow Condensed'}#brief .mode .k{font:600 10px 'Barlow Condensed';letter-spacing:.12em;text-transform:uppercase;color:var(--cy)}
 #brief .mode dl{margin:0;font-size:13px;display:grid;grid-template-columns:92px 1fr;gap:3px 8px}#brief .mode dt{color:var(--mut)}#brief .mode dd{margin:0}
 #brief .tl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}#brief .tl button{display:block;text-align:left;text-transform:none;letter-spacing:0;font:500 12.5px Inter;padding:9px;border-radius:9px;background:#0a141e;min-height:70px}
 #brief .tl button b{display:block;font:700 15px 'Barlow Condensed';color:#fff}#brief .tl button span{color:var(--mut)}
@@ -3349,6 +3349,14 @@ const MODES=[
   what:'L\'appareil est déjà aligné sur la piste (ou posé pour un hélicoptère), moteurs en marche. Pas de procédure au sol.',
   you:'Vous décollez et pilotez librement vers la destination ; radio, météo, pannes et scénarios restent disponibles.',
   help:'Choisir une mission « Vol libre » dans le menu.',who:'Travailler le pilotage, les approches, les pannes.'},
+ {id:'acad',k:'Avant tout',n:'Académie (cours)',ico:'📚',
+  what:'Le cours débutant (l\'avion, ses parties, le vol, les moteurs, les instruments, la météo, la navigation, le pilote), le cours du simulateur, puis le vrai brevet de pilote et la reconversion professionnelle.',
+  you:'Vous lisez les modules dans l\'ordre et répondez aux questions de fin de module ; la progression est gardée.',help:'Accessible aussi depuis le menu principal (« Académie »).',who:'Grands débutants, avant le premier vol.'},
+ {id:'exam',k:'Valider la théorie',n:'Parcours pilote — examen blanc',ico:'🎓',
+  what:'Le vol complet, de la visite extérieure à l\'atterrissage, mais sans aide : seuls les blocs et écrans à utiliser sont encadrés [ ? ]. Les calculs (masse, carburant, VR, descente, VAPP) et le tour avion sont des questions.',
+  you:'Vous trouvez et actionnez les bonnes commandes. Après 30 s sans la bonne action, un QCM d\'aide s\'ouvre : bonne réponse ✓ et la commande est montrée ; mauvaise ✗ et le tableau des étapes s\'affiche.',
+  help:'Toutes les étapes avant décollage validées → l\'avion décolle ; sinon épreuve éliminatoire. Le bloc-notes final renvoie chaque point raté vers le dossier, le mode automatique ou le mode guidé.',
+  who:'Après le mode automatique et au moins un vol guidé.'},
  {id:'scn',k:'Situations',n:'Scénarios et pannes',ico:'⚠',
   what:'Bouton « Scénarios » : situations fictives ou reconstitutions (briefing, critères de réussite, enregistrement 1 Hz, débriefing). Bouton « Pannes » : poste instructeur pour injecter une panne pendant n\'importe quel vol.',
   you:'Vous identifiez l\'alarme (sons, ECAM), appliquez la procédure, gérez la trajectoire.',help:'Les alarmes sonores sont expliquées dans l\'annexe « Les sons du vol ».',who:'Confirmé.'},
@@ -3470,8 +3478,8 @@ function modesHTML(){ const full=!!MI.full, cm=curMode();
   return `<p>Le simulateur propose plusieurs façons d'apprendre. Choisissez <b>avant le vol</b> comment vous voulez être accompagné : ${full?'touchez une des trois premières cartes pour la sélectionner (un seul mode à la fois).':'<b style="color:var(--am)">la mission choisie est un vol libre</b> : pas de procédure au sol ni de guide. Pour le parcours complet guidé : '+`<button type="button" data-full="1">Passer au parcours pilote complet</button>`}</p>
   <div class="modes">${MODES.map(m=>`<div class="mode ${full&&['guide','auto','free'].includes(m.id)&&cm===m.id?'sel':''}" ${full&&['guide','auto','free'].includes(m.id)?`data-mode="${m.id}" role="button" tabindex="0" style="cursor:pointer"`:''}>
     <span class="k">${m.k}</span><h4>${m.ico} ${m.n}</h4><p style="margin:0;font-size:13.5px">${m.what}</p>
-    <dl><dt>Vous</dt><dd>${m.you}</dd><dt>Aides</dt><dd>${m.help}</dd><dt>Pour qui</dt><dd>${m.who}</dd></dl></div>`).join('')}</div>
-  <h3>Comment progresser</h3><ol><li><b>Lire ce dossier</b> une fois en entier (≈ 15 min) : chaque page correspond à une étape numérotée du guide.</li><li><b>Mode automatique</b> : regarder un vol complet en écoutant les annonces.</li><li><b>Mode guidé</b> : refaire le vol vous-même, le guide coche vos actions.</li><li><b>Sans guide</b>, puis avec des <b>pannes</b> et des <b>scénarios</b>.</li><li>Valider avec le <b>QCM</b>.</li></ol>
+    <dl><dt>Vous</dt><dd>${m.you}</dd><dt>Aides</dt><dd>${m.help}</dd><dt>Pour qui</dt><dd>${m.who}</dd></dl><button type="button" class="m-go" data-launch="${m.id}">🚀 Lancer ${m.n.replace(/\s*\(.*\)/,'')} ▸</button></div>`).join('')}</div>
+  <h3>Comment progresser</h3><ol><li><b>Lire ce dossier</b> une fois en entier (≈ 15 min) : chaque page correspond à une étape numérotée du guide.</li><li><b>Mode automatique</b> : regarder un vol complet en écoutant les annonces.</li><li><b>Mode guidé</b> : refaire le vol vous-même, le guide coche vos actions.</li><li><b>Sans guide</b>, puis avec des <b>pannes</b> et des <b>scénarios</b>.</li><li>Valider avec le <b>QCM</b>.</li><li>Passer l'<b>examen blanc</b> : sans aide, décollage seulement si tout est validé.</li></ol>
   <div class="box snd"><b class="t">Le son fait partie de l'apprentissage</b>Un pilote entend une panne avant de la lire. Montez le volume (ou mettez un casque) : moteurs, vent, pluie, alarmes, annonces de l'équipage et de l'avion sont simulés en direct. Réglages : bouton « 🔊 Son » de la barre. L'annexe « Les sons du vol » permet de les écouter un par un. <br><button type="button" class="snd-b" data-snd="chime">🔊 Tester : single chime</button><button type="button" class="snd-b" data-snd="callouts">🔊 Tester : annonces radiosonde</button></div>`; }
 function overviewHTML(steps){ const groups=[]; steps.forEach((s,i)=>{ let g=groups[groups.length-1]; if(!g||g.ph!==s.ph){ g={ph:s.ph,items:[]}; groups.push(g); } g.items.push([i,s]); });
   return `<p>Voici tout le vol, du minibus jusqu'à l'avion stationné à l'arrivée. ${steps.length} étapes numérotées de 0 à ${steps.length-1} — <b>les mêmes numéros</b> que le panneau du guide pendant le vol. Cliquez une phase pour y aller.</p>
@@ -3535,7 +3543,8 @@ function dom(){ let b=$('brief'); if(b) return b; b=document.createElement('sect
   swipe(b);
   $('br-prev').onclick=()=>go(BR.i-1); $('br-next').onclick=()=>go(BR.i+1); $('br-x').onclick=close; $('br-go').onclick=launch; $('br-skip').onclick=launch; $('br-snd').onclick=()=>SND.panel&&SND.panel();
   $('brief-nav-t').onclick=()=>b.classList.toggle('nav'); $('br-all').onclick=()=>{ BR.all=!BR.all; $('br-all').classList.toggle('on',BR.all); render(); };
-  b.addEventListener('click',e=>{ const t=e.target.closest('[data-go],[data-snd],[data-mode],[data-full]'); if(!t) return;
+  b.addEventListener('click',e=>{ const t=e.target.closest('[data-launch],[data-go],[data-snd],[data-mode],[data-full]'); if(!t) return;
+    if(t.dataset.launch){ e.stopPropagation(); launchMode(t.dataset.launch); return; }
     if(t.dataset.go!=null){ BR.all=false; $('br-all').classList.remove('on'); go(+t.dataset.go); }
     else if(t.dataset.snd){ SND.unlock&&SND.unlock(); setTimeout(()=>SND.play(t.dataset.snd),60); }
     else if(t.dataset.mode){ setMode(t.dataset.mode); render(); }
@@ -3564,6 +3573,19 @@ function go(i){ if(i<0||i>=BR.pages.length) return; BR.i=i; render(); }
 function prep(){ if(!BR.fromSim){ ACK=selAC; A=AC[ACK]; MI=MISSIONS[selMI]; } buildPages(); }
 function show(fromSim,page){ BR.fromSim=!!fromSim; if(fromSim){ BR.wasPaused=paused; paused=true; } prep(); BR.i=page||0; BR.all=false; dom().hidden=false; $('br-all').classList.remove('on'); render(); try{ SND.unlock&&SND.unlock(); }catch(e){} }
 function close(){ const b=$('brief'); if(b) b.hidden=true; if(BR.fromSim){ paused=BR.wasPaused; } }
+// bouton « Lancer » de chaque carte : démarre directement le parcours correspondant
+function launchMode(id){ const fw=(AC[selAC]||A).kind==='fw', full=fw?'full-fw':'full-rw', libre=fw?'jfk-cdg':'heli-ny';
+  if(BR.fromSim){ BR.fromSim=false; paused=false; }
+  let m='guide';
+  if(['guide','auto','free','exam'].includes(id)){ if(!MISSIONS[selMI]||!MISSIONS[selMI].full) selMI=full; m=id==='exam'?'guide':id; window.EXAM_PENDING=id==='exam'; }
+  else if(id==='libre'){ selMI=libre; m='free'; }
+  else if(id==='scn'||id==='radio'){ if(!MISSIONS[selMI]) selMI=libre; m=curMode(); }
+  else if(id==='acad'){ const b=$('brief'); if(b) b.hidden=true; if(window.ACAD) ACAD.open(); return; }
+  else if(id==='qcm'){ const b=$('brief'); if(b) b.hidden=true; try{ qcmOpen(); }catch(e){} return; }
+  try{ renderMenu(); }catch(e){} setMode(m); launch();
+  if(id==='scn') setTimeout(()=>{ try{ scnOpen(true); }catch(e){} },600);
+  if(id==='radio') setTimeout(()=>{ try{ atcOpen(true); }catch(e){} },600); }
+BR.launchMode=launchMode;
 function launch(){ const b=$('brief'); if(BR.fromSim){ close(); return; } if(b) b.hidden=true; try{ SND.unlock&&SND.unlock(); }catch(e){} startMission(); }
 BR.show=show; BR.close=close; BR.extraFor=extraFor; BR.whyW=whyW; BR.PHX=PHX;
 
@@ -3619,7 +3641,7 @@ const css=document.createElement('style'); css.textContent=`
 #abub ul{list-style:none;padding:0;margin:6px 0}#abub li{padding:2px 0}#abub li.ok{color:var(--grn)}#abub li.cur{color:var(--am);font-weight:600}
 #abub .bar{height:5px;background:#132233;border-radius:3px;overflow:hidden;margin:6px 0 2px}#abub .bar i{display:block;height:100%;background:var(--am);transition:width .25s}
 #abub .af{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line);flex-wrap:wrap}#abub .af button{font-size:11px;padding:5px 9px}
-#abub.min .ab,#abub.min .af{display:none}
+#abub.min .ab,#abub.min .af{display:none}#abub.cmp.sg .af{display:flex!important}
 #abub.cmp{top:auto;bottom:calc(var(--barh,64px) + 6px);width:min(620px,calc(100vw - 20px))}#abub.cmp.tp{top:8px;bottom:auto}#abub.cmp .ab>*:not(.now):not(.bar):not(.subs):not(.crumb){display:none}#abub.cmp .subs li:not(.cur){display:none}#abub.cmp .af{display:none}#abub.cmp .ah{padding:6px 10px}#abub.cmp .an{flex-basis:32px;height:32px;font-size:16px}
 #ahl{position:fixed;z-index:30;max-width:280px;background:#2a0f2a;border:1px solid var(--acc);color:#fff;border-radius:9px;padding:8px 10px;font:500 12.5px/1.4 Inter;box-shadow:0 6px 24px #000b;pointer-events:none;animation:abIn2 .25s ease}
 #ahl b{display:block;font:700 13px 'Barlow Condensed';letter-spacing:.06em;color:var(--am)}#ahl:after{content:'';position:absolute;left:var(--ax,20px);width:12px;height:12px;background:#2a0f2a;transform:rotate(45deg)}
@@ -3639,28 +3661,29 @@ function nowText(st){ const el=(performance.now()-AUTO.t0)/1000;
   if(AUTO.stage==='act'&&c){ const airFly=st.fly&&!S.onGround;
     if(airFly&&!c.it[2]) return [`✈ Le pilote automatique vole : objectif « ${c.it[0]} ». Observez les écrans et l'extérieur.`,0.5];
     if(!c.it[2]) return [`⏳ Attente : « ${c.it[0]} » (le système travaille, en temps réel — l'accélération du temps est utilisée pendant les longues attentes).`,c.j/st.items.length];
-    return [`👆 Action en cours — sous-étape ${c.j+1}/${st.items.length+1} : <b>${c.it[0]}</b>${c.it[3]?' — la commande clignote, regardez où elle se trouve':''}.`,c.j/st.items.length]; }
+    return [`${window.SCNG&&SCNG.on&&!SCNG.demo?'👉 À vous':'👆 Action en cours'} — sous-étape ${c.j+1}/${st.items.length+1} : <b>${c.it[0]}</b>${c.it[3]?' — la commande clignote, regardez où elle se trouve':''}.`,c.j/st.items.length]; }
   if(AUTO.stage==='done') return ['✅ Étape terminée : passage à la suivante…',1];
   return ['…',0]; }
 function flightRow(){ try{ const ad=airdata(), d=MI.dest&&APTS[MI.dest]?gcKm(S.lat,S.lon,APTS[MI.dest].lat,APTS[MI.dest].lon):0, eta=ad.gs>30?d/1.852/ad.gs*3600:null;
   return `<div class="row3"><div><i>Altitude</i><b>${fmt(ad.alt,0)} ft</b></div><div><i>Vitesse</i><b>${fmt(Math.max(0,ad.cas),0)} kt</b></div><div><i>Vario</i><b>${(ad.vs>=0?'+':'')+fmt(ad.vs,0)}</b></div><div><i>Cap</i><b>${pad(ad.hdg)}°</b></div><div><i>Reste</i><b>${fmt(d,0)} km</b></div><div><i>Arrivée dans</i><b>${eta?ck(eta):'—'}</b></div></div>`; }catch(e){ return ''; } }
-function render(){ let b=$('abub'); const on=!window.ABUB_X&&AUTO.on&&GD.on&&$('menu').hidden&&!(document.getElementById('brief')&&!document.getElementById('brief').hidden);
+function render(){ let b=$('abub'); const SGO=!!(window.SCNG&&SCNG.on); const on=!window.ABUB_X&&!(window.EXAM&&EXAM.on)&&(AUTO.on||SGO)&&GD.on&&$('menu').hidden&&!(document.getElementById('brief')&&!document.getElementById('brief').hidden);
   if(!on){ if(b) b.hidden=true; hideHl(); return; }
   const st=GD.steps[GD.i]; if(!st) return; const N=GD.steps.length-1;
   if(GD.i!==BB.i){ BB.i=GD.i; BB.t0=performance.now(); BB.s0=simMs; if(!BB.m0){ BB.m0=performance.now(); BB.ms0=simMs; } if(b){ b.remove(); b=null; } }
   if(!b){ b=document.createElement('aside'); b.id='abub'; b.className='panel'+(BB.min?' min':''); document.body.appendChild(b);
     b.innerHTML=`<div class="ah"><span class="an"></span><div class="at"><span></span><b></b></div><div class="clk"></div><button type="button" class="mini" data-m title="Réduire / agrandir">–</button></div><div class="ab"></div><div class="af"><button type="button" data-p>❚❚ Pause</button><button type="button" data-s>Passer la lecture ▶</button><button type="button" data-d>📋 Page du dossier</button><button type="button" data-x>Reprendre la main</button></div>`;
     b.querySelector('[data-m]').onclick=()=>{ BB.min=!BB.min; b.classList.toggle('min',BB.min); };
-    b.querySelector('[data-p]').onclick=()=>{ AUTO.paused=!AUTO.paused; };
-    b.querySelector('[data-s]').onclick=()=>{ AUTO.stage='act'; AUTO.lastAct=0; };
-    b.querySelector('[data-d]').onclick=()=>{ if(window.BR){ BR.show(true,0); const k=BR.pages.findIndex(q=>q.si===GD.i); if(k>=0) document.querySelector(`#br-nav [data-go="${k}"]`).click(); } };
+    b.querySelector('[data-p]').onclick=()=>{ if(window.SCNG&&SCNG.on){ SCNG.doNow(); return; } AUTO.paused=!AUTO.paused; };
+    b.querySelector('[data-s]').onclick=()=>{ if(window.SCNG&&SCNG.on){ SCNG.demo=!SCNG.demo; return; } AUTO.stage='act'; AUTO.lastAct=0; };
+    b.querySelector('[data-d]').onclick=()=>{ if(window.SCNG&&SCNG.on){ try{ scnOpen(true); }catch(e){} return; } if(window.BR){ BR.show(true,0); const k=BR.pages.findIndex(q=>q.si===GD.i); if(k>=0) document.querySelector(`#br-nav [data-go="${k}"]`).click(); } };
     b.querySelector('[data-x]').onclick=()=>{ autoStart(false); flash('Mode automatique arrêté : à vous','am'); }; }
-  b.hidden=false; const panels=(!$('ovh').hidden)||($('ped')&&!$('ped').hidden); b.classList.toggle('cmp',panels&&!BB.min);
+  b.hidden=false; b.classList.toggle('sg',SGO); const panels=(!$('ovh').hidden)||($('ped')&&!$('ped').hidden); b.classList.toggle('cmp',(panels||window.PT_TARGET)&&!BB.min);
   if(!BB.gmin){ BB.gmin=1; const g=$('guide'); if(g) g.classList.add('min'); }
   const elR=(performance.now()-BB.t0)/1000, elS=(simMs-BB.s0)/1000, tot=(simMs-BB.ms0)/1000;
   b.querySelector('.an').textContent=GD.i; b.querySelector('.at span').textContent=`${st.ph} · étape ${GD.i} / ${N}`; b.querySelector('.at b').textContent=strip(st.t);
   b.querySelector('.clk').innerHTML=`⏱ ${ck(elR)}<small>${Math.abs(elS-elR)>2?'simulé '+ck(elS)+(rate>1?' (×'+rate+')':'')+' · ':''}vol ${ck(tot)}</small>`;
-  b.querySelector('[data-p]').textContent=AUTO.paused?'▶ Reprendre':'❚❚ Pause'; b.querySelector('[data-s]').hidden=AUTO.stage!=='read';
+  if(SGO){ b.querySelector('[data-p]').textContent='👆 Faire la sous-étape'; const ds=b.querySelector('[data-s]'); ds.hidden=false; ds.textContent=SCNG.demo?'❚❚ Arrêter la démonstration':'▶ Démonstration'; b.querySelector('[data-d]').textContent='⚠ Scénario'; b.querySelector('[data-x]').hidden=true; }
+  else { b.querySelector('[data-p]').textContent=AUTO.paused?'▶ Reprendre':'❚❚ Pause'; b.querySelector('[data-s]').hidden=AUTO.stage!=='read'; }
   const [nt,f]=nowText(st), x=window.BR&&BR.extraFor?BR.extraFor(st.t):{}, items=(st.items||[]).map(it=>{ let ok=false; try{ ok=it[1](); }catch(e){} return [it[0],ok]; }), c=curItem(st);
   let extra=''; if(st.walk&&view==='walk'){ const w=walkNow(); if(w&&BR.whyW){ const y=BR.whyW(w.p[2]); if(y) extra=`<div class="why"><b>Pourquoi ce point ?</b> ${y}</div>`; } }
   b.querySelector('.ab').innerHTML=`${window.PT?PT.crumb(st,GD.i):''}<div class="now">${nt}</div><div class="bar"><i style="width:${Math.round(Math.min(1,f||0)*100)}%"></i></div>
@@ -3710,7 +3733,7 @@ const _sm=startMission; startMission=function(){ BB.i=-1; BB.m0=0; BB.gmin=0; BB
    ===================================================================================================== */
 (function(){
 'use strict';
-const IDS=['guide','abub','snd','atc','ped','fail','scn','qcm','help','hud'];
+const IDS=['guide','abub','snd','atc','ped','fail','scn','qcm','help','hud','exam'];
 const POS={}; let D=null, lastTap={id:null,t:0};
 const css=document.createElement('style'); css.textContent=`
 ${IDS.filter(i=>i!=='hud').map(i=>'#'+i).join(',')}{--grip:1}
@@ -3882,13 +3905,16 @@ PT.scrFor=l=>/BAT|EXT PWR|GEN|ELEC|APU/i.test(l)?'sd':/ENG|N1|N2|EGT|MASTER|IGN|
 /* ---------- où se trouve la commande ---------- */
 function defOf(kind,id){ try{ if(kind==='sw'){ for(const col of OVH[ACK].secs) for(const [t,items] of col) for(const it of items) if(it[0]===id) return {sec:t,l:it[1]}; }
   if(kind==='pd'){ for(const [t,items] of PED[ACK]) for(const it of items) if(it[0]===id) return {sec:t,l:it[1]}; } }catch(e){} return null; }
-PT.where=sel=>{ const m=/data-(sw|pd|f)="([^"]+)"/.exec(sel||''); if(!m) return ''; const d=defOf(m[1],m[2]);
+PT.el=function(sel){ if(!sel) return null; let all=[]; try{ all=[...document.querySelectorAll(sel)]; }catch(e){ return null; } if(!all.length) return null;
+  const vis=all.find(e=>{ const t=e.closest('.sw')||e; return t.offsetParent!==null&&!e.closest('[hidden]'); }); if(vis) return vis;
+  if(sel.startsWith('[data-pd')){ const p=all.find(e=>e.closest('#ped')); if(p) return p; } return all.find(e=>e.closest('#ovh'))||all[0]; };
+PT.where=sel=>{ if(/^#atc/.test(sel||'')) return 'Panneau Radio (bouton « Radio »)'; if(/^#f-/.test(sel||'')) return 'Bandeau FCU (au-dessus des écrans)'; const m=/data-(sw|pd|f)="([^"]+)"/.exec(sel||''); if(!m) return ''; const d=defOf(m[1],m[2]);
   return m[1]==='sw'?`Panneau plafond${d?' › '+d.sec:''}`:m[1]==='pd'?`${A.kind==='fw'?'Pédestal':'Console'}${d?' › '+d.sec:''}`:'Bandeau FCU (au-dessus des écrans)'; };
 PT.help=sel=>{ const m=/data-(sw|pd|f)="([^"]+)"/.exec(sel||''); return m&&typeof H320!=='undefined'&&ACK==='a320'&&H320[m[2]]?H320[m[2]]:''; };
 const SCRN={pfd:'Écran PFD (pilotage : assiette, vitesse, altitude)',nd:'Écran ND (navigation : route, carte)',ewd:'Écran moteurs (E/WD : N1, EGT, N2, volets)',sd:'Écran systèmes (SD : électricité, APU, carburant)',panel:'Planche de bord'};
 PT.scrName=k=>SCRN[k]||SCRN.panel;
 /* ---------- sous-étapes numérotées d'une étape ---------- */
-PT.subs=function(st){ const out=(st.items||[]).map((it,j)=>{ let ok=false; try{ ok=!!it[1](); }catch(e){} const sel=it[3]&&!/^#mcdu/.test(it[3])?it[3]:null, scr=sel?null:PT.scrFor(it[0]);
+PT.subs=function(st){ const out=(st.items||[]).map((it,j)=>{ let ok=false; try{ ok=!!it[1](); }catch(e){} const sel=it[3]&&!/^#mcdu/.test(it[3])?it[3]:null, scr=sel?null:(it[4]||PT.scrFor(it[0])||st.scr||null);
     return {n:j+1,l:it[0],ok,sel,scr,where:sel?PT.where(sel):scr?PT.scrName(scr):(st.calc?'Calcul papier (panneau du guide)':st.walk?'À pied, autour de l\'appareil':'Commandes de vol'),help:sel?PT.help(sel):''}; });
   const r=PT.result(st), all=out.every(s=>s.ok); out.push({n:out.length+1,l:'Résultat : '+r.t,ok:all&&AUTO.stage==='done',scr:r.scr,final:true,where:r.scr?PT.scrName(r.scr):''}); return out; };
 PT.current=subs=>subs.find(s=>!s.ok&&!s.final)||subs[subs.length-1];
@@ -3937,15 +3963,21 @@ function ensurePanels(subs,cur){ // ouvrir le panneau de la sous-étape courante
   if(want==='ovh'&&opened.ped&&$('ped')&&!$('ped').hidden&&innerWidth<900){ $('ped').hidden=true; $('b-ped').classList.remove('on'); opened.ped=false; }
   if(!need.ovh&&opened.ovh){ $('ovh').hidden=true; ovhPinned=false; $('b-ovh').classList.remove('on'); opened.ovh=false; }
   if(!need.ped&&opened.ped&&$('ped')){ $('ped').hidden=true; $('b-ped').classList.remove('on'); opened.ped=false; }
-  if(cur&&cur.sel){ const el=document.querySelector(cur.sel); const t=el&&(el.closest('.sw')||el); if(t&&t!==PT._sc){ PT._sc=t; try{ t.scrollIntoView({block:'center',inline:'nearest'}); }catch(e){} } } }
+  if(cur&&cur.sel&&cur.sel.startsWith('#atc')&&$('atc')&&$('atc').hidden){ try{ atcOpen(true); }catch(e){} }
+  if(cur&&cur.sel&&cur.sel.startsWith('[data-sw')){ const e0=PT.el(cur.sel), z=e0&&e0.closest('.zone320'); if(z&&z.hidden&&typeof a320Tab==='function') a320Tab(z.dataset.zone); }
+  if(cur&&cur.sel){ const el=PT.el(cur.sel); const t=el&&(el.closest('.sw')||el); if(t&&t!==PT._sc){ PT._sc=t; try{ t.scrollIntoView({block:'center',inline:'nearest'}); }catch(e){} } } }
 let frames=[];
-function draw(){ const on=AUTO.on&&GD.on&&!paused&&$('menu').hidden&&!(document.getElementById('brief')&&!$('brief').hidden)&&view!=='walk';
-  if(!on){ lay.innerHTML=''; frames=[]; if(!AUTO.on){ if(opened.ovh){ opened.ovh=false; } if(opened.ped){ opened.ped=false; } } return; }
+function draw(){ const on=(AUTO.on||(window.SCNG&&SCNG.on))&&GD.on&&!paused&&$('menu').hidden&&!(document.getElementById('brief')&&!$('brief').hidden)&&view!=='walk';
+  if(!on){ window.PT_TARGET=false; lay.innerHTML=''; frames=[]; if(!AUTO.on){ if(opened.ovh){ opened.ovh=false; } if(opened.ped){ opened.ped=false; } } return; }
   const st=GD.steps[GD.i]; if(!st) return; const subs=PT.subs(st), cur=PT.current(subs); ensurePanels(subs,cur);
   const shown=(r,ok,all)=>{ const pts=[[0.5,0.5],[0.25,0.3],[0.75,0.7]]; return pts[all?'every':'some'](([fx,fy])=>{ const x=r.left+r.width*fx, y=r.top+r.height*fy; if(x<0||y<0||x>innerWidth||y>innerHeight) return false; const h=document.elementFromPoint(x,y); return h&&ok(h); }); };   // pas de cadre sur une commande ou un écran caché par un panneau
-  { const ab=$('abub'); const rc=cur.sel?visible(document.querySelector(cur.sel)):cur.scr?PT.scrRect(cur.scr):null; if(ab&&rc&&ab.classList.contains('cmp')) ab.classList.toggle('tp',rc.top+rc.height/2>innerHeight*0.5); }
+  { const e1=cur.sel?PT.el(cur.sel):null, r1=e1?visible(e1):cur.scr?PT.scrRect(cur.scr):null;   // un panneau secondaire cache la commande à actionner : on le ferme
+    if(r1){ const h=document.elementFromPoint(r1.left+r1.width/2,r1.top+r1.height/2), pn=h&&h.closest('#atc,#guide,#fail,#qcm,#help,#scn,#snd');
+      if(pn&&!(cur.sel&&cur.sel.startsWith('#'+pn.id))){ if(pn.id==='atc') atcOpen(false); else if(pn.id==='fail') failOpen(false); else if(pn.id==='scn') scnOpen(false); else pn.hidden=true; } } }
+  { const ab=$('abub'); const rc=cur.sel?visible(PT.el(cur.sel)):cur.scr?PT.scrRect(cur.scr):null; window.PT_TARGET=!!rc; if(ab&&rc&&ab.classList.contains('cmp')) ab.classList.toggle('tp',rc.top+rc.height/2>innerHeight*0.5); }
+  const EXM=!!(window.EXAM&&EXAM.on&&!EXAM.reveal);   // examen blanc : on encadre le BLOC, pas la commande
   const want=[]; subs.forEach(s=>{ let r=null;
-    if(s.sel){ const el=document.querySelector(s.sel); r=visible(el); const t=el&&(el.closest('.sw')||el); if(r&&!shown(r,h=>t.contains(h)||h.contains(t))) r=null; }
+    if(s.sel){ const el=PT.el(s.sel); r=visible(el); let t=el&&(el.closest('.sw')||el); if(r&&EXM){ const b=el.closest('.sec')||el.closest('.panel')||t; t=b; r=b.getBoundingClientRect(); } if(r&&!shown(r,h=>t.contains(h)||h.contains(t))) r=null; }
     else if(s.scr){ r=PT.scrRect(s.scr); if(r&&!shown(r,h=>h.id==='ckc',true)) r=null; }
     if(r) want.push({s,r}); });
   // plusieurs sous-étapes sur le même écran : on regroupe les numéros sur un seul cadre
@@ -3956,14 +3988,14 @@ function draw(){ const on=AUTO.on&&GD.on&&!paused&&$('menu').hidden&&!(document.
     Object.assign(d.style,{left:(g.r.left-p)+'px',top:(g.r.top-p)+'px',width:(g.r.width+2*p)+'px',height:(g.r.height+2*p)+'px'});
     d.className='fr'+(isCur?' cur':'')+(ok?' ok':'')+(fin?' fin':'');
     const N=subs.length; d.querySelector('i').textContent=g.list.map(s=>s.final?'✓ '+s.n+'/'+N:s.n+'/'+N).join(' · ');
-    const lab=isCur?cur:g.list.find(s=>!s.ok)||g.list[0]; d.querySelector('b').textContent=(lab.final?'Vérifier : ':'')+lab.l.replace(/^Résultat : /,''); }); tip(groups,subs,cur);
+    const lab=isCur?cur:g.list.find(s=>!s.ok)||g.list[0]; d.querySelector('b').textContent=EXM?(lab.sel?'[ ? ] bloc à utiliser':lab.scr?'[ ? ] écran à surveiller':'[ ? ]'):(lab.final?'Vérifier : ':'')+lab.l.replace(/^Résultat : /,''); }); tip(groups,subs,cur,EXM);
   const ab=$('abub'), gc=groups.find(x=>x.list.includes(cur)); if(ab&&gc&&ab.classList.contains('cmp')) ab.classList.toggle('tp',gc.r.top+gc.r.height/2>innerHeight*0.5); }
 const SCRH={pfd:'Regardez l\'horizon artificiel (assiette), la bande de vitesse à gauche, l\'altitude à droite, le vario.',nd:'Regardez la route (trait), votre avion (triangle), la distance et le cap.',
   ewd:'Regardez les moteurs : N1, EGT (température), N2 ; les volets et les messages en bas.',sd:'Regardez la page système : batteries, générateurs, APU, carburant.',panel:'Regardez les instruments de la planche de bord.'};
-function tip(groups,subs,cur){ let t=lay.querySelector('.tip'); const st=GD.steps[GD.i], g=groups.find(x=>x.list.includes(cur));
+function tip(groups,subs,cur,EXM){ let t=lay.querySelector('.tip'); const st=GD.steps[GD.i], g=groups.find(x=>x.list.includes(cur));
   if(!g){ if(t) t.remove(); return; } if(!t){ t=document.createElement('div'); t.className='tip'; lay.appendChild(t); }
   const N=subs.length, sc=cur.scr||(cur.final?PT.result(st).scr:null);
-  t.className='tip'+(cur.final?' fin':''); t.innerHTML=`<div class="h"><span>${cur.final?'✓ ':''}${cur.n}/${N}</span>${cur.final?'SOUS-ÉTAPE FINALE':'SOUS-ÉTAPE'}</div><b>${cur.final?PT.result(st).t:cur.l}</b>${cur.help?`<small>${cur.help}</small>`:''}${!cur.sel&&sc?`<small>${SCRH[sc]||''}</small>`:''}${cur.where?`<small>📍 ${cur.where}</small>`:''}`;
+  t.className='tip'+(cur.final&&!EXM?' fin':''); t.innerHTML=EXM?`<div class="h"><span>${cur.n}/${N}</span>EXAMEN BLANC</div><b>[ ? ] Trouvez la bonne commande dans ce bloc</b><small>Étape : ${st.t}</small>`:`<div class="h"><span>${cur.final?'✓ ':''}${cur.n}/${N}</span>${cur.final?'SOUS-ÉTAPE FINALE':'SOUS-ÉTAPE'}</div><b>${cur.final?PT.result(st).t:cur.l}</b>${cur.help?`<small>${cur.help}</small>`:''}${!cur.sel&&sc?`<small>${SCRH[sc]||''}</small>`:''}${cur.where?`<small>📍 ${cur.where}</small>`:''}`;
   const r=g.r, W=t.offsetWidth, H=t.offsetHeight, up=r.top>H+24; const x=Math.min(innerWidth-W-6,Math.max(6,r.left+r.width/2-W/2));
   t.style.left=x+'px'; t.style.top=(up?r.top-H-16:Math.min(innerHeight-H-6,r.top+r.height+16))+'px'; t.classList.add(up?'up':'dn'); t.style.setProperty('--ax',Math.max(10,Math.min(W-24,r.left+r.width/2-x-6))+'px'); }
 PT._tip=tip;
@@ -3996,6 +4028,538 @@ PT.crumb=function(st,i){ const p=PT.partOf(i), subs=PT.subs(st), cur=PT.current(
     if(Math.abs(err)<0.12){ aligned=true; return _ta(dt); }
     if(!TX.turnMsg){ TX.turnMsg=true; flash('Le tracteur oriente l\'avion dans l\'axe de la voie','am'); }
     S.V=0; S.thr=0; S.psi=wrapPi(S.psi+Math.sign(err)*Math.min(Math.abs(err),0.22*dt)); return true; }; })();
+
+</script>
+<script>
+/* =====================================================================================================
+   V7.8 — SCÉNARIOS GUIDÉS : MÊME SYSTÈME D'ÉTAPES ET DE SOUS-ÉTAPES ENCADRÉES (ROUGE → VERT)
+   Chaque scénario reçoit sa procédure : [SCÉNARIO] › [PARTIE A Détecter / B Agir / C Stabiliser] › [ÉTAPE] › [SOUS-ÉTAPE n/N].
+   Les commandes à actionner sont encadrées en rouge et numérotées, passent au vert quand c'est fait ; la sous-étape finale
+   encadre l'écran du résultat. Vous pilotez ; « Faire » exécute la sous-étape en cours, « Démonstration » enchaîne seul.
+   Procédures pédagogiques simplifiées, d'après les check-lists publiques et le champ « attendu » de chaque scénario [SIMULÉ].
+   ===================================================================================================== */
+(function(){
+'use strict';
+const SG=window.SCNG={on:false,demo:false,run:null,doneT:0,lastDemo:0};
+const S_=id=>`[data-sw="${id}"]`, P_=id=>`[data-pd="${id}"]`, CALL='#atc [data-a="call"]';
+const sw=(id,v)=>()=>{ SYS[id]=v; try{ sysEffect(id); }catch(e){} try{ ovhSync(); }catch(e){} try{ a320Sync(); }catch(e){} };
+const pd=(id,v)=>()=>{ try{ pedSet(id,v); }catch(e){} try{ pedSync(); }catch(e){} };
+const cas=()=>{ try{ return airdata().cas; }catch(e){ return 0; } }, alt=()=>{ try{ return airdata().alt; }catch(e){ return 0; } }, agl=()=>{ try{ return aglFt(); }catch(e){ return 0; } };
+const L=()=>(typeof SCN!=='undefined'&&SCN.log)||{};
+const fl=n=>()=>{ const f=A.flaps[S.flap]; return !!f&&String(f.n)===String(n); };
+const callEmer=()=>{ try{ atcOpen(true); if(!ATC.q.some(x=>x.k==='emer')) atcEmergency(['mayday','emergency','situation d\'urgence']); }catch(e){} const tryCall=n=>{ if(L().mayday) return; const rb=document.querySelector('#atc [data-a="rb"]'), b=document.querySelector(CALL); if(rb&&!rb.disabled) rb.click(); else if(b&&!b.disabled) b.click(); if(n>0) setTimeout(()=>tryCall(n-1),900); }; setTimeout(()=>tryCall(14),400); };
+SG.callEmer=callEmer;
+const mayday=['MAYDAY : appeler le contrôle (Radio › Appeler)',()=>!!L().mayday,callEmer,CALL];
+const altFcu=v=>[`FCU : altitude ${fmt(v,0)} ft`,()=>AP.alt<=v,()=>{ AP.alt=v; AP.on=true; try{ fcuSync(); }catch(e){} },'#f-alt'];
+// [libellé, vérification, action (facultative), sélecteur de la commande (facultatif)] ; sans sélecteur → cadre sur l'écran concerné
+const P={
+ US1549:[
+  {part:'A',ph:'Détecter',t:'Impact d\'oiseaux : sauver l\'électricité',txt:'Les deux moteurs perdent leur poussée à 2 800 ft. Premier réflexe (NTSB) : démarrer l\'APU tout de suite pour garder l\'électricité et la loi normale.',res:'APU en démarrage : loi normale et protections conservées.',scr:'sd',items:[
+   ['APU MASTER SW : ON',()=>!!SYS.apuMaster,sw('apuMaster',true),S_('apuMaster')],['APU START',()=>!!(SYS.apuStart||SYS.apuAvail||SYS.apuStartBtn),sw('apuStartBtn',true),S_('apuStartBtn')],
+   ['ENG MODE : IGN START (rallumage)',()=>SYS.engMode==='IGN START',pd('engMode','IGN START'),P_('engMode')]]},
+  {part:'B',ph:'Agir',t:'Planer et prévenir',txt:'Sans moteur, l\'avion devient un planeur : tenir la vitesse de meilleure finesse (≈ « green dot », environ 210 kt) et déclarer la détresse.',res:'Plané stabilisé, contrôle prévenu.',scr:'pfd',items:[
+   ['Vitesse ≈ 210 kt (meilleure finesse)',()=>cas()>190&&cas()<230,null,null],mayday]},
+  {part:'C',ph:'Stabiliser',t:'Préparer l\'amerrissage',txt:'Le retour à LaGuardia est impossible : amerrissage sur l\'Hudson. Fermer les vannes basses, volets 2, train rentré.',res:'Configuré pour l\'amerrissage : volets 2, train rentré, vannes fermées.',scr:'ewd',items:[
+   ['DITCHING : ON',()=>!!SYS.ditch,sw('ditch',true),S_('ditch')],['Volets 2',fl(2),pd('flapL','2'),P_('flapL')],['Train : RENTRÉ (UP)',()=>!S.gear,pd('gearL','UP'),P_('gearL')]]},
+  {part:'C',ph:'Stabiliser',t:'Amerrissage',txt:'Assiette ≈ 10° au contact, ailes horizontales, taux de chute le plus faible possible.',res:'Amerrissage terminé.',scr:'pfd',items:[['Contact avec l\'eau, assiette ≈ 10°',()=>!!L().ditch||S.onGround,null,null]]}],
+ 'F-FIRE':[
+  {part:'A',ph:'Détecter',t:'Décollage : aucune action sous 400 ft',txt:'Le feu se déclare en montée initiale. Règle : on ne touche à rien sous 400 ft, on vole d\'abord.',res:'Feu moteur 1 identifié au-dessus de 400 ft.',scr:'ewd',items:[
+   ['Poussée TOGA',()=>SYS.thrSel==='TOGA'||!S.onGround,pd('thrSel','TOGA'),P_('thrSel')],['En vol, train rentré',()=>!S.onGround&&!S.gear,()=>{ if(!S.onGround) pedSet('gearL','UP'); },P_('gearL')],
+   ['Gong + ENG 1 FIRE (attendre)',()=>!!(FAIL.fire1||SYS.fire1),null,null]]},
+  {part:'B',ph:'Agir',t:'ENG 1 FIRE : procédure ECAM',txt:'Couper le moteur 1, tirer la poignée FIRE, décharger l\'extincteur, prévenir le contrôle. (Manette 1 au ralenti : non simulée séparément.)',res:'Feu éteint, moteur 1 sécurisé.',scr:'ewd',items:[
+   ['ENG MASTER 1 : OFF',()=>!SYS.master1,pd('master1',false),P_('master1')],['ENG 1 FIRE P/B : PUSH',()=>!!SYS.fire1,sw('fire1',true),S_('fire1')],['AGENT 1 : DISCH',()=>!!SYS.ag11,sw('ag11',true),S_('ag11')],mayday]},
+  {part:'C',ph:'Stabiliser',t:'Sécuriser la trajectoire, retour JFK',txt:'Pilote automatique, au moins 1 000 ft sol, puis retour vers JFK.',res:'Avion stabilisé, retour vers JFK.',scr:'pfd',items:[
+   ['AP1 engagé',()=>!!AP.on,()=>{ try{ fcuCmd('ap'); }catch(e){} },'[data-f="ap"]'],['Hauteur ≥ 1 000 ft sol',()=>agl()>1000,null,null]]}],
+ 'F-DEPRESS':[
+  {part:'A',ph:'Détecter',t:'Croisière : surveiller la cabine',txt:'À 35 000 ft, le temps de conscience utile ne dure que quelques dizaines de secondes.',res:'Dépressurisation identifiée : agir immédiatement.',scr:'ewd',items:[['Alarme cabine (attendre)',()=>!!FAIL.depress,null,null]]},
+  {part:'B',ph:'Agir',t:'Masques puis descente d\'urgence',txt:'Masques équipage d\'abord (geste réel, non simulé), puis descendre vers 10 000 ft, 7700, MAYDAY.',res:'Descente d\'urgence engagée, contrôle prévenu.',scr:'pfd',items:[
+   altFcu(10000),['Descente engagée',()=>(S.gam||0)<-0.03,null,null],['Transpondeur 7700',()=>String(SYS.xpdrCode)==='7700',sw('xpdrCode',7700),S_('xpdrCode')],mayday]},
+  {part:'C',ph:'Stabiliser',t:'Rejoindre 10 000 ft',txt:'Vitesse sous VMO/MMO, descente jusqu\'à l\'altitude respirable.',res:'Altitude respirable atteinte.',scr:'pfd',items:[['Altitude ≤ 10 000 ft',()=>alt()<10300,null,null]]}],
+ 'F-ELEC':[
+  {part:'A',ph:'Détecter',t:'Croisière : perte des génératrices',txt:'Les deux génératrices tombent : la RAT sort, seule la génératrice de secours alimente l\'essentiel.',res:'ELEC EMER CONFIG identifiée.',scr:'ewd',items:[['Panne GEN 1 + GEN 2 (attendre)',()=>!!(FAIL.gen1&&FAIL.gen2),null,null]]},
+  {part:'B',ph:'Agir',t:'Descendre sous le FL250',txt:'L\'APU ne démarre sur batteries que sous le FL250 : descendre d\'abord.',res:'Sous le FL250 : APU démarrable.',scr:'pfd',items:[altFcu(24000),['Altitude < 25 000 ft',()=>alt()<25000,null,null]]},
+  {part:'C',ph:'Stabiliser',t:'Démarrer l\'APU, rétablir l\'AC',txt:'APU MASTER, START, puis la génératrice de l\'APU rétablit l\'alternatif.',res:'Courant alternatif rétabli par l\'APU.',scr:'ewd',items:[
+   ['APU MASTER SW : ON',()=>!!SYS.apuMaster,sw('apuMaster',true),S_('apuMaster')],['APU START',()=>!!(SYS.apuStart||SYS.apuAvail||SYS.apuStartBtn),sw('apuStartBtn',true),S_('apuStartBtn')],
+   ['AC rétabli (APU AVAIL)',()=>!!(typeof E320!=='undefined'&&E320.anyAC),null,null]]}],
+ 'F-ICE':[
+  {part:'A',ph:'Détecter',t:'Vitesse incohérente',txt:'La sonde Pitot du commandant givre : sa vitesse devient fausse. Comparer PFD 1, PFD 2 et l\'instrument de secours.',res:'Source de vitesse fausse identifiée.',scr:'pfd',items:[['Comparer les vitesses (PFD 1 / PFD 2)',()=>!!FAIL.pitot,null,null]]},
+  {part:'B',ph:'Agir',t:'Assiette et poussée, antigivrage, commutation',txt:'Piloter à l\'assiette et à la poussée connues, mettre l\'antigivrage, remplacer la source fausse par l\'ADR 3.',res:'Vitesse fiable rétablie, antigivrage en service.',scr:'pfd',items:[
+   ['Assiette ≈ 5°, poussée constante (AP OFF)',()=>!AP.on,null,null],['WING ANTI ICE : ON',()=>!!SYS.wingAI,sw('wingAI',true),S_('wingAI')],['PROBE/WINDOW HEAT : ON',()=>!!SYS.probe,sw('probe',true),S_('probe')],
+   ['AIR DATA : CAPT 3',()=>SYS.airData==='CAPT 3',sw('airData','CAPT 3'),S_('airData')]]}],
+ 'F-TCAS':[
+  {part:'A',ph:'Détecter',t:'Trafic signalé (TA)',txt:'« TRAFFIC, TRAFFIC » : repérer le trafic sur le ND, ne pas manœuvrer sur un TA.',res:'Trafic repéré.',scr:'nd',items:[['Trafic affiché (attendre)',()=>typeof TCAS!=='undefined'&&!!(TCAS.ta||TCAS.ra||L().raT),null,null]]},
+  {part:'B',ph:'Agir',t:'Suivre la RA',txt:'Suivre l\'ordre (zone verte du vario) en moins de 5 s, jamais à l\'opposé ; informer le contrôle « TCAS RA ».',res:'RA suivie.',scr:'pfd',items:[['RA reçue et suivie',()=>!!L().raT,null,null]]},
+  {part:'C',ph:'Stabiliser',t:'Clear of conflict',txt:'Après « CLEAR OF CONFLICT », revenir à la clairance.',res:'Conflit résolu, retour au niveau.',scr:'pfd',items:[['Fin du conflit',()=>!!L().raT&&!(typeof TCAS!=='undefined'&&TCAS.ra),null,null]]}],
+ 'F-LJENG':[
+  {part:'A',ph:'Détecter',t:'Décollage',txt:'Le moteur gauche s\'arrête à 100 ft.',res:'Panne moteur gauche identifiée.',scr:'pfd',items:[['En vol',()=>!S.onGround,null,null],['Panne moteur gauche (attendre)',()=>!!FAIL.eng1,null,null]]},
+  {part:'B',ph:'Agir',t:'Tenir V2, nettoyer',txt:'Palonnier pour la symétrie, V2, train rentré, volets rentrés à 1 000 ft.',res:'Configuration minimale de traînée.',scr:'pfd',items:[
+   ['Train : RENTRÉ',()=>!S.gear,pd('gearL','UP'),P_('gearL')],['Vitesse ≥ V2',()=>cas()>=(A.V2||A.Vr+6),null,null],['Volets rentrés',()=>S.flap===0,()=>{ S.flap=0; },P_('flapL')]]},
+  {part:'C',ph:'Stabiliser',t:'Monter à 1 500 ft, retour',txt:'Monter à 1 500 ft sol puis revenir se poser.',res:'1 500 ft atteints sur un moteur.',scr:'pfd',items:[['Hauteur ≥ 1 500 ft',()=>agl()>1500,null,null]]}],
+ 'F-H125':[
+  {part:'A',ph:'Détecter',t:'Montée',txt:'La turbine s\'arrête vers 800 ft au-dessus de Manhattan.',res:'Panne moteur identifiée.',scr:'panel',items:[['Panne moteur (klaxon, attendre)',()=>!!FAIL.engH,null,null]]},
+  {part:'B',ph:'Agir',t:'Autorotation',txt:'Collectif en bas IMMÉDIATEMENT pour garder le régime rotor, puis vitesse d\'autorotation.',res:'Autorotation établie.',scr:'panel',items:[
+   ['Collectif EN BAS',()=>(S.coll||0)<0.15,()=>{ S.coll=0; },null],['Régime rotor dans le vert',()=>(S.nr||0)>0.95,null,null],['Vitesse ≈ 65 kt',()=>cas()>50&&cas()<85,null,null]]},
+  {part:'C',ph:'Stabiliser',t:'Arrondi et posé',txt:'Arrondi vers 50 ft, puis collectif pour amortir le posé.',res:'Posé.',scr:'panel',items:[['Posé',()=>S.onGround,null,null]]}],
+ 'F-R44':[
+  {part:'A',ph:'Détecter',t:'Croisière de nuit',txt:'Le voyant ALT s\'allume : la batterie seule alimente tout.',res:'Panne d\'alternateur identifiée.',scr:'panel',items:[['Voyant ALT (attendre)',()=>!!FAIL.genGA0,null,null]]},
+  {part:'B',ph:'Agir',t:'Délester',txt:'Couper ce qui consomme sans être indispensable : le phare d\'abord.',res:'Consommation réduite.',scr:'panel',items:[['Phare d\'atterrissage : OFF',()=>!SYS.landL||SYS.landL==='OFF',sw('landL',false),S_('landL')]]},
+  {part:'C',ph:'Stabiliser',t:'Se poser au plus tôt',txt:'Choisir un terrain éclairé proche et se poser avant l\'épuisement de la batterie.',res:'Posé avant la décharge.',scr:'panel',items:[['Posé',()=>S.onGround,null,null]]}],
+ 'F-S76':[
+  {part:'A',ph:'Détecter',t:'Montée',txt:'Le moteur 1 s\'arrête à 500 ft.',res:'Panne d\'un moteur identifiée.',scr:'panel',items:[['Panne moteur 1 (attendre)',()=>!!FAIL.engH2,null,null]]},
+  {part:'B',ph:'Agir',t:'Réduire la puissance demandée',txt:'Vitesse de meilleur taux, collectif raisonnable pour ne pas faire chuter le régime.',res:'Vol stabilisé sur un moteur.',scr:'panel',items:[['Vitesse ≈ 75 kt',()=>cas()>62&&cas()<90,null,null],['Collectif modéré',()=>(S.coll||0)<0.7,null,null]]},
+  {part:'C',ph:'Stabiliser',t:'Poser sur un moteur',txt:'Approche plate, posé roulé si possible.',res:'Posé sur un moteur.',scr:'panel',items:[['Posé',()=>S.onGround,null,null]]}]};
+const PARTS={A:'DÉTECTER',B:'AGIR',C:'STABILISER'};
+function steps(id){ const st=(P[id]||[]).map(s=>Object.assign({},s,{items:s.items.map(it=>{ const c=it[1]; let done=false; return [it[0],()=>{ if(done) return true; try{ done=!!c(); }catch(e){} return done; },it[2],it[3]]; })})); return st; }
+SG.steps=steps;
+/* hiérarchie des scénarios pour les cadres et la bulle */
+const _parts=PT.parts, _theme=PT.theme, _result=PT.result;
+PT.parts=function(st){ st=st||GD.steps||[]; if(!st.length||!st[0].part) return _parts(st); const out=[]; st.forEach((s,i)=>{ let p=out.find(x=>x.k===s.part); if(!p){ p={k:s.part,n:PARTS[s.part]||s.part,d:'',i0:i,i1:i}; out.push(p); } p.i1=i; }); return out; };
+PT.theme=()=>SG.on&&SCN.cur?'SCÉNARIO · '+SCN.cur.name.replace(/\s*\(.*\)$/,'').replace(/ — .*/,''):_theme();
+PT.result=st=>st.res?{t:st.res,scr:st.scr||null}:_result(st);
+/* exécution */
+function stop(){ if(!SG.on) return; SG.on=false; SG.demo=false; GD.on=false; GD.steps=SG.prevSteps||GD.steps; const b=$('abub'); if(b) b.remove(); try{ renderGuide(); }catch(e){} }
+function start(){ const id=SCN.cur.id; SG.run=SCN.t0+':'+id; SG.prevSteps=GD.steps; GD.steps=SG.steps(id); GD.i=0; GD.on=true; GD.peda=false; GD.seen=GD.seen||new Set(); AUTO.stage='act'; SG.on=true; SG.demo=false; SG.doneT=0; window.ABUB_X=false;
+  try{ renderGuide(); }catch(e){} flash('Scénario guidé : suivez les cadres rouges numérotés','am'); }
+SG.doNow=function(){ const st=GD.steps[GD.i]; if(!st) return; const it=st.items.find(x=>{ try{ return !x[1](); }catch(e){ return false; } }); if(it&&it[2]){ try{ it[2](); }catch(e){} } else if(it) flash('À vous : '+it[0],'am'); };
+setInterval(()=>{ try{
+  const active=typeof SCN!=='undefined'&&SCN.run&&!SCN.ended&&SCN.cur&&SG.steps(SCN.cur.id).length;
+  if(!active){ stop(); return; }
+  if(SG.run!==SCN.t0+':'+SCN.cur.id) start();
+  if(paused||AUTO.on) return;
+  const st=GD.steps[GD.i]; if(!st) return; const all=st.items.every(x=>{ try{ return x[1](); }catch(e){ return false; } });
+  if(all){ AUTO.stage='done'; if(!SG.doneT) SG.doneT=performance.now(); if(performance.now()-SG.doneT>2200&&GD.i<GD.steps.length-1){ SG.doneT=0; AUTO.stage='act'; goStep(GD.i+1); } }
+  else { AUTO.stage='act'; SG.doneT=0;
+    if(SG.demo&&performance.now()-SG.lastDemo>2400){ const it=st.items.find(x=>{ try{ return !x[1](); }catch(e){ return false; } }); if(it&&it[2]){ SG.lastDemo=performance.now(); try{ it[2](); }catch(e){} } } }
+}catch(e){ console.warn('scénario guidé',e); } },400);
+})();
+/* V7.8 — nouveaux scénarios guidés : sécurité du poste (leçons du vol 9525, sans reconstitution) et fuite carburant (fictif) ;
+   cartes du menu US Airways 1549 / Germanwings 9525 / Scénario fictif activées. */
+(function(){
+'use strict';
+const SG=window.SCNG, S_=id=>`[data-sw="${id}"]`;
+SG.clicked={}; SG.flags={}; SG.stepT=0;
+addEventListener('click',e=>{ const t=e.target.closest&&e.target.closest('[data-sw],[data-pd]'); if(t) SG.clicked[t.dataset.sw||t.dataset.pd]=performance.now(); },true);
+setInterval(()=>{ if(SG.on&&typeof SYS!=='undefined'&&SYS.door==='UNLOCK') SG.flags.unlocked=true; },300);
+const inStep=s=>()=>SG.stepT&&performance.now()-SG.stepT>s*1000;
+const sw=(id,v)=>()=>{ SYS[id]=v; try{ sysEffect(id); }catch(e){} try{ a320Sync(); }catch(e){} try{ ovhSync(); }catch(e){} };
+const mayday=['Prévenir le contrôle (Radio › Appeler)',()=>!!(SCN.log&&SCN.log.mayday),()=>SG.callEmer(),'#atc [data-a="call"]'];
+SCNS.push(
+ {id:'GW-SEC',cat:'A',ac:'a320',name:'Sécurité du poste de pilotage — leçons du vol 9525 (BEA 2016, AESA 2015)',
+  context:'Module de sécurité : procédures de sortie et de retour au poste, contrôle de la porte, surveillance croisée. AUCUN élément de l\'accident n\'est rejoué, par respect pour les 150 victimes.',
+  wx:'Croisière, hors nuages.',phase:'Croisière FL350, pilote automatique engagé.',triggers:'t = 0 : le commandant doit quitter le poste quelques minutes.',fails:'Aucune panne.',
+  auto:'Aucun.',expected:'Faire venir un membre d\'équipage dans le poste avant de sortir (règle des deux personnes recommandée par l\'AESA en 2015), garder la porte en NORM, autoriser l\'accès au retour puis remettre en NORM, surveiller la trajectoire.',
+  ref:[['Commission européenne — rapport du groupe de travail AESA sur le vol 9525 (2015)','https://transport.ec.europa.eu/news-events/news/european-aviation-commission-releases-task-forces-report-germanwings-incident-2016-09-22_en'],['BEA — « Germanwings 4U 9525: Flying With Mental Disorder », ISASI 2016','https://isasi.org/Documents/library/technical-papers/2016/Thurs/BEA_Paper-Germanwings_ISASI_2016_vf.pdf']],
+  seed:9525,limit:600,base:'jfk-cdg',cruise:true,
+  init(){ SG.clicked={}; SG.flags={}; SYS.door='NORM'; },
+  eval(){ return [['Membre d\'équipage appelé avant la sortie',!!SG.clicked.callFwd,SG.clicked.callFwd?'oui':'non'],['Accès autorisé puis porte remise en NORM',!!SG.flags.unlocked&&SYS.door==='NORM',SYS.door],['Altitude sélectionnée conforme (FL350)',AP.alt===35000,fmt(AP.alt,0)+' ft']]; },
+  debrief:'Après l\'accident, l\'AESA a recommandé en 2015 la présence permanente de deux personnes dans le poste, ainsi qu\'une évaluation psychologique des pilotes avant leur embauche. Le rapport final du BEA (mars 2016) porte surtout sur le suivi médical des pilotes et la détection des troubles psychiques. La porte blindée protège le poste ; les procédures d\'accès et la surveillance mutuelle de l\'équipage complètent cette protection.'},
+ {id:'F-FUEL',cat:'A',ac:'a320',name:'Fuite de carburant au-dessus de l\'Atlantique (fictif)',context:'Croisière transatlantique ; le carburant diminue plus vite que prévu.',wx:'Croisière.',phase:'Croisière FL350.',
+  triggers:'t = 20 s : fuite de carburant (≈ 3 t/h).',fails:'FUEL F.USED/FOB DISAGREE.',auto:'Aucun.',expected:'Reconnaître l\'écart carburant, laisser X FEED fermé, prévenir le contrôle, se dérouter vers le terrain le plus proche.',seed:303,limit:900,base:'jfk-cdg',cruise:true,
+  init(){ SCN.trig=[{t:20,f:()=>failSet('fuelLeak',true)}]; },
+  eval(L){ return [['Contrôle prévenu',!!L.mayday,L.mayday?'oui':'non'],['X FEED resté fermé',!SYS.xfeed,SYS.xfeed?'OUVERT (aggrave la fuite)':'fermé']]; },
+  debrief:'Une fuite se détecte par le suivi carburant : écart entre carburant utilisé et carburant à bord. Ouvrir l\'intercommunication (X FEED) ferait perdre aussi le carburant du côté sain.'});
+const P2={
+ 'GW-SEC':[
+  {part:'A',pn:'PRÉPARER',ph:'Préparer',t:'Avant de quitter le poste',txt:'Règle des deux personnes : avant de sortir, on fait venir un membre d\'équipage dans le poste. La porte reste en NORM (accès d\'urgence possible par le clavier).',res:'Deux personnes dans le poste, porte en NORM.',scr:'pfd',items:[
+   ['Appeler un PNC (interphone CALLS › FWD)',()=>!!SG.clicked.callFwd,()=>{ SG.clicked.callFwd=performance.now(); try{ callChime&&0; }catch(e){} },S_('callFwd')],['COCKPIT DOOR : NORM',()=>SYS.door==='NORM',sw('door','NORM'),S_('door')]]},
+  {part:'B',pn:'CONTRÔLER L\'ACCÈS',ph:'Contrôler',t:'Retour du commandant : autoriser l\'accès',txt:'Le buzzer sonne : identifier la personne (caméra, interphone), autoriser avec le sélecteur UNLOCK, puis le remettre en NORM.',res:'Accès autorisé, porte revenue en NORM.',scr:'sd',items:[
+   ['COCKPIT DOOR : UNLOCK (autoriser)',()=>!!SG.flags.unlocked,sw('door','UNLOCK'),S_('door')],['COCKPIT DOOR : NORM',()=>!!SG.flags.unlocked&&SYS.door==='NORM',sw('door','NORM'),S_('door')]]},
+  {part:'C',pn:'SURVEILLER',ph:'Surveiller',t:'Surveillance croisée de la trajectoire',txt:'Chaque pilote vérifie les changements faits par l\'autre : altitude sélectionnée, vitesse, cap. Une modification non annoncée se questionne immédiatement.',res:'Trajectoire conforme à la clairance.',scr:'pfd',items:[
+   ['Altitude FCU conforme : FL350',()=>AP.alt===35000,()=>{ AP.alt=35000; try{ fcuSync(); }catch(e){} },'#f-alt'],['Vérifier PFD et ND (6 s)',inStep(6),null,null,'nd']]}],
+ 'F-FUEL':[
+  {part:'A',ph:'Détecter',t:'Suivi carburant',txt:'Toutes les heures, on compare le carburant à bord au plan. Ici l\'écart grandit vite.',res:'Fuite de carburant identifiée.',scr:'ewd',items:[['Écart carburant (attendre)',()=>!!FAIL.fuelLeak,null,null,'ewd']]},
+  {part:'B',ph:'Agir',t:'Procédure FUEL LEAK',txt:'Ne pas ouvrir l\'intercommunication, prévenir le contrôle, préparer le déroutement.',res:'Fuite isolée, contrôle prévenu.',scr:'sd',items:[['X FEED : FERMÉ',()=>!SYS.xfeed,sw('xfeed',false),S_('xfeed')],mayday]},
+  {part:'C',ph:'Stabiliser',t:'Se dérouter',txt:'Descendre vers le terrain le plus proche (Gander, Shannon…) avec la réserve qui reste.',res:'Déroutement engagé.',scr:'nd',items:[['FCU : altitude 25 000 ft',()=>AP.alt<=25000,()=>{ AP.alt=25000; AP.on=true; try{ fcuSync(); }catch(e){} },'#f-alt']]}]};
+const _steps=SG.steps; SG.steps=id=>{ if(!P2[id]) return _steps(id); return P2[id].map(s=>Object.assign({},s,{items:s.items.map(it=>{ const c=it[1]; let done=false; return [it[0],()=>{ if(done) return true; try{ done=!!c(); }catch(e){} return done; },it[2],it[3],it[4]]; })})); };
+// les procédures de P2 doivent aussi être reconnues comme « scénario guidé »
+const _parts=PT.parts; PT.parts=function(st){ st=st||GD.steps||[]; const out=_parts(st); if(st.length&&st[0].pn) out.forEach(p=>{ const s=st[p.i0]; if(s&&s.pn) p.n=s.pn; }); return out; };
+// chronomètre d'étape pour les vérifications temporisées
+let lastI=-1; setInterval(()=>{ if(SG.on&&GD.i!==lastI){ lastI=GD.i; SG.stepT=performance.now(); } if(!SG.on) lastI=-1; },200);
+// cartes du menu
+const MAP={'sc-1549':'US1549','sc-9525':'GW-SEC','sc-fict':'F-FUEL'};
+const fix=()=>{ if(typeof MISSIONS==='undefined') return; MISSIONS['sc-1549'].soon=false; MISSIONS['sc-1549'].d='Amerrissage sur l\'Hudson (2009) : scénario guidé, étapes encadrées.';
+  MISSIONS['sc-9525'].soon=false; MISSIONS['sc-9525'].n='Germanwings 9525 · sécurité du poste'; MISSIONS['sc-9525'].d='Leçons du BEA et de l\'AESA : porte du poste, règle des deux personnes, surveillance croisée. Le crash n\'est pas rejoué.';
+  MISSIONS['sc-fict'].soon=false; MISSIONS['sc-fict'].n='Scénario fictif · fuite carburant A320'; MISSIONS['sc-fict'].d='Croisière JFK → Paris : fuite de carburant, procédure et déroutement guidés.'; };
+fix(); try{ renderMenu(); }catch(e){}
+const goB=$('go'), _go=goB.onclick; goB.onclick=function(){ const id=MAP[selMI]; if(id){ $('menu').hidden=true; paused=false; scnStart(id); try{ SCN.view='run'; scnOpen(true,'run'); }catch(e){} return; } return _go.apply(this,arguments); };
+})();
+
+</script>
+<script>
+/* ===== PARCOURS PILOTE — EXAMEN BLANC =====
+   Même vol complet que le mode automatique, mais c'est l'élève qui agit :
+   - les blocs / écrans à utiliser sont encadrés [ ? ] sans dire quelle commande actionner ;
+   - au bout de 30 s sans la bonne action, un QCM d'aide s'ouvre (bonne réponse → ✓, la commande est montrée ; mauvaise → ✗ + tableau) ;
+   - les calculs (masse, carburant, VR, descente, VAPP) et le tour avion sont des questions d'examen ;
+   - décollage seulement si toutes les étapes avant décollage sont validées, sinon épreuve éliminatoire ;
+   - bloc-notes final : chaque point non validé renvoie au dossier, au mode automatique ou au mode guidé, puis on repasse l'examen. */
+(function(){
+const EX=window.EXAM={on:false,res:[],det:[],reveal:false,cleared:false,gate:false,modal:false,stepI:-1,itemKey:'',itemT:0,qs:[],qT:0,lastAct:0,trig:new Set(),t0:0,final:false};
+const HELP_S=30;
+const css=document.createElement('style'); css.textContent=`
+#exam{position:fixed;left:10px;top:64px;max-height:60vh;overflow:auto;z-index:27;width:min(330px,calc(100vw - 20px));background:#0b131bf2;border:1px solid #e04ad8;border-radius:12px;padding:10px 12px;color:var(--tx);font:14px 'Inter',system-ui,sans-serif;box-shadow:0 8px 30px #000a}
+#exam .eh{padding-right:36px;display:flex;align-items:center;gap:8px;font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#e04ad8}
+#exam .eh span{margin-left:auto;font:700 18px 'JetBrains Mono',monospace;color:#fff;letter-spacing:0}
+#exam .et{font:700 17px 'Barlow Condensed',sans-serif;margin:4px 0 2px;line-height:1.15}#exam .ep{color:var(--mut);font-size:12px}
+#exam .eb{height:5px;background:#1c2a38;border-radius:3px;margin:7px 0;overflow:hidden}#exam .eb i{display:block;height:100%;background:#ffb020;width:0}
+#exam .ec{display:flex;gap:10px;font:600 13px 'JetBrains Mono',monospace;margin:4px 0}#exam .ec .g{color:#3ddc84}#exam .ec .r{color:#ff4a3d}
+#exam .ei{font-size:13px;color:#ffd0d0;background:#2a0d0d;border:1px solid #ff2b2b;border-radius:8px;padding:6px 8px;margin:6px 0}
+#exam .ebt{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}#exam button,#exq button,#exn button{background:#132232;color:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:600 13px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+@media (max-width:700px){#exam{top:auto;bottom:118px;padding:8px 10px}#exam .eh span{font-size:15px}#exam .ep{display:none}#exam .et{font-size:15px}#exam .ebt button{padding:5px 8px;font-size:12px}}
+#exam.min .et,#exam.min .ep,#exam.min .eb,#exam.min .ei,#exam.min .etb{display:none}
+.etb{max-height:38vh;overflow:auto;margin-top:6px}.etb table{width:100%;border-collapse:collapse;font-size:12.5px}.etb td{padding:4px 5px;border-top:1px solid #1c2a38;vertical-align:top}
+.etb td.s{width:34px;text-align:center;font-weight:700}.etb tr.ok td.s,.etb tr.aide td.s{color:#3ddc84}.etb tr.ko td.s{color:#ff4a3d}.etb tr.ko td{background:#2a0d0d}.etb tr.cur td{outline:1px solid #ffb020}.etb small{color:var(--mut)}
+#exq{position:fixed;inset:0;z-index:60;background:#000a;display:flex;align-items:flex-end;justify-content:center;padding:10px}
+#exq .q{width:min(560px,100%);max-height:92vh;overflow:auto;background:#0b131b;border:2px solid #ffb020;border-radius:14px;padding:14px;color:var(--tx);font:15px 'Inter',system-ui,sans-serif}
+#exq .k{font:700 12px 'Barlow Condensed',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#ffb020}#exq h3{font:700 21px 'Barlow Condensed',sans-serif;margin:4px 0 6px}
+#exq .ctx{color:var(--mut);font-size:13.5px;margin-bottom:8px}#exq .o{display:block;width:100%;text-align:left;margin:6px 0;padding:11px 12px!important;font:600 15px 'Inter',system-ui,sans-serif!important;text-transform:none!important;letter-spacing:0!important}
+#exq .o.good{border-color:#3ddc84;background:#0d2a18}#exq .o.bad{border-color:#ff4a3d;background:#2a0d0d}
+#exq .fb{margin:8px 0;padding:8px 10px;border-radius:8px}#exq .fb.g{background:#0d2a18;border:1px solid #3ddc84}#exq .fb.r{background:#2a0d0d;border:1px solid #ff4a3d}
+#exq .go{background:#e04ad8!important;border:0!important;margin-top:6px}#exq .idk{opacity:.8}
+#exn{position:fixed;inset:0;z-index:61;background:#050a10f5;overflow:auto;padding:14px;color:var(--tx);font:15px 'Inter',system-ui,sans-serif}
+#exn .w{max-width:760px;margin:0 auto}#exn h2{font:700 28px 'Barlow Condensed',sans-serif;margin:6px 0}#exn .v{font:700 20px 'Barlow Condensed',sans-serif;padding:10px 12px;border-radius:10px;margin:8px 0}
+#exn .v.ok{background:#0d2a18;border:1px solid #3ddc84;color:#3ddc84}#exn .v.ko{background:#2a0d0d;border:1px solid #ff4a3d;color:#ff8a80}
+#exn .it{border:1px solid #ff4a3d55;background:#170a0a;border-radius:10px;padding:10px;margin:8px 0}#exn .it b{font:700 17px 'Barlow Condensed',sans-serif}#exn .it p{margin:4px 0;color:#ffd0d0;font-size:13.5px}
+#exn .it .bt{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}#exn textarea{width:100%;min-height:110px;background:#0b131b;color:#fff;border:1px solid var(--line);border-radius:8px;padding:8px;font:14px 'Inter',system-ui,sans-serif;box-sizing:border-box}
+#exn .main{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}#exn .main .p{background:#e04ad8;border:0}
+#exn .hist{color:var(--mut);font-size:12.5px}`;
+document.head.appendChild(css);
+
+const $$=id=>document.getElementById(id);
+const fmtN=n=>Math.round(n).toLocaleString('fr-FR');
+const mmss=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
+const shuffle=a=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const isStudent=it=>!!(it&&it[2]&&it[3]);   // commande réelle du cockpit
+const store={get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }};
+
+/* ---------- questions d'examen (calculs, tour avion, théorie) ---------- */
+function numQ(title,ctx,val,unit,why){ const r=v=>unit==='kg'?Math.round(v/10)*10:Math.round(v); const good=r(val);
+  const set=new Set([good]); const opts=[good]; [0.88,1.12,0.94,1.07,1.2,0.8].forEach(f=>{ const v=r(val*f); if(opts.length<4&&!set.has(v)&&v>0){ set.add(v); opts.push(v); } });
+  const lab=v=>fmtN(v)+' '+unit; return {kind:'q',title,ctx,opts:shuffle(opts.map(v=>({t:lab(v),ok:v===good}))),why,expect:lab(good)}; }
+function txtQ(title,ctx,good,bad,why){ return {kind:'q',title,ctx,opts:shuffle([{t:good,ok:true}].concat(bad.map(t=>({t,ok:false})))),why,expect:good}; }
+function walkQ(n){ const W=(WALKPTS[ACK]||[]).slice(); if(W.length<4) return []; const out=[]; const pick=shuffle(W.map((p,i)=>i)).slice(0,n);
+  pick.forEach(k=>{ const p=W[k], others=shuffle(W.filter((x,i)=>i!==k)).slice(0,3);
+    out.push({kind:'q',title:'Tour avion : point « '+p[2]+' »',ctx:'Arrivé à ce point de la visite extérieure, que contrôlez-vous ?',opts:shuffle([{t:p[3],ok:true}].concat(others.map(o=>({t:o[3],ok:false})))),why:'Chaque point du tour avion a ses vérifications propres : voir la page « Tour avion » du dossier.',expect:p[3]}); });
+  return out; }
+function questionsFor(st){ const L=LS||{}, W=(typeof WB!=='undefined'&&WB[ACK])||{}, t=st.t||'', Q=[];
+  if(/Briefing/i.test(t)) Q.push(txtQ('Lecture du METAR','Dans le METAR de départ, le groupe « 31012KT » signifie :','Vent du 310° (d\'où il vient), 12 nœuds',['Piste 31, visibilité 12 km','Vent vers le 310°, 12 km/h','Cap 310°, 12 kt de vent arrière'],'Le vent est donné d\'où il vient, en degrés vrais, puis la force en nœuds (KT).'));
+  if(/Devis de masse/i.test(t)&&L.zfw) Q.push(numQ('Calcul : masse au décollage (TOW)',`ZFW ${fmtN(L.zfw)} kg + carburant bloc ${fmtN(L.block)} kg − carburant de roulage ${fmtN(W.taxi||0)} kg = ?`,L.tow,'kg','TOW = masse sans carburant (ZFW) + carburant embarqué (bloc) − carburant brûlé au roulage. Elle doit rester ≤ MTOW.'));
+  if(/Bilan carburant/i.test(t)&&L.need) Q.push(numQ('Calcul : carburant minimum requis',`roulage ${fmtN(W.taxi||0)} + étape ${fmtN(L.trip)} + réserve de route 5 % ${fmtN(L.cont)} + dégagement ${fmtN(W.alt||0)} + réserve finale 30 min ${fmtN(W.res30||0)}${L.extra?' + supplément '+fmtN(L.extra):''} = ? (kg)`,L.need,'kg','On additionne toutes les parts réglementaires : roulage, étape, réserve de route, dégagement, réserve finale (+ supplément décidé par le commandant).'));
+  if(st.walk&&/Tour avion/i.test(t)) Q.push(...walkQ(2));
+  if(/FMS/i.test(t)&&L.vr) Q.push(numQ('Calcul : vitesse de rotation VR',ACK==='a320'?`Formule pédagogique du simulateur : VR = 118 + (TOW en tonnes − 50) × 1,25. TOW = ${(L.tow/1000).toFixed(1)} t.`:`Formule pédagogique du simulateur : VR = 118 + (TOW en tonnes − 8) × 6. TOW = ${(L.tow/1000).toFixed(2)} t.`,L.vr,'kt','VR dépend de la masse : plus l\'avion est lourd, plus il faut de vitesse pour lever le nez.'));
+  if(/Before Start/i.test(t)) Q.push(txtQ('Calage altimétrique','Avant la mise en route, on affiche le QNH donné par l\'ATIS. À quoi sert-il ?','L\'altimètre indique l\'altitude au-dessus du niveau de la mer (au sol : l\'altitude du terrain)',['Il règle la fréquence radio de la tour','Il indique la hauteur au-dessus de la piste (0 au sol)','Il sert à calculer le carburant'],'QNH = pression ramenée au niveau de la mer : au sol, l\'altimètre doit afficher l\'altitude du terrain.'));
+  if(/début de descente/i.test(t)){ const cr=Math.max(10000,Math.round((S.alt/FT)/1000)*1000||35000); Q.push(numQ('Calcul : point de début de descente',`Règle des 3 : distance (NM) = altitude à perdre (en milliers de ft) × 3. Vous êtes à ${fmtN(cr)} ft et devez être à 3 000 ft au point d\'approche finale.`,(cr-3000)/1000*3,'NM','Pente d\'environ 3° : on perd 1 000 ft tous les 3 NM. On ajoute une marge pour décélérer.')); }
+  if(/Approche ILS/i.test(t)&&L.vls) Q.push(numQ('Calcul : vitesse d\'approche VAPP',`VLS (vitesse minimale sélectionnable) = ${L.vls} kt. VAPP = VLS + 5 kt (vent faible).`,L.vls+5,'kt','VAPP = VLS + 5 kt, plus une correction si le vent est fort ou en rafales.'));
+  if(/^Atterrissage/i.test(t)) Q.push(txtQ('Minimums','En approche ILS, à la hauteur de décision (DH), vous ne voyez pas la piste. Que faites-vous ?','Remise des gaz immédiate',['On continue jusqu\'à 50 ft pour voir','On réduit la vitesse et on attend','On passe en mode HDG et on tourne autour'],'Sans référence visuelle à la DH, la remise des gaz est obligatoire.'));
+  if(/Parking et arrêt/i.test(t)) Q.push(txtQ('Arrêt des moteurs','Avant de couper les moteurs au poste, que vérifie-t-on d\'abord ?','Frein de parc serré et cales en place',['Train rentré','Transpondeur sur TA/RA','Volets FULL'],'L\'avion ne doit pas pouvoir bouger : frein de parc, puis cales posées par le personnel au sol.'));
+  return Q; }
+/* QCM d'aide pour une commande à actionner */
+function helpQ(st,it){ const all=[]; GD.steps.forEach((s,k)=>s.items.forEach(x=>{ if(isStudent(x)&&x[0]!==it[0]) all.push({t:x[0],near:Math.abs(k-GD.i)}); }));
+  const uniq=[...new Map(all.map(x=>[x.t,x])).values()].sort((a,b)=>a.near-b.near); const bad=shuffle(uniq.slice(0,8)).slice(0,3).map(x=>x.t);
+  const el=PT&&PT.el?PT.el(it[3]):null, sec=el&&el.closest('.sec'), blk=sec?sec.querySelector('h4').textContent:'';
+  return {kind:'help',title:'QCM d\'aide — '+st.t,ctx:`Vous êtes à l\'étape « ${st.t} ». ${blk?'Le bloc encadré est « '+blk+' ». ':''}Quelle commande faut-il actionner maintenant ?`,opts:shuffle([{t:it[0],ok:true}].concat(bad.map(t=>({t,ok:false})))),why:(PT&&PT.help?PT.help(it[0])||'':''),expect:it[0],item:it}; }
+
+/* ---------- panneau d'état ---------- */
+function panel(){ let p=$$('exam'); if(p) return p; p=document.createElement('aside'); p.id='exam'; p.className='panel'; p.innerHTML=`<div class="eh">🎓 Examen blanc<span data-c>00:00</span></div><div class="et"></div><div class="ep"></div><div class="eb"><i></i></div><div class="ec"><b class="g">✓ 0</b><b class="r">✗ 0</b><b data-n></b></div><div class="ei" hidden></div><div class="etb" hidden></div>
+  <div class="ebt"><button type="button" data-t>📋 Tableau</button><button type="button" data-m>▁ Réduire</button><button type="button" data-q>✕ Abandonner</button></div>`; document.body.appendChild(p);
+  p.querySelector('[data-t]').onclick=()=>{ const t=p.querySelector('.etb'); t.hidden=!t.hidden; if(!t.hidden) t.innerHTML=tableHTML(); };
+  p.querySelector('[data-m]').onclick=()=>p.classList.toggle('min');
+  p.querySelector('[data-q]').onclick=()=>{ finish('abandon'); };
+  return p; }
+function counts(){ let g=0,r=0; EX.res.forEach(v=>{ if(v==='ok'||v==='aide') g++; else if(v==='ko') r++; }); return {g,r}; }
+function tableHTML(){ return '<table>'+GD.steps.map((s,k)=>{ const v=EX.res[k]; if(k===GD.steps.length-1) return ''; const cls=(v||'')+(k===GD.i&&EX.on?' cur':'');
+  return `<tr class="${cls}"><td class="s">${v==='ok'?'✓':v==='aide'?'✓<small> aide</small>':v==='ko'?'✗':k===GD.i?'▶':'·'}</td><td>${k} · ${s.t}<br><small>${s.ph}${EX.det[k]&&EX.det[k].length?' — '+EX.det[k].map(d=>d.what).join(' ; '):''}</small></td></tr>`; }).join('')+'</table>'; }
+function paint(){ const p=$$('exam'); if(!p) return; if(!EX.on){ p.hidden=true; return; } p.hidden=false; const st=GD.steps[GD.i]||{}, N=GD.steps.length-1, now=performance.now();
+  p.querySelector('.et').textContent='Étape '+GD.i+'/'+N+' — '+(st.t||''); p.querySelector('.ep').textContent=(st.ph||'')+(EX.cleared?' · décollage autorisé':'');
+  p.querySelector('[data-c]').textContent=mmss((now-EX.t0)/1000);
+  const c=counts(); p.querySelector('.g').textContent='✓ '+c.g; p.querySelector('.r').textContent='✗ '+c.r; p.querySelector('[data-n]').textContent='/ '+N;
+  const it=curItem(), info=p.querySelector('.ei'), bar=p.querySelector('.eb i');
+  if(it&&isStudent(it)&&!EX.modal){ const el=(now-EX.itemT)/1000; info.hidden=false; bar.style.width=Math.min(100,el/HELP_S*100)+'%';
+    info.innerHTML=EX.reveal?'👉 La commande est encadrée : actionnez-la.':`À vous : trouvez la commande dans le bloc encadré <b>[ ? ]</b>. ${el<HELP_S?'QCM d\'aide dans '+Math.ceil(HELP_S-el)+' s':''}`; }
+  else if(EX.qs.length&&!EX.modal){ info.hidden=false; info.textContent='Question d\'examen à venir…'; bar.style.width='0'; }
+  else { info.hidden=true; bar.style.width='0'; }
+  const tb=p.querySelector('.etb'); if(!tb.hidden&&(!EX._tbT||now-EX._tbT>1500)){ EX._tbT=now; tb.innerHTML=tableHTML(); } }
+
+/* ---------- modale QCM ---------- */
+function ask(q,done){ EX.q=q; EX.modal=true; EX.wasPaused=paused; paused=true; let m=$$('exq'); if(m) m.remove(); m=document.createElement('div'); m.id='exq';
+  m.innerHTML=`<div class="q"><div class="k">${q.kind==='help'?'QCM d\'aide · '+HELP_S+' s écoulées':'Question d\'examen'} · étape ${GD.i}</div><h3>${q.title}</h3><div class="ctx">${q.ctx}</div>${q.opts.map((o,k)=>`<button type="button" class="o" data-k="${k}">${String.fromCharCode(65+k)}. ${o.t}</button>`).join('')}<button type="button" class="o idk" data-k="-1">Je ne sais pas</button><div class="after"></div></div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click',e=>{ const b=e.target.closest('.o'); if(!b||m.dataset.done) return; m.dataset.done=1; const k=+b.dataset.k, ok=k>=0&&q.opts[k].ok;
+    m.querySelectorAll('.o').forEach((x,j)=>{ const kk=+x.dataset.k; if(kk>=0&&q.opts[kk].ok) x.classList.add('good'); else if(x===b) x.classList.add('bad'); x.disabled=true; });
+    const a=m.querySelector('.after');
+    if(ok) a.innerHTML=`<div class="fb g">✓ Bonne réponse. ${q.kind==='help'?'La commande est maintenant encadrée : <b>appuyez dessus</b> pour passer à la suite.':''}${q.why?'<br><small>'+q.why+'</small>':''}</div><button type="button" class="go">${q.kind==='help'?'J\'y vais 👆':'Continuer ▸'}</button>`;
+    else a.innerHTML=`<div class="fb r">✗ ${k<0?'Pas de réponse':'Mauvaise réponse'}. Attendu : <b>${q.expect}</b>.${q.why?'<br><small>'+q.why+'</small>':''}</div><div class="etb">${tableHTML()}</div><button type="button" class="go">Continuer ▸</button>`;
+    a.querySelector('.go').onclick=()=>{ m.remove(); EX.modal=false; paused=EX.wasPaused; EX.itemT=performance.now(); done(ok,k<0?'(sans réponse)':q.opts[k].t); };
+    try{ SND&&SND.play&&SND.play(ok?'chime':'caution'); }catch(e){} }); }
+
+/* ---------- moteur ---------- */
+function mark(i,v,what){ if(v==='ko'){ EX.res[i]='ko'; } else if(v==='aide'){ if(EX.res[i]!=='ko') EX.res[i]='aide'; } else if(!EX.res[i]) EX.res[i]='ok'; if(what){ (EX.det[i]=EX.det[i]||[]).push(what); } }
+function curItem(){ const st=GD.steps[GD.i]; if(!st) return null; return st.items.find(x=>{ try{ return !x[1](); }catch(e){ return true; } })||null; }
+function enterStep(){ const st=GD.steps[GD.i]; EX.stepI=GD.i; EX.qs=st?questionsFor(st):[]; EX.qT=performance.now(); EX.reveal=false; EX.itemKey=''; EX.trig=new Set(); EX.doneT=0; }
+function tick(){ if(!EX.on||!GD.on||!$$('menu').hidden) return; paint(); if(EX.modal||paused) return;
+  const now=performance.now(), st=GD.steps[GD.i]; if(!st) return; if(EX.stepI!==GD.i) enterStep();
+  AUTO.stage='exam';
+  if(GD.i>=GD.steps.length-1){ finish('end'); return; }
+  // questions d'examen de l'étape (calculs, tour avion, théorie)
+  if(EX.qs.length&&now-EX.qT>1500){ const q=EX.qs.shift(), i=GD.i; ask(q,(ok,ans)=>{ mark(i,ok?'ok':'ko',ok?null:{what:q.title,got:ans,expect:q.expect,why:q.why}); EX.qT=performance.now(); }); return; }
+  // porte de décollage : toutes les étapes avant décollage doivent être validées
+  if(st.fly==='takeoff'&&!EX.gate){ const pre=st.items.filter(x=>!/en vol/i.test(x[0])); const ready=pre.every(x=>{ try{ return x[1](); }catch(e){ return false; } });
+    if(ready&&!EX.qs.length){ EX.gate=true; mark(GD.i,'ok'); const bad=EX.res.slice(0,GD.i+1).some(v=>v==='ko');
+      if(bad){ finish('elim'); return; } EX.cleared=true; flash('Examen : toutes les étapes validées — décollage autorisé','am'); try{ SND&&SND.play&&SND.play('chime'); }catch(e){} } }
+  if(st.walk&&!walkDone()) return;   // le déplacement du tour avion est automatique, les questions portent sur les points
+  const it=curItem();
+  if(!it){ if(EX.qs.length) return; if(!EX.doneT){ EX.doneT=now; mark(GD.i,'ok'); return; } if(now-EX.doneT<1200) return; goStep(GD.i+1); return; }
+  const key=GD.i+':'+it[0]; if(key!==EX.itemKey){ EX.itemKey=key; EX.itemT=now; EX.reveal=false; EX.helped=false; }
+  if(isStudent(it)){ // à l'élève de jouer
+    if(!EX.helped&&now-EX.itemT>HELP_S*1000){ EX.helped=true; const q=helpQ(st,it), i=GD.i; ask(q,(ok,ans)=>{ EX.reveal=true; if(ok) mark(i,'aide',{what:'Aide QCM : '+it[0],help:true}); else mark(i,'ko',{what:'Commande non trouvée : '+it[0],got:ans,expect:it[0],why:q.why}); EX.revT=performance.now(); }); return; }
+    if(EX.reveal&&EX.revT&&now-EX.revT>25000&&!EX.trig.has(key)){ EX.trig.add(key); try{ it[2](); ovhSync(); pedSync(); }catch(e){} }   // montrée mais pas faite : l'instructeur la fait
+    return; }
+  // action système (radio, roulage, attente…) : l'instructeur / le pilote automatique s'en charge
+  if(!it[2]) return; if(st.fly&&!S.onGround&&!/APPR|Itinéraire|Calcul|vu$|Mode NAV|LAND OFF/.test(it[0])) return;
+  if(EX.trig.has(key)&&now-EX.lastAct<8000) return; if(now-EX.lastAct<1400) return; EX.trig.add(key); EX.lastAct=now;
+  setTimeout(()=>{ try{ it[2](); }catch(e){} try{ ovhSync(); pedSync(); renderGuide(); }catch(e){} },500); }
+setInterval(()=>{ try{ tick(); }catch(e){ console.warn('examen',e); } },250);
+
+// le pilote automatique ne décolle pas tant que l'examen n'a pas autorisé le décollage
+const _fly=flyFW; flyFW=function(dt){ const st=GD.steps[GD.i]||{}; if(EX.on&&S.onGround&&st.fly==='takeoff'&&!EX.cleared){ S.thr=0; S.brake=true; return; } return _fly(dt); };
+// l'enchaînement automatique d'origine est remplacé pendant l'examen
+const _at=autoTick; autoTick=function(){ if(EX.on) return; return _at.apply(this,arguments); };
+
+function start(){ EX.on=true; EX.res=[]; EX.det=[]; EX.cleared=false; EX.gate=false; EX.final=false; EX.modal=false; EX.stepI=-1; EX.t0=performance.now();
+  autoStart(true); AUTO.stage='exam'; GD.peda=false; try{ renderGuide(); }catch(e){} const g=$$('guide'); if(g) g.hidden=true; panel(); paint();
+  flash('Examen blanc : à vous de jouer','am'); }
+function finish(why){ if(!EX.on&&why!=='show') return; EX.on=false; EX.final=true; const m=$$('exq'); if(m) m.remove(); EX.modal=false;
+  if(why==='elim'){ S.thr=0; S.pbrake=true; }
+  autoStart(false); if(why!=='end') { paused=true; }
+  const p=$$('exam'); if(p) p.hidden=true;
+  const c=counts(), ko=EX.res.map((v,k)=>v==='ko'?k:-1).filter(k=>k>=0), N=GD.steps.length-1;
+  const verdict=why==='elim'?'ko':why==='abandon'?'ab':ko.length?'ko':'ok';
+  const hist=store.get('pt-exam-hist',[]); hist.unshift({d:new Date().toISOString().slice(0,16).replace('T',' '),ac:A.name,ok:c.g,ko:c.r,n:N,v:verdict}); store.set('pt-exam-hist',hist.slice(0,10));
+  notes(verdict,ko,c,N,hist); }
+/* ---------- bloc-notes final ---------- */
+function notes(verdict,ko,c,N,hist){ let n=$$('exn'); if(n) n.remove(); n=document.createElement('div'); n.id='exn';
+  const head=verdict==='ok'?`<div class="v ok">✓ EXAMEN BLANC RÉUSSI — ${c.g}/${N} étapes validées. Théorie du cours validée.</div>`:verdict==='ab'?`<div class="v ko">Examen abandonné — ${c.g} étapes validées, ${c.r} non validées.</div>`:verdict==='ko'&&EX.cleared?`<div class="v ko">✗ AJOURNÉ — vol réalisé mais ${c.r} étape(s) non validée(s) après le décollage.</div>`:`<div class="v ko">✗ ÉPREUVE ÉLIMINATOIRE — l'avion ne décolle pas : ${c.r} étape(s) non validée(s) avant le décollage.</div>`;
+  n.innerHTML=`<div class="w"><div style="font:700 12px 'Barlow Condensed',sans-serif;letter-spacing:.14em;color:#e04ad8">PARCOURS PILOTE · EXAMEN BLANC · ${A.name}</div><h2>Bloc-notes de l'examen</h2>${head}
+   ${ko.length?`<h3 style="font:700 19px 'Barlow Condensed',sans-serif;margin:12px 0 4px">À revoir (${ko.length}) — on réapprend, on révise, on note, puis on reprend l'examen</h3>`:''}
+   ${ko.map(k=>{ const s=GD.steps[k]; return `<div class="it"><b>✗ Étape ${k} — ${s.t}</b> <small style="color:var(--mut)">${s.ph}</small>${(EX.det[k]||[]).filter(d=>!d.help).map(d=>`<p>• ${d.what}${d.got?` — votre réponse : <i>${d.got}</i>`:''}${d.expect?` — attendu : <b>${d.expect}</b>`:''}${d.why?`<br><small>${d.why}</small>`:''}</p>`).join('')}
+     <div class="bt"><button type="button" data-rev="${k}">📖 Réviser (dossier, étape ${k})</button><button type="button" data-auto="${k}">▶ Voir en mode automatique</button><button type="button" data-guide="${k}">🎓 Refaire en mode guidé</button></div></div>`; }).join('')}
+   <h3 style="font:700 19px 'Barlow Condensed',sans-serif;margin:14px 0 4px">📝 Mes notes</h3><textarea id="exn-t" placeholder="Ce que je dois retenir…">${store.get('pt-exam-notes','')}</textarea>
+   <div class="main"><button type="button" class="p" data-retry>🔁 Reprendre l'examen blanc</button><button type="button" data-tab>📋 Tableau complet ✓ / ✗</button><button type="button" data-close>Fermer</button></div><div class="etb" hidden></div>
+   <div class="hist"><b>Historique :</b> ${hist.slice(0,5).map(h=>`${h.d} · ${h.ac} · ${h.v==='ok'?'réussi':h.v==='ab'?'abandon':'ajourné'} (${h.ok}✓ / ${h.ko}✗)`).join(' — ')}</div></div>`;
+  document.body.appendChild(n);
+  n.querySelector('#exn-t').addEventListener('input',e=>store.set('pt-exam-notes',e.target.value));
+  n.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
+    if(d.close!=null){ n.remove(); paused=false; }
+    else if(d.tab!=null){ const t=n.querySelector('.etb'); t.hidden=!t.hidden; t.innerHTML=tableHTML(); }
+    else if(d.retry!=null){ n.remove(); paused=false; relaunch('exam'); }
+    else if(d.rev!=null){ review(+d.rev); }
+    else if(d.auto!=null){ n.remove(); paused=false; window.FF={to:+d.auto,then:'auto'}; relaunch('auto'); }
+    else if(d.guide!=null){ n.remove(); paused=false; window.FF={to:+d.guide,then:'guide'}; relaunch('auto'); } }); }
+function relaunch(mode){ if(window.BR&&BR.launchMode){ BR.launchMode(mode); return; } }
+function review(k){ if(!window.BR||!BR.show) return; BR.show(true,0); const idx=(BR.pages||[]).findIndex(p=>p.si===k); if(idx>0) BR.show(true,idx); }
+
+/* ---------- avance rapide jusqu'à une étape (révision ciblée) ---------- */
+setInterval(()=>{ const F=window.FF; if(!F||!AUTO.on||!GD.on) return; if(GD.i>=F.to){ window.FF=null; if(rate>1&&S.onGround) setRate(1);
+    if(F.then==='guide'){ autoStart(false); GD.peda=true; try{ renderGuide(); }catch(e){} flash('Révision : à vous, étape '+GD.i+' en mode guidé','am'); } else flash('Révision : étape '+GD.i+' — observez','am'); return; }
+  if(AUTO.stage==='read') AUTO.t0-=4000; if(AUTO.stage==='done') AUTO.t0-=2000; AUTO.lastAct-=900;
+  const st=GD.steps[GD.i]; if(st&&st.walk&&rate<8) setRate(8); else if(st&&!st.walk&&S.onGround&&rate>4&&!TX.auto) setRate(1); },200);
+
+/* ---------- branchements ---------- */
+const _sm=startMission; startMission=function(){ EX.on=false; const p=$$('exam'); if(p) p.hidden=true; const r=_sm.apply(this,arguments); if(window.EXAM_PENDING&&MI&&MI.full){ window.EXAM_PENDING=false; setTimeout(start,50); } return r; };
+EX.start=start; EX.finish=finish;
+})();
+
+</script>
+<script>
+/* ===== ACADÉMIE : les cours avant le simulateur =====
+   Partie 1 cours débutant (l'avion, le vol, les moteurs, les instruments, la météo, la navigation, le pilote)
+   Partie 2 cours théorique du simulateur · Partie 3 le vrai pilotage (brevet) · Partie 4 la reconversion vers pilote professionnel.
+   Références : programmes EASA Part-FCL (PPL/LAPL, ATPL), DGAC, FAA Pilot's Handbook of Aeronautical Knowledge. Chiffres vérifiés en novembre 2026. */
+(function(){
+const css=document.createElement('style'); css.textContent=`
+#acad[hidden]{display:none!important}#acad{position:fixed;inset:0;z-index:70;background:#060b11;color:var(--tx);display:flex;flex-direction:column;font:16px/1.55 'Inter',system-ui,sans-serif}
+#acad header{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);background:#09121b}
+#acad header .tt{flex:1;min-width:0}#acad header .tt b{display:block;font:700 19px 'Barlow Condensed',sans-serif;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#acad header .tt b i{font-style:normal;color:var(--acc)}
+#acad header .tt span{display:block;color:var(--mut);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#acad button{background:#132232;color:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font:600 14px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+#acad .bd{flex:1;overflow:auto;padding:14px 14px 30px}#acad .in{max-width:820px;margin:0 auto}
+#acad h1{font:700 30px/1.1 'Barlow Condensed',sans-serif;margin:4px 0 6px}#acad h2{font:700 22px 'Barlow Condensed',sans-serif;margin:18px 0 6px;color:#fff}#acad h3{font:700 18px 'Barlow Condensed',sans-serif;margin:14px 0 4px;color:var(--cy)}
+#acad .kick{font:700 12px 'Barlow Condensed',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+#acad p{margin:6px 0}#acad ul,#acad ol{padding-left:22px;margin:6px 0}#acad li{margin:3px 0}
+#acad .box{border:1px solid var(--line);border-left:4px solid var(--cy);background:#0a141e;border-radius:10px;padding:10px 12px;margin:10px 0}
+#acad .box.am{border-left-color:var(--am)}#acad .box.mg{border-left-color:var(--acc)}#acad .box b.t{display:block;font:700 15px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--cy);margin-bottom:2px}#acad .box.am b.t{color:var(--am)}#acad .box.mg b.t{color:var(--acc)}
+#acad table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0;display:block;overflow-x:auto}#acad th,#acad td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}#acad th{background:#0f1c29;font-weight:600}
+#acad svg{width:100%;height:auto;max-height:340px;background:#0a141e;border:1px solid var(--line);border-radius:10px;margin:8px 0}
+#acad svg text{fill:#e8eef2;font:12px 'Inter',sans-serif}#acad svg .lb{fill:#46c8d8;font-weight:600}#acad svg .am{fill:#ffb020}#acad svg .mg{fill:#e04ad8}
+#acad .quiz{border:1px solid #e04ad855;background:#12091a;border-radius:12px;padding:10px 12px;margin:16px 0}#acad .quiz h3{color:var(--acc);margin-top:0}
+#acad .qq{margin:10px 0}#acad .qq p{font-weight:600}#acad .qq button{display:block;width:100%;text-align:left;margin:5px 0;text-transform:none;letter-spacing:0;font:500 15px 'Inter',sans-serif;padding:9px 11px}
+#acad .qq button.good{border-color:var(--grn);background:#0d2a18}#acad .qq button.bad{border-color:var(--red);background:#2a0d0d}#acad .qq .why{font-size:13.5px;color:var(--mut);margin-top:4px}
+#acad footer{display:flex;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid var(--line);background:#09121b;flex-wrap:wrap}#acad footer .n{font:600 14px 'JetBrains Mono',monospace;color:var(--mut)}
+#acad .go{background:var(--acc);border:0}#acad .src{font-size:13px;color:var(--mut)}#acad .src a{color:var(--cy)}
+#acad .toc{position:absolute;inset:52px 0 0 0;background:#060b11f8;overflow:auto;padding:12px 14px;z-index:2}#acad .toc .in>div{margin-bottom:14px}#acad .toc h4{font:700 17px 'Barlow Condensed',sans-serif;color:var(--acc);margin:8px 0 4px;letter-spacing:.04em}
+#acad .toc button{display:flex;width:100%;text-align:left;gap:8px;margin:4px 0;text-transform:none;letter-spacing:0;font:500 15px 'Inter',sans-serif}#acad .toc button.ok:after{content:'✓';margin-left:auto;color:var(--grn);font-weight:700}#acad .toc button.cur{border-color:var(--acc)}
+#acad .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));gap:10px;margin:10px 0}#acad .card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0a141e;cursor:pointer;text-align:left;text-transform:none;letter-spacing:0;font:500 14px 'Inter',sans-serif}#acad .card b{display:block;font:700 19px 'Barlow Condensed',sans-serif;margin:2px 0}#acad .card .pg{height:5px;background:#1c2a38;border-radius:3px;margin-top:8px;overflow:hidden}#acad .card .pg i{display:block;height:100%;background:var(--grn)}
+#menu .acad-b{display:flex;gap:12px;align-items:center;width:100%;text-align:left;margin:10px 0 4px;padding:12px 14px;border-radius:12px;border:1px solid var(--acc);background:linear-gradient(90deg,#2a0d2a,#0a141e);color:#fff;cursor:pointer;font:500 14px 'Inter',sans-serif}#menu .acad-b b{display:block;font:700 20px 'Barlow Condensed',sans-serif;letter-spacing:.04em}#menu .acad-b .e{font-size:30px}
+@media (max-width:600px){#acad h1{font-size:25px}#acad .bd{padding:10px 10px 24px}#acad footer button{padding:7px 9px;font-size:13px}}`;
+document.head.appendChild(css);
+
+/* ---------- schémas (dessins originaux) ---------- */
+const SVG_PLANE=`<svg viewBox="0 0 640 360" role="img" aria-label="Les parties d'un avion vu de dessus">
+<g fill="#1d3246" stroke="#5f7d99" stroke-width="1.5"><path d="M320 22c14 0 20 22 20 48v200l46 34v14l-46-12v22h-40v-22l-46 12v-14l46-34V70c0-26 6-48 20-48z"/><path d="M300 130 52 196v18l248-34zM340 130l248 66v18L340 180z"/>
+<rect x="196" y="176" width="20" height="44" rx="8"/><rect x="424" y="176" width="20" height="44" rx="8"/></g>
+<g fill="#e04ad8aa"><path d="M70 207l60-9v9l-60 9z"/><path d="M570 207l-60-9v9l60 9z"/></g><g fill="#ffb020aa"><path d="M150 196l130-19v9l-130 19z"/><path d="M490 196l-130-19v9l130 19z"/></g>
+<g fill="#46c8d8aa"><path d="M282 302l-30 9v6l30-6zM358 302l30 9v6l-30-6z"/></g><rect x="316" y="282" width="8" height="58" fill="#ff4a3daa"/><path d="M310 46h20v14h-20z" fill="#46c8d8"/>
+<g stroke="#8ea3b8" stroke-width="1"><path d="M330 52H452"/><path d="M340 110H452"/><path d="M98 204 70 250"/><path d="M215 186 180 250"/><path d="M206 222v44"/><path d="M440 120l58-32"/><path d="M265 312H190"/><path d="M324 330h96"/><path d="M552 205l20 45"/><path d="M300 150H200"/></g>
+<text x="456" y="56" class="lb">Poste de pilotage (cockpit)</text><text x="456" y="114" class="lb">Fuselage</text><text x="20" y="266" class="mg">Aileron (roulis)</text><text x="150" y="266" class="am">Volets (portance à basse vitesse)</text>
+<text x="168" y="282">Moteur (réacteur) sous l'aile</text><text x="500" y="84" class="lb">Bord d'attaque, becs</text><text x="70" y="316" class="lb">Gouverne de profondeur (tangage)</text><text x="424" y="334" fill="#ff8a80">Dérive + gouverne de direction (lacet)</text>
+<text x="532" y="266">Saumon, feu vert</text><text x="60" y="154">Emplanture · réservoirs dans les ailes</text></svg>`;
+const SVG_FORCES=`<svg viewBox="0 0 640 300" role="img" aria-label="Les quatre forces"><path d="M170 160c40-18 230-22 300-14 30 4 40 12 40 18s-14 12-40 14c-80 6-260 2-300-12z" fill="#1d3246" stroke="#5f7d99"/><path d="M290 150l40-50h20l-20 50z" fill="#1d3246" stroke="#5f7d99"/><path d="M180 150l-24-40h16l30 40z" fill="#1d3246" stroke="#5f7d99"/>
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="context-stroke"/></marker></defs>
+<g stroke-width="4" fill="none" marker-end="url(#ar)"><path d="M320 150V40" stroke="#46c8d8"/><path d="M320 175v100" stroke="#ff4a3d"/><path d="M515 165h110" stroke="#3ddc84"/><path d="M165 165H40" stroke="#ffb020"/></g>
+<text x="330" y="52" class="lb">PORTANCE (créée par l'aile)</text><text x="330" y="270" fill="#ff8a80">POIDS (gravité)</text><text x="520" y="150" fill="#3ddc84">POUSSÉE (moteurs)</text><text x="20" y="150" class="am">TRAÎNÉE (résistance de l'air)</text>
+<text x="190" y="215">Vol en palier stabilisé : portance = poids, poussée = traînée</text></svg>`;
+const SVG_AXES=`<svg viewBox="0 0 640 230" role="img" aria-label="Les trois axes"><g font-size="13">
+<rect x="10" y="10" width="200" height="210" rx="10" fill="#0d1a26"/><rect x="220" y="10" width="200" height="210" rx="10" fill="#0d1a26"/><rect x="430" y="10" width="200" height="210" rx="10" fill="#0d1a26"/>
+<path d="M40 120h140M110 100v40" stroke="#5f7d99" stroke-width="10" stroke-linecap="round" transform="rotate(-18 110 120)"/><text x="30" y="40" class="mg">ROULIS</text><text x="30" y="200">Manche à gauche/droite</text><text x="30" y="216">→ ailerons</text>
+<path d="M250 130l140-30" stroke="#5f7d99" stroke-width="12" stroke-linecap="round"/><text x="240" y="40" class="lb">TANGAGE</text><text x="240" y="200">Manche avant/arrière</text><text x="240" y="216">→ profondeur</text>
+<path d="M530 60v120M470 110h120" stroke="#5f7d99" stroke-width="10" stroke-linecap="round" transform="rotate(20 530 120)"/><text x="450" y="40" fill="#ff8a80">LACET</text><text x="450" y="200">Palonniers (pieds)</text><text x="450" y="216">→ direction</text></g></svg>`;
+const SVG_FAN=`<svg viewBox="0 0 640 220" role="img" aria-label="Turboréacteur double flux"><path d="M20 40h560l40 50v40l-40 50H20z" fill="#0d1a26" stroke="#5f7d99"/>
+<rect x="40" y="50" width="60" height="120" fill="#46c8d855"/><rect x="110" y="80" width="150" height="60" fill="#3ddc8455"/><rect x="270" y="80" width="90" height="60" fill="#ff4a3d77"/><rect x="370" y="80" width="110" height="60" fill="#ffb02066"/><path d="M490 80h90l30 20v20l-30 20h-90z" fill="#e04ad855"/>
+<text x="40" y="38" class="lb">Soufflante (N1)</text><text x="112" y="74">Compresseurs (N2)</text><text x="272" y="74" fill="#ff8a80">Combustion</text><text x="372" y="74" class="am">Turbines</text><text x="500" y="74" class="mg">Tuyère</text>
+<text x="40" y="196">1 Aspiration · 2 Compression · 3 Combustion · 4 Détente — l'air froid qui contourne le cœur (flux secondaire) donne ~80 % de la poussée</text></svg>`;
+const SVG_SIX=`<svg viewBox="0 0 640 300" role="img" aria-label="Les six instruments de base">${[['Anémomètre','vitesse air (kt)'],['Horizon artificiel','assiette, inclinaison'],['Altimètre','altitude (ft)'],['Indicateur de virage','bille = symétrie'],['Conservateur de cap','cap magnétique'],['Variomètre','montée / descente (ft/min)']].map((x,k)=>{ const cx=110+(k%3)*210, cy=80+Math.floor(k/3)*140; return `<circle cx="${cx}" cy="${cy}" r="48" fill="#0d1a26" stroke="#5f7d99" stroke-width="3"/>${k===1?`<path d="M${cx-46} ${cy}a46 46 0 0 1 92 0z" fill="#2a6fb0"/><path d="M${cx-46} ${cy}a46 46 0 0 0 92 0z" fill="#7a4f2a"/><path d="M${cx-24} ${cy}h48" stroke="#ffb020" stroke-width="4"/>`:`<path d="M${cx} ${cy}l${Math.cos(k)*36} ${Math.sin(k)*36}" stroke="#e8eef2" stroke-width="3"/>`}<text x="${cx}" y="${cy+66}" text-anchor="middle" class="lb">${x[0]}</text><text x="${cx}" y="${cy+80}" text-anchor="middle" font-size="11">${x[1]}</text>`; }).join('')}</svg>`;
+
+/* ---------- contenu ---------- */
+const Q=(q,o,c,why)=>({q,o,c,why});
+const PARTS=[
+{id:'p1',n:'Partie 1 — Cours débutant',d:'L\'avion, ses parties, comment il vole, ses moteurs, ses instruments, la météo, la navigation, le pilote et son métier.',mods:[
+ {id:'avion',t:'L\'avion et ses parties',h:`<p>Un avion de ligne comme l'A320 et un petit avion d'aéro-club ont <b>les mêmes organes</b>. Les connaître par leur nom, c'est comprendre la check-list et le tour avion.</p>${SVG_PLANE}
+ <h3>La structure</h3><ul><li><b>Fuselage</b> : le corps de l'avion. Il porte le poste de pilotage, la cabine, les soutes. Il est <b>pressurisé</b> en vol (la cabine reste à une « altitude » de 2 000 à 2 400 m environ).</li><li><b>Ailes (voilure)</b> : elles créent la portance et contiennent le carburant (réservoirs d'aile). Avant : le <b>bord d'attaque</b> (avec des <b>becs</b> mobiles). Arrière : le <b>bord de fuite</b> (volets, ailerons, spoilers).</li><li><b>Empennage</b> : la queue. Le plan horizontal (stabilisateur + <b>gouverne de profondeur</b>) et la <b>dérive</b> (+ <b>gouverne de direction</b>).</li><li><b>Train d'atterrissage</b> : roues avant (orientables pour rouler) et trains principaux sous les ailes (freins).</li><li><b>Moteurs</b> : sous les ailes sur l'A320 (réacteurs), à l'avant sur un avion léger (moteur à pistons + hélice).</li></ul>
+ <h3>Les surfaces mobiles</h3><table><tr><th>Surface</th><th>Où</th><th>Rôle</th><th>Commande du pilote</th></tr><tr><td>Ailerons</td><td>Bout d'aile, bord de fuite</td><td>Faire pencher (roulis) pour virer</td><td>Manche à gauche/droite</td></tr><tr><td>Profondeur</td><td>Plan horizontal arrière</td><td>Lever / baisser le nez (tangage)</td><td>Manche avant/arrière</td></tr><tr><td>Direction</td><td>Dérive</td><td>Orienter le nez à gauche/droite (lacet)</td><td>Palonniers (pieds)</td></tr><tr><td>Volets et becs</td><td>Bords de fuite et d'attaque</td><td>Voler lentement au décollage et à l'atterrissage</td><td>Levier des volets</td></tr><tr><td>Spoilers (aérofreins)</td><td>Dessus de l'aile</td><td>Freiner en vol, « tuer » la portance au toucher</td><td>Levier des aérofreins</td></tr><tr><td>Plan horizontal réglable (trim)</td><td>Empennage</td><td>Soulager l'effort, équilibrer selon le centrage</td><td>Roue de trim / automatique</td></tr></table>
+ <div class="box"><b class="t">Dans le simulateur</b>Le tour avion de l'étape 4 vous fait passer devant chacun de ces organes : nez et sondes, train avant, aile, train principal, empennage, cône de queue (APU).</div>`,
+  quiz:[Q('Quelle gouverne fait pencher l\'avion pour virer ?',['La gouverne de direction','Les ailerons','Les volets'],1,'Les ailerons, en bout d\'aile, braquent en sens opposé : une aile monte, l\'autre descend → roulis.'),Q('À quoi servent les volets ?',['À voler plus vite en croisière','À voler lentement en gardant assez de portance','À diriger l\'avion au sol'],1,'Ils augmentent la courbure et la surface de l\'aile : on peut voler plus lentement au décollage et à l\'atterrissage.'),Q('Où se trouve la majeure partie du carburant d\'un avion de ligne ?',['Dans les ailes','Dans le cockpit','Dans la dérive'],0,'Les réservoirs principaux sont dans la voilure (et un réservoir central sous le fuselage).')]},
+ {id:'vol',t:'Comment un avion vole',h:`<p>Un avion ne « flotte » pas : il vole parce que son aile, inclinée face à l'air qui arrive, <b>dévie l'air vers le bas</b>. En retour l'air pousse l'aile vers le haut : c'est la <b>portance</b>.</p>${SVG_FORCES}
+ <h3>Les quatre forces</h3><ul><li><b>Portance</b> ↑ : dépend de la densité de l'air, de la <b>vitesse au carré</b>, de la surface de l'aile et de l'<b>incidence</b> (angle entre l'aile et l'air). Formule : ½ ρ V² S Cz.</li><li><b>Poids</b> ↓ : la masse de l'avion (structure, passagers, bagages, carburant). D'où le <b>devis de masse</b>.</li><li><b>Poussée</b> → : fournie par les moteurs.</li><li><b>Traînée</b> ← : la résistance de l'air, qui augmente avec la vitesse.</li></ul>
+ <div class="box am"><b class="t">Le décrochage</b>Si l'incidence devient trop forte (vitesse trop faible, nez trop haut), l'air ne suit plus le dessus de l'aile : la portance chute brutalement. C'est le <b>décrochage</b>. Remède : <b>rendre la main</b> (baisser le nez) pour diminuer l'incidence, puis remettre la puissance. Les avions ont une alarme (« STALL ») et l'A320 une protection automatique.</div>
+ <h3>Les trois axes</h3>${SVG_AXES}<p>Pour virer, on <b>incline</b> avec les ailerons : la portance, penchée, tire l'avion dans le virage. Les palonniers servent surtout à garder le vol « symétrique » (la bille au centre) et à rouler au sol.</p>
+ <h3>Les vitesses à connaître</h3><table><tr><th>Sigle</th><th>Nom</th><th>Sens</th></tr><tr><td>V1</td><td>Vitesse de décision</td><td>Au-delà, on décolle même en cas de panne moteur.</td></tr><tr><td>VR</td><td>Rotation</td><td>On tire doucement sur le manche : le nez se lève.</td></tr><tr><td>V2</td><td>Sécurité au décollage</td><td>Vitesse de montée garantie même sur un moteur.</td></tr><tr><td>VLS / VAPP</td><td>Vitesse mini / d'approche</td><td>VAPP ≈ VLS + 5 kt en finale.</td></tr></table><p class="src">Le nœud (kt) = 1 mille nautique (1 852 m) par heure. L'altitude se compte en pieds (ft) : 1 000 ft ≈ 305 m.</p>`,
+  quiz:[Q('Si la vitesse double, la portance (à incidence égale) est multipliée par…',['2','4','8'],1,'La portance varie comme le carré de la vitesse : 2² = 4.'),Q('Au décrochage, le bon réflexe est de :',['Tirer sur le manche','Baisser le nez pour réduire l\'incidence, puis remettre la puissance','Couper les moteurs'],1,'Le décrochage est un problème d\'incidence : on la réduit en rendant la main.'),Q('Que signifie V1 ?',['Vitesse de décision au décollage','Vitesse maximale','Vitesse d\'atterrissage'],0,'Avant V1 on peut s\'arrêter sur la piste restante ; après V1 on poursuit le décollage.')]},
+ {id:'moteur',t:'Les moteurs',h:`<h3>Le moteur à pistons (avion d'aéro-club)</h3><p>Comme un moteur de voiture : admission, compression, combustion, échappement. Il fait tourner une <b>hélice</b> qui « visse » l'avion dans l'air. Le pilote règle la puissance (manette des gaz) et le <b>mélange</b> air/essence ; il surveille le compte-tours, la pression et la température d'huile.</p>
+ <h3>Le turboréacteur double flux (avion de ligne)</h3>${SVG_FAN}<p>Une grande <b>soufflante</b> aspire l'air. Une petite partie entre dans le cœur : elle est <b>comprimée</b>, mélangée au kérosène et <b>brûlée</b>, puis détendue dans les <b>turbines</b> qui entraînent soufflante et compresseurs. La plus grande partie de l'air contourne le cœur : c'est elle qui donne l'essentiel de la poussée, avec moins de bruit et de consommation.</p>
+ <table><tr><th>Paramètre (écran moteur)</th><th>Ce que c'est</th></tr><tr><td>N1</td><td>Vitesse de la soufflante, en % : c'est l'image de la poussée.</td></tr><tr><td>N2</td><td>Vitesse du corps haute pression ; on la regarde au démarrage.</td></tr><tr><td>EGT</td><td>Température des gaz d'échappement : à surveiller au démarrage (risque de surchauffe).</td></tr><tr><td>FF</td><td>Débit carburant (kg/h).</td></tr></table>
+ <div class="box"><b class="t">Le démarrage, pas à pas</b>L'<b>APU</b> (petit moteur dans la queue) fournit l'électricité et l'air comprimé. Cet air fait tourner le réacteur (démarreur pneumatique). Vers 16 à 25 % de N2 le calculateur injecte le carburant et allume : l'EGT monte, puis le moteur se stabilise au ralenti. Dans le simulateur : étapes 7, 12 et 13.</div>`,
+  quiz:[Q('Sur un turboréacteur double flux, quel paramètre représente le mieux la poussée ?',['N1','EGT','Pression d\'huile'],0,'N1 = vitesse de la soufflante, qui produit l\'essentiel de la poussée.'),Q('Qui fournit l\'air pour démarrer les réacteurs au parking ?',['Les batteries','L\'APU','Les volets'],1,'L\'APU, à l\'arrière, alimente le démarreur pneumatique (et le réseau électrique).')]},
+ {id:'instr',t:'Les instruments de bord',h:`<p>Les six instruments de base existent depuis les débuts de l'aviation. Sur un avion moderne, ils sont regroupés sur des écrans, mais leur logique est la même.</p>${SVG_SIX}
+ <h3>Le « glass cockpit » de l'A320</h3><ul><li><b>PFD</b> (écran de pilotage) : horizon au centre, vitesse à gauche, altitude à droite, vario, cap en bas, modes du pilote automatique en haut.</li><li><b>ND</b> (écran de navigation) : la route, les points, la météo radar, le trafic.</li><li><b>E/WD</b> (écran moteurs et alarmes) : N1, EGT, volets, messages ECAM.</li><li><b>SD</b> (écran systèmes) : électricité, carburant, hydraulique, portes…</li></ul>
+ <h3>Les panneaux de commande</h3><ul><li><b>Overhead</b> (au plafond) : électricité, carburant, air, feux, démarrage des moteurs.</li><li><b>FCU</b> (sous le pare-brise) : on y choisit vitesse, cap, altitude, vitesse verticale pour le pilote automatique.</li><li><b>Piédestal</b> (entre les sièges) : manettes de poussée, masters moteurs, volets, aérofreins, radios, <b>MCDU</b> (clavier de l'ordinateur de navigation FMS).</li></ul>
+ <div class="box am"><b class="t">Regarder avant d'agir</b>Un pilote suit un « circuit visuel » : horizon → vitesse → horizon → altitude → horizon → cap… L'horizon est toujours au centre du regard.</div>`,
+  quiz:[Q('Quel écran affiche la vitesse, l\'altitude et l\'horizon ?',['Le ND','Le PFD','Le SD'],1,'PFD = Primary Flight Display, l\'écran de pilotage.'),Q('Où règle-t-on l\'altitude visée par le pilote automatique sur A320 ?',['Sur le FCU','Sur l\'overhead','Avec les palonniers'],0,'Le FCU (Flight Control Unit) sous le pare-brise.')]},
+ {id:'meteo',t:'L\'air et la météo',h:`<p>L'avion vole dans l'air : sa densité, sa température, le vent et les nuages décident de tout (longueur de piste, carburant, confort, sécurité).</p>
+ <h3>Pression et altitude</h3><ul><li>La pression baisse quand on monte : l'altimètre est un baromètre gradué en pieds.</li><li><b>QNH</b> : pression ramenée au niveau de la mer → l'altimètre indique l'<b>altitude</b> (au sol : l'altitude du terrain).</li><li><b>Niveau de vol</b> (FL) : au-dessus d'une altitude de transition, tout le monde affiche 1013 hPa pour être séparé avec la même référence. FL350 ≈ 35 000 ft.</li></ul>
+ <h3>Lire un METAR</h3><p>Exemple : <code>LFPG 151030Z 31012KT 9999 FEW030 08/03 Q1021</code> — Paris-CDG, le 15 à 10 h 30 UTC, vent du 310° à 12 nœuds, visibilité 10 km ou plus, quelques nuages à 3 000 ft, température 8 °C, point de rosée 3 °C, QNH 1021 hPa.</p>
+ <h3>Les dangers</h3><table><tr><th>Phénomène</th><th>Risque</th><th>Parade</th></tr><tr><td>Orage (cumulonimbus)</td><td>Turbulence violente, grêle, foudre</td><td>Contourner (radar météo), jamais traverser</td></tr><tr><td>Givrage</td><td>La glace déforme l'aile et bouche les sondes</td><td>Dégivrage au sol, antigivrage en vol</td></tr><tr><td>Vent de travers</td><td>Sortie de piste</td><td>Technique « crabe / décrabe », limites de l'avion</td></tr><tr><td>Cisaillement de vent</td><td>Perte brutale de vitesse près du sol</td><td>Alarme « WINDSHEAR » → remise des gaz</td></tr><tr><td>Brouillard</td><td>On ne voit pas la piste</td><td>Approche aux instruments (ILS) et minimums</td></tr></table>`,
+  quiz:[Q('Dans « 31012KT », le vent vient…',['Du 310°, 12 nœuds','Vers le 310°, 12 km/h','De la piste 31, en rafales de 12'],0,'On donne toujours la direction d\'où vient le vent.'),Q('Avec le QNH affiché, au sol l\'altimètre indique :',['0','L\'altitude du terrain','Le niveau de vol'],1,'Le QNH ramène la pression au niveau de la mer : on lit l\'altitude.')]},
+ {id:'nav',t:'Naviguer et communiquer',h:`<h3>Cap, route et vent</h3><p>Le <b>cap</b> est la direction du nez ; la <b>route</b> est le chemin réellement suivi au sol. Avec du vent de travers, on met le nez un peu face au vent pour rester sur la route (correction de dérive). Les angles se donnent en degrés de 000 à 360 (090 = est).</p>
+ <h3>Les moyens de navigation</h3><ul><li><b>Navigation à vue</b> (VFR) : cartes, repères au sol, montre et compas. C'est la base du brevet de pilote privé.</li><li><b>Radiobalises</b> : VOR (donne une direction), DME (une distance), et l'<b>ILS</b> qui guide jusqu'à la piste : un faisceau pour l'axe (LOC), un pour la pente de 3° (GLIDE).</li><li><b>GPS et FMS</b> : l'ordinateur de bord suit la route entrée au départ (MCDU).</li></ul>
+ <h3>VFR ou IFR</h3><p>En <b>VFR</b> on vole en voyant le sol et les autres avions (conditions météo minimales). En <b>IFR</b> on vole aux instruments, sous contrôle radar : c'est le cas de tous les vols de ligne.</p>
+ <h3>La radio</h3><p>Phrases courtes et normalisées, en anglais aéronautique (ou en français en France pour le VFR). On <b>collationne</b> (on répète) les clairances : piste, altitude, cap, code transpondeur. Alphabet OACI : Alfa, Bravo, Charlie, Delta, Echo, Foxtrot…</p>
+ <div class="box am"><b class="t">Codes transpondeur d'urgence</b>7700 : détresse · 7600 : panne radio · 7500 : intervention illicite.</div>`,
+  quiz:[Q('Quel système guide l\'avion sur l\'axe et la pente jusqu\'à la piste ?',['Le VOR','L\'ILS','Le transpondeur'],1,'ILS = localizer (axe) + glide (pente).'),Q('Code transpondeur de détresse :',['7700','1200','7000'],0,'7700 = urgence/détresse.')]},
+ {id:'pilote',t:'Le pilote : rôle, journée, règles',h:`<p>Le pilote n'est pas seulement celui qui tient le manche : il <b>prépare, décide, communique et surveille</b>. Sur un avion de ligne, l'équipage technique compte deux pilotes.</p>
+ <h3>Qui fait quoi</h3><ul><li><b>Commandant de bord (CDB)</b>, siège gauche : responsable du vol, de l'avion et des personnes à bord. Il a le dernier mot.</li><li><b>Officier pilote de ligne (OPL)</b>, siège droit : copilote, pleinement qualifié.</li><li>À chaque vol, l'un est <b>PF</b> (pilote qui pilote), l'autre <b>PM</b> (pilote qui surveille : radio, check-lists, annonces). Ils alternent d'une étape à l'autre.</li></ul>
+ <h3>La journée type</h3><ol><li>Préparation : météo, NOTAM, dossier de vol, carburant (45 à 60 min avant).</li><li>Briefing avec l'équipage de cabine.</li><li>Tour avion et préparation du poste.</li><li>Check-lists, mise en route, roulage, décollage.</li><li>Croisière : surveillance, gestion du carburant, météo, radio.</li><li>Préparation de l'arrivée (briefing approche), descente, atterrissage.</li><li>Roulage, arrêt, rapport technique, débriefing.</li></ol>
+ <h3>Les outils de sécurité</h3><ul><li><b>Check-lists</b> : on ne se fie pas à sa mémoire.</li><li><b>CRM</b> (gestion des ressources de l'équipage) : parler clairement, contrôler mutuellement, décider ensemble.</li><li><b>Facteurs humains</b> : fatigue, stress, hypoxie (manque d'oxygène en altitude), illusions sensorielles.</li></ul>
+ <h3>Ce que la réglementation exige</h3><ul><li>Une <b>licence</b> (LAPL, PPL, CPL, ATPL) et des <b>qualifications</b> (classe ou type d'avion, vol aux instruments).</li><li>Un <b>certificat médical</b> valide (classe 2 loisir, classe 1 professionnel).</li><li>Une <b>expérience récente</b> (décollages et atterrissages) et des contrôles réguliers (simulateur tous les 6 mois en compagnie).</li></ul>`,
+  quiz:[Q('Pendant un vol, le PM (pilot monitoring) :',['Pilote l\'avion','Surveille, fait la radio et les check-lists','Est en repos'],1,'Le PF pilote ; le PM surveille et gère radio et check-lists.'),Q('Pourquoi utilise-t-on des check-lists ?',['Pour ne rien oublier, même fatigué ou sous pression','Pour occuper le copilote','Parce que le pilote automatique les lit'],0,'Elles garantissent qu\'aucune action critique n\'est oubliée.')]}
+]},
+{id:'p2',n:'Partie 2 — Cours théorique du simulateur',d:'Le vol complet tel qu\'il est enseigné ici : phases, cockpit, calculs, modes d\'apprentissage.',mods:[
+ {id:'sim1',t:'Le vol complet en 10 phases',h:`<p>Le simulateur suit le vrai déroulé d'un vol, du minibus au parking d'arrivée. Chaque phase correspond à des étapes numérotées du guide (les mêmes numéros dans le dossier, le mode automatique, le mode guidé et l'examen blanc).</p>
+ <table><tr><th>Phase</th><th>Ce que fait le pilote</th></tr><tr><td>1. Préparation</td><td>Dossier de vol, météo, devis de masse et centrage, carburant.</td></tr><tr><td>2. Au sol, à pied</td><td>Tour avion : on vérifie l'état extérieur, point par point.</td></tr><tr><td>3. Cockpit</td><td>Batteries, APU, centrales inertielles, feux, FMS, check-list « Before Start ».</td></tr><tr><td>4. Mise en route</td><td>Démarrage du moteur 2 puis du moteur 1.</td></tr><tr><td>5. Roulage</td><td>Volets, auto-frein, autorisation, roulage jusqu'au point d'arrêt.</td></tr><tr><td>6. Décollage</td><td>Check-list « Before Takeoff », alignement, poussée, rotation à VR.</td></tr><tr><td>7. Montée</td><td>Train, volets, pilote automatique, poussée de montée, passage du FL100.</td></tr><tr><td>8. Croisière</td><td>Surveillance, contrôle carburant, préparation de l'arrivée.</td></tr><tr><td>9. Descente et approche</td><td>Calcul du point de descente, ILS, configuration (volets, train, aérofreins armés).</td></tr><tr><td>10. Atterrissage et parking</td><td>Toucher, freinage, dégagement, roulage, arrêt des moteurs, sécurisation.</td></tr></table>
+ <p><button type="button" data-act="brief">📋 Ouvrir le dossier de vol pas à pas</button></p>`,
+  quiz:[Q('Quelle phase vient juste avant la mise en route des moteurs ?',['Le roulage','La préparation du cockpit (check-list Before Start)','La montée'],1,'On prépare le poste et on fait la check-list avant de démarrer.')]},
+ {id:'sim2',t:'Les calculs du pilote',h:`<p>Les mêmes calculs reviennent dans le dossier, le mode guidé et l'<b>examen blanc</b>. Formules pédagogiques du simulateur (les vraies compagnies utilisent les tables du constructeur).</p>
+ <div class="box"><b class="t">Masse au décollage</b>TOW = masse sans carburant (ZFW) + carburant embarqué (bloc) − carburant de roulage. Elle doit rester sous la masse maximale (MTOW). ZFW = masse de base + passagers + bagages + fret.</div>
+ <div class="box"><b class="t">Carburant minimum</b>roulage + étape + réserve de route (5 % de l'étape) + dégagement + réserve finale (30 min) + supplément éventuel décidé par le commandant.</div>
+ <div class="box"><b class="t">Vitesse de rotation (A320, simulateur)</b>VR = 118 + (TOW en tonnes − 50) × 1,25 · V1 = VR − 3 · V2 = VR + 5.</div>
+ <div class="box"><b class="t">Point de début de descente — règle des 3</b>Distance (NM) = altitude à perdre en milliers de pieds × 3. De 35 000 ft à 3 000 ft : 32 × 3 = 96 NM (+ marge pour ralentir).</div>
+ <div class="box"><b class="t">Vitesse d'approche</b>VAPP = VLS + 5 kt (plus une correction si vent fort ou rafales).</div>`,
+  quiz:[Q('ZFW 60 000 kg, bloc 8 000 kg, roulage 200 kg. TOW = ?',['67 800 kg','68 200 kg','60 200 kg'],0,'60 000 + 8 000 − 200 = 67 800 kg.'),Q('Règle des 3 : de FL330 à 3 000 ft, on commence la descente à environ…',['30 NM','90 NM','300 NM'],1,'(33 − 3) × 3 = 90 NM.')]},
+ {id:'sim3',t:'Apprendre avec le simulateur',h:`<p>Ordre conseillé :</p><ol><li><b>Mode automatique</b> : regarder un vol complet ; à chaque étape, les commandes sont encadrées en rouge puis en vert, avec les sous-étapes numérotées.</li><li><b>Mode guidé</b> : refaire le vol soi-même, le guide coche vos actions.</li><li><b>Sans guide</b>, puis avec <b>pannes</b> et <b>scénarios</b>.</li><li><b>Examen blanc</b> : sans aide ; QCM d'aide au bout de 30 s ; décollage seulement si tout est validé ; bloc-notes final pour réviser.</li></ol>
+ <p class="act"><button type="button" class="go" data-act="auto">▶ Lancer le mode automatique</button> <button type="button" data-act="guide">🎓 Lancer le mode guidé</button> <button type="button" data-act="exam">📝 Passer l'examen blanc</button></p>`,quiz:[]}
+]},
+{id:'p3',n:'Partie 3 — Le vrai pilotage : brevet de pilote',d:'Licences de loisir, médical, école, examen théorique, formation en vol, budget.',mods:[
+ {id:'lic',t:'Les licences de loisir',h:`<table><tr><th></th><th>LAPL(A)</th><th>PPL(A)</th></tr><tr><td>Ce qu'elle permet</td><td>Avions légers (≤ 2 t), jusqu'à 3 passagers, en Europe (EASA)</td><td>Commandant de bord sans rémunération, partout dans le monde selon l'avion et les qualifications</td></tr><tr><td>Heures de vol minimales</td><td>30 h dont 15 h en double commande et 6 h en solo supervisé (navigation de 150 km avec un atterrissage ailleurs)</td><td>45 h dont 25 h en double commande et 10 h en solo supervisé, dont 5 h de navigation et un vol de 270 km avec 2 atterrissages sur 2 autres aérodromes</td></tr><tr><td>Âge</td><td colspan="2">16 ans pour le premier solo, 17 ans pour la licence</td></tr><tr><td>Médical</td><td>Certificat LAPL</td><td>Classe 2</td></tr></table>
+ <p>En pratique on vole <b>50 à 60 h</b> avant le test en vol du PPL. Il existe aussi l'<b>ULM</b>, plus accessible, avec sa propre licence. La PPL est la porte d'entrée vers les licences professionnelles (CPL, ATPL).</p>`,
+  quiz:[Q('Minimum d\'heures de vol pour la PPL(A) :',['20 h','45 h','150 h'],1,'45 h dont 25 h en double commande et 10 h en solo supervisé.')]},
+ {id:'med',t:'Le certificat médical',h:`<ul><li><b>Classe 2</b> (pilote privé) : délivrée par un médecin agréé aéronautique (AME). À faire <b>avant le premier vol solo</b> — idéalement avant de payer la formation.</li><li>Validité : 5 ans avant 40 ans, 2 ans entre 40 et 50 ans, 1 an après 50 ans.</li><li><b>Classe 1</b> (pilote professionnel) : examen plus complet dans un <b>CEMPN</b> (centre d'expertise médicale du personnel navigant) ; renouvellement annuel.</li><li>Lunettes : acceptées dans les limites fixées (paire de rechange obligatoire à bord).</li></ul>`,quiz:[]},
+ {id:'ecole',t:'S\'inscrire et se former',h:`<ol><li><b>Choisir son école</b> : un aéro-club (association, souvent moins cher) ou une école agréée (DTO/ATO). Visiter, faire un vol d'initiation, regarder la flotte, la disponibilité des instructeurs et des avions.</li><li><b>Adhérer</b> (cotisation annuelle, licence fédérale et assurance).</li><li><b>Passer le médical</b> classe 2.</li><li><b>Commencer en double commande</b> : effets des commandes, montée, descente, virages, décrochage, tours de piste.</li><li><b>Premier lâcher solo</b> (souvent entre 15 et 25 h) : un tour de piste seul à bord.</li><li><b>Navigation</b> : vols en campagne, d'abord avec l'instructeur puis en solo.</li><li><b>Test en vol</b> (skill test) avec un examinateur, une fois la théorie réussie.</li></ol>
+ <h3>L'examen théorique</h3><p>Depuis le 4 décembre 2023, l'examen théorique LAPL/PPL avion de la DGAC compte <b>9 épreuves, une par matière</b>, chacune réussie avec <b>75 %</b> de bonnes réponses (QCM à 4 choix) : réglementation, performance humaine, météorologie, communications, principes du vol, procédures opérationnelles, performances et préparation du vol, connaissance générale de l'aéronef, navigation. Toutes les épreuves doivent être réussies dans un délai de 18 mois ; le succès reste valable 24 mois pour passer le test en vol.</p>
+ <div class="box mg"><b class="t">Le lien avec ce simulateur</b>Masse et centrage, carburant, METAR, QNH, règle des 3, check-lists, radio : ce sont exactement les sujets des épreuves « performances et préparation du vol », « météorologie », « procédures » et « communications ».</div>`,
+  quiz:[Q('Combien d\'épreuves compte l\'examen théorique PPL(A) en France depuis fin 2023 ?',['1','9','14'],1,'9 épreuves (une par matière), 75 % requis dans chacune.')]},
+ {id:'budget',t:'Budget et aides',h:`<table><tr><th>Poste</th><th>Ordre de grandeur (2026)</th></tr><tr><td>Heure de vol en aéro-club</td><td>≈ 180 à 300 € (avec instructeur)</td></tr><tr><td>PPL complète (50 à 60 h)</td><td>≈ 8 000 à 15 000 € selon le club et la région</td></tr><tr><td>Théorie en e-learning</td><td>≈ 400 à 1 000 €</td></tr><tr><td>Médical classe 2</td><td>≈ 100 à 200 €</td></tr><tr><td>Cotisation club</td><td>≈ 200 à 500 € / an</td></tr></table>
+ <ul><li>Voler <b>régulièrement</b> (créneau fixe chaque semaine) coûte moins cher qu'avancer par à-coups : chaque pause impose des heures de reprise.</li><li>Jeunes : le <b>BIA</b> (brevet d'initiation aéronautique) prépare à la théorie ; les aéro-clubs et la fédération proposent souvent des aides pour les moins de 25 ans — à demander au club.</li><li>Comparer les devis sur une même base : un devis est souvent calculé sur le minimum de 45 h.</li></ul>`,quiz:[]}
+]},
+{id:'p4',n:'Partie 4 — Reconversion : devenir pilote professionnel',d:'Les étapes concrètes pour changer de métier et devenir pilote de ligne.',mods:[
+ {id:'r1',t:'Étape 1 : vérifier que c\'est possible',h:`<ol><li><b>Médical classe 1 d'abord</b> (CEMPN) : c'est le premier filtre, avant toute dépense de formation. Il est renouvelé chaque année.</li><li><b>Anglais</b> : niveau OACI 4 minimum ; c'est la langue de la radio et des compagnies.</li><li><b>Tester le métier</b> : vol d'initiation, rencontre avec des pilotes, journée portes ouvertes d'écoles.</li><li><b>Se faire accompagner</b> : un conseiller en évolution professionnelle (CEP, gratuit) aide à construire le projet et il est obligatoire pour certains financements.</li><li><b>Âge</b> : copilote de ligne dès 18 ans (CPL), commandant de bord à partir de 21 ans (ATPL). Une reconversion à 30 ou 40 ans est possible, mais certaines voies ont des limites d'âge.</li></ol>`,quiz:[Q('Quelle démarche faire avant de payer une formation professionnelle ?',['Acheter un casque','Passer le médical classe 1','Réserver un simulateur A320'],1,'Sans classe 1, pas de licence professionnelle : on le vérifie en premier.')]},
+ {id:'r2',t:'Étape 2 : choisir sa voie',h:`<table><tr><th>Voie</th><th>Principe</th><th>Coût pour l'élève</th><th>Durée</th></tr><tr><td><b>ENAC</b> (école publique)</td><td>Concours très sélectif (quelques places par an), limites d'âge selon la voie (de l'ordre de 23 à 30 ans)</td><td>Gratuit</td><td>≈ 2 à 3 ans</td></tr><tr><td><b>Filière cadets</b> de compagnie (ex. Air France)</td><td>Sélection par la compagnie, formation d'environ 24 mois dans des écoles partenaires</td><td>Financée par la compagnie</td><td>≈ 2 ans</td></tr><tr><td><b>ATPL intégré</b> (école privée)</td><td>De zéro à la licence professionnelle, à temps plein</td><td>≈ 90 000 à 120 000 € en France</td><td>18 à 28 mois</td></tr><tr><td><b>ATPL modulaire</b></td><td>PPL, puis ATPL théorique, CPL, IR… module par module, possible en travaillant</td><td>≈ 35 000 à 65 000 €</td><td>3 à 5 ans</td></tr></table>
+ <div class="box am"><b class="t">Choisir une école</b>Vérifier l'agrément DGAC (ATO), la santé financière de l'école, les partenariats avec des compagnies, le taux d'emploi des anciens élèves, et ne jamais payer toute la formation d'avance.</div>`,quiz:[Q('Quelle voie permet de travailler pendant la formation ?',['ATPL intégré','ATPL modulaire','Filière cadets'],1,'Le modulaire avance module par module, à temps partiel.')]},
+ {id:'r3',t:'Étape 3 : financer la reconversion',h:`<ul><li><b>Salarié en CDI</b> : le <b>projet de transition professionnelle</b> (Transitions Pro) peut maintenir tout ou partie du salaire et prendre en charge des frais de formation. Dossier à déposer environ 3 mois avant le début (accord de l'employeur si la formation est sur le temps de travail, organisme certifié Qualiopi).</li><li><b>CPF</b> (compte personnel de formation) en complément.</li><li><b>Demandeur d'emploi</b> : France Travail (aide individuelle à la formation) et Région.</li><li><b>Prêt bancaire</b> pour le reste, avec différé de remboursement pendant la formation.</li></ul>
+ <p>Compter 4 à 6 mois de démarches avant de commencer. C'est un projet familial : 2 ans avec peu ou pas de revenus, des déplacements, beaucoup de travail personnel.</p>`,quiz:[]},
+ {id:'r4',t:'Étape 4 : la formation et le premier poste',h:`<ol><li><b>ATPL théorique</b> : une quinzaine de matières (13 à 14 épreuves selon le programme) — systèmes, performances, météo, navigation, réglementation, facteurs humains…</li><li><b>CPL</b> (licence de pilote professionnel) et <b>IR</b> (vol aux instruments), souvent sur bimoteur.</li><li><b>MCC / APS</b> : travail en équipage sur simulateur de ligne.</li><li>Vous obtenez un « <b>ATPL gelé</b> » : licence professionnelle avec la théorie ATPL.</li><li><b>Sélection compagnie</b> : tests techniques, psychotechniques, anglais, entretien.</li><li><b>Qualification de type</b> (A320, B737…) sur simulateur, puis vols en ligne sous supervision.</li><li>Copilote (OPL), puis <b>commandant de bord</b> une fois l'expérience acquise (1 500 h de vol pour l'ATPL complet, plus les critères de la compagnie).</li></ol>
+ <div class="box mg"><b class="t">Plan type sur 24 à 36 mois</b>Mois 0 : médical classe 1 · mois 1 à 3 : financement et choix d'école · mois 3 à 6 : inscription, PPL ou début d'intégré · mois 6 à 28 : ATPL théorique, CPL, IR · puis MCC, sélection compagnie, qualification de type.</div>`,
+  quiz:[Q('Quel est l\'ordre logique ?',['Qualification de type → CPL → médical','Médical classe 1 → ATPL théorique + CPL/IR → MCC → qualification de type','PPL → commandant de bord'],1,'Médical d\'abord, puis licences, travail en équipage, et enfin le type d\'avion de la compagnie.')]}
+]}];
+const SRC=[['Programme et examens théoriques PPL/LAPL — ministère (DGAC)','https://www.ecologie.gouv.fr/politiques-publiques/examens-theoriques-devenir-personnel-navigant'],['Passage à 9 épreuves (déc. 2023) — AeroVFR','https://aerovfr.com/2023/10/de-la-pratique-de-lexamen-theorique'],['Fiche LAPL / PPL (heures, médical) — Aérogligli','https://www.aerogligli.fr/assets/img/resumes/fiche_resume_licences.pdf'],['FAA — Pilot\'s Handbook of Aeronautical Knowledge','https://www.faa.gov/regulations_policies/handbooks_manuals/aviation/phak'],['Coûts ENAC / intégré / modulaire (2026) — Salerya','https://salerya.fr/metiers/transport/pilote-de-ligne/formation-enac-vs-privee-roi/'],['Reconversion après 30 ans, médical classe 1 — Salerya','https://salerya.fr/metiers/transport/pilote-de-ligne/formation-enac-vs-privee-roi/reconversion-pilote-apres-30-ans/'],['Filière Cadets Air France — Air Journal','https://www.air-journal.fr/?p=275748'],['Financer une reconversion pilote (CPF, Transitions Pro, France Travail) — OPCO Direct','https://opcodirect.fr/metier/pilote-de-ligne'],['Pilote de ligne (ATPL intégré / modulaire) — CIDJ','https://www.cidj.com/s-orienter/metiers/pilote-de-ligne']];
+
+/* ---------- lecteur ---------- */
+const LIST=[]; PARTS.forEach(p=>p.mods.forEach(m=>LIST.push({p,m})));
+const ST={i:0,toc:false}; const store={get(){ try{ return JSON.parse(localStorage.getItem('pt-acad')||'{}'); }catch(e){ return {}; } },set(v){ try{ localStorage.setItem('pt-acad',JSON.stringify(v)); }catch(e){} }};
+let done=store.get();
+function dom(){ let a=document.getElementById('acad'); if(a) return a; a=document.createElement('section'); a.id='acad'; a.hidden=true; a.setAttribute('aria-label','Académie');
+  a.innerHTML=`<header><button type="button" data-toc>☰ Sommaire</button><div class="tt"><b>Académie <i>du pilote</i></b><span></span></div><button type="button" data-x aria-label="Fermer">✕</button></header><div class="bd"><div class="in"></div></div><div class="toc" hidden></div>
+  <footer><button type="button" data-prev>◀ Précédent</button><span class="n"></span><button type="button" data-next>Suivant ▶</button><button type="button" class="go" data-sim>Aller au simulateur ▸</button></footer>`;
+  document.body.appendChild(a);
+  a.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
+    if(d.x!=null||d.sim!=null){ close(); }
+    else if(d.toc!=null){ ST.toc=!ST.toc; render(); }
+    else if(d.prev!=null){ go(ST.i-1); } else if(d.next!=null){ go(ST.i+1); }
+    else if(d.mod!=null){ ST.toc=false; go(+d.mod); } else if(d.home!=null){ ST.toc=false; go(-1); }
+    else if(d.qi!=null){ answer(b); }
+    else if(d.act){ act(d.act); } });
+  return a; }
+function home(){ return `<div class="kick">Avant le simulateur</div><h1>Apprendre à piloter, de zéro</h1><p>Commencez ici si vous n'avez jamais piloté. Quatre parties, à lire dans l'ordre : chaque module se termine par quelques questions. Votre progression est gardée sur cet appareil.</p>
+  <div class="cards">${PARTS.map(p=>{ const n=p.mods.length, k=p.mods.filter(m=>done[m.id]).length; return `<button type="button" class="card" data-mod="${LIST.findIndex(x=>x.p===p)}"><span class="kick">${k}/${n} modules</span><b>${p.n}</b>${p.d}<div class="pg"><i style="width:${n?k/n*100:0}%"></i></div></button>`; }).join('')}</div>
+  <div class="box mg"><b class="t">Le parcours complet</b>1. Cours débutant → 2. Cours du simulateur → 3. Mode automatique puis guidé → 4. Examen blanc → 5. Le vrai pilotage (brevet) → 6. La reconversion professionnelle.</div>
+  <h2>Références</h2><ul class="src">${SRC.map(s=>`<li><a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a></li>`).join('')}</ul><p class="src">Chiffres et règles vérifiés en novembre 2026 ; ils évoluent : confirmez auprès de la DGAC, de votre médecin agréé et des écoles. Les formules de calcul du simulateur sont pédagogiques, pas les tables d'un constructeur.</p>`; }
+function modHTML(x,i){ const {p,m}=x, k=p.mods.indexOf(m)+1;
+  return `<div class="kick">${p.n} · module ${k}/${p.mods.length}</div><h1>${m.t}</h1>${m.h}
+   ${m.quiz&&m.quiz.length?`<div class="quiz"><h3>✔ Vérifiez vos connaissances</h3>${m.quiz.map((q,j)=>`<div class="qq" data-j="${j}"><p>${j+1}. ${q.q}</p>${q.o.map((o,n)=>`<button type="button" data-qi="${j}:${n}">${o}</button>`).join('')}<div class="why" hidden></div></div>`).join('')}</div>`:''}
+   ${i===LIST.length-1||LIST[i+1].p!==p?`<div class="box"><b class="t">Fin de la ${p.n.split(' — ')[0].toLowerCase()}</b>${p.id==='p1'?'Vous connaissez l\'avion, le vol et le métier. Suite : le cours du simulateur.':p.id==='p2'?'Place à la pratique : mode automatique, mode guidé, puis examen blanc.':p.id==='p3'?'Suite : comment en faire son métier.':'Bon vol ! Revenez au simulateur pour vous entraîner et repasser l\'examen blanc.'}</div>`:''}`; }
+function answer(b){ const [j,n]=b.dataset.qi.split(':').map(Number), x=LIST[ST.i], q=x.m.quiz[j], box=b.closest('.qq'); if(box.dataset.done) return; box.dataset.done=1;
+  box.querySelectorAll('button').forEach((bb,k)=>{ if(k===q.c) bb.classList.add('good'); else if(bb===b) bb.classList.add('bad'); bb.disabled=true; });
+  const w=box.querySelector('.why'); w.hidden=false; w.innerHTML=(n===q.c?'✓ Exact. ':'✗ Réponse : <b>'+q.o[q.c]+'</b>. ')+q.why;
+  const all=[...b.closest('.quiz').querySelectorAll('.qq')]; if(all.every(z=>z.dataset.done)){ done[x.m.id]=true; store.set(done); } }
+function render(){ const a=dom(), body=a.querySelector('.in'), toc=a.querySelector('.toc');
+  if(ST.i<0){ body.innerHTML=home(); a.querySelector('.tt span').textContent='Accueil des cours'; a.querySelector('.n').textContent=''; }
+  else { const x=LIST[ST.i]; body.innerHTML=modHTML(x,ST.i); a.querySelector('.tt span').textContent=x.p.n+' · '+x.m.t; a.querySelector('.n').textContent=(ST.i+1)+' / '+LIST.length; if(!x.m.quiz||!x.m.quiz.length){ done[x.m.id]=true; store.set(done); } }
+  a.querySelector('[data-prev]').disabled=ST.i<0; a.querySelector('[data-next]').disabled=ST.i>=LIST.length-1;
+  toc.hidden=!ST.toc; if(ST.toc) toc.innerHTML=`<div class="in"><button type="button" data-home>🏠 Accueil des cours</button>${PARTS.map(p=>`<div><h4>${p.n}</h4>${p.mods.map(m=>{ const i=LIST.findIndex(x=>x.m===m); return `<button type="button" data-mod="${i}" class="${done[m.id]?'ok':''} ${i===ST.i?'cur':''}">${m.t}</button>`; }).join('')}</div>`).join('')}</div>`;
+  a.querySelector('.bd').scrollTop=0; }
+function go(i){ ST.i=Math.max(-1,Math.min(LIST.length-1,i)); render(); }
+function open(i){ const a=dom(); a.hidden=false; ST.toc=false; go(i==null?-1:i); }
+function close(){ const a=dom(); a.hidden=true; }
+function act(k){ if(typeof selAC==='undefined') return; if(!selAC) selAC='a320'; if(!selMI||!MISSIONS[selMI]) selMI=(AC[selAC].kind==='fw')?'full-fw':'full-rw';
+  close(); try{ renderMenu(); }catch(e){}
+  if(k==='brief'){ if(window.BR&&BR.show) BR.show(false,0); return; }
+  if(window.BR&&BR.launchMode) BR.launchMode(k); }
+window.ACAD={open,close,PARTS};
+
+/* ---------- entrée dans le menu (avant le choix de l'appareil) ---------- */
+function inject(){ document.querySelectorAll('#c-mi [data-mi^="sc-"]:not([disabled]) .k').forEach(k=>k.textContent='Scénario guidé'); const box=document.querySelector('#menu .box'); if(!box||box.querySelector('.acad-b')) return; const sub=box.querySelector('.sub');
+  const b=document.createElement('button'); b.type='button'; b.className='acad-b'; b.innerHTML='<span class="e">🎓</span><span><b>Académie : commencez par le cours</b>Débutant ? L\'avion, le vol, le pilote, puis le cours du simulateur, le brevet et la reconversion professionnelle.</span>';
+  b.onclick=()=>open(); (sub||box.firstChild).after(b); }
+inject(); const _rm=renderMenu; renderMenu=function(){ const r=_rm.apply(this,arguments); try{ inject(); }catch(e){} return r; };
+})();
 
 </script>
 </body>

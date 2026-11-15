@@ -42,7 +42,7 @@ const css=document.createElement('style'); css.textContent=`
 #brief .modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:10px}
 #brief .mode{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0a141e;display:flex;flex-direction:column;gap:6px}
 #brief .mode.sel{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset;background:#170b1b}
-#brief .mode h4{margin:0;font:700 19px 'Barlow Condensed'}#brief .mode .k{font:600 10px 'Barlow Condensed';letter-spacing:.12em;text-transform:uppercase;color:var(--cy)}
+#brief .mode .m-go{margin-top:auto;align-self:flex-start;background:var(--acc);color:#fff;border:0;border-radius:9px;padding:9px 14px;font:700 15px 'Barlow Condensed';letter-spacing:.06em;text-transform:uppercase;cursor:pointer}#brief .mode h4{margin:0;font:700 19px 'Barlow Condensed'}#brief .mode .k{font:600 10px 'Barlow Condensed';letter-spacing:.12em;text-transform:uppercase;color:var(--cy)}
 #brief .mode dl{margin:0;font-size:13px;display:grid;grid-template-columns:92px 1fr;gap:3px 8px}#brief .mode dt{color:var(--mut)}#brief .mode dd{margin:0}
 #brief .tl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}#brief .tl button{display:block;text-align:left;text-transform:none;letter-spacing:0;font:500 12.5px Inter;padding:9px;border-radius:9px;background:#0a141e;min-height:70px}
 #brief .tl button b{display:block;font:700 15px 'Barlow Condensed';color:#fff}#brief .tl button span{color:var(--mut)}
@@ -80,6 +80,14 @@ const MODES=[
   what:'L\'appareil est déjà aligné sur la piste (ou posé pour un hélicoptère), moteurs en marche. Pas de procédure au sol.',
   you:'Vous décollez et pilotez librement vers la destination ; radio, météo, pannes et scénarios restent disponibles.',
   help:'Choisir une mission « Vol libre » dans le menu.',who:'Travailler le pilotage, les approches, les pannes.'},
+ {id:'acad',k:'Avant tout',n:'Académie (cours)',ico:'📚',
+  what:'Le cours débutant (l\'avion, ses parties, le vol, les moteurs, les instruments, la météo, la navigation, le pilote), le cours du simulateur, puis le vrai brevet de pilote et la reconversion professionnelle.',
+  you:'Vous lisez les modules dans l\'ordre et répondez aux questions de fin de module ; la progression est gardée.',help:'Accessible aussi depuis le menu principal (« Académie »).',who:'Grands débutants, avant le premier vol.'},
+ {id:'exam',k:'Valider la théorie',n:'Parcours pilote — examen blanc',ico:'🎓',
+  what:'Le vol complet, de la visite extérieure à l\'atterrissage, mais sans aide : seuls les blocs et écrans à utiliser sont encadrés [ ? ]. Les calculs (masse, carburant, VR, descente, VAPP) et le tour avion sont des questions.',
+  you:'Vous trouvez et actionnez les bonnes commandes. Après 30 s sans la bonne action, un QCM d\'aide s\'ouvre : bonne réponse ✓ et la commande est montrée ; mauvaise ✗ et le tableau des étapes s\'affiche.',
+  help:'Toutes les étapes avant décollage validées → l\'avion décolle ; sinon épreuve éliminatoire. Le bloc-notes final renvoie chaque point raté vers le dossier, le mode automatique ou le mode guidé.',
+  who:'Après le mode automatique et au moins un vol guidé.'},
  {id:'scn',k:'Situations',n:'Scénarios et pannes',ico:'⚠',
   what:'Bouton « Scénarios » : situations fictives ou reconstitutions (briefing, critères de réussite, enregistrement 1 Hz, débriefing). Bouton « Pannes » : poste instructeur pour injecter une panne pendant n\'importe quel vol.',
   you:'Vous identifiez l\'alarme (sons, ECAM), appliquez la procédure, gérez la trajectoire.',help:'Les alarmes sonores sont expliquées dans l\'annexe « Les sons du vol ».',who:'Confirmé.'},
@@ -201,8 +209,8 @@ function modesHTML(){ const full=!!MI.full, cm=curMode();
   return `<p>Le simulateur propose plusieurs façons d'apprendre. Choisissez <b>avant le vol</b> comment vous voulez être accompagné : ${full?'touchez une des trois premières cartes pour la sélectionner (un seul mode à la fois).':'<b style="color:var(--am)">la mission choisie est un vol libre</b> : pas de procédure au sol ni de guide. Pour le parcours complet guidé : '+`<button type="button" data-full="1">Passer au parcours pilote complet</button>`}</p>
   <div class="modes">${MODES.map(m=>`<div class="mode ${full&&['guide','auto','free'].includes(m.id)&&cm===m.id?'sel':''}" ${full&&['guide','auto','free'].includes(m.id)?`data-mode="${m.id}" role="button" tabindex="0" style="cursor:pointer"`:''}>
     <span class="k">${m.k}</span><h4>${m.ico} ${m.n}</h4><p style="margin:0;font-size:13.5px">${m.what}</p>
-    <dl><dt>Vous</dt><dd>${m.you}</dd><dt>Aides</dt><dd>${m.help}</dd><dt>Pour qui</dt><dd>${m.who}</dd></dl></div>`).join('')}</div>
-  <h3>Comment progresser</h3><ol><li><b>Lire ce dossier</b> une fois en entier (≈ 15 min) : chaque page correspond à une étape numérotée du guide.</li><li><b>Mode automatique</b> : regarder un vol complet en écoutant les annonces.</li><li><b>Mode guidé</b> : refaire le vol vous-même, le guide coche vos actions.</li><li><b>Sans guide</b>, puis avec des <b>pannes</b> et des <b>scénarios</b>.</li><li>Valider avec le <b>QCM</b>.</li></ol>
+    <dl><dt>Vous</dt><dd>${m.you}</dd><dt>Aides</dt><dd>${m.help}</dd><dt>Pour qui</dt><dd>${m.who}</dd></dl><button type="button" class="m-go" data-launch="${m.id}">🚀 Lancer ${m.n.replace(/\s*\(.*\)/,'')} ▸</button></div>`).join('')}</div>
+  <h3>Comment progresser</h3><ol><li><b>Lire ce dossier</b> une fois en entier (≈ 15 min) : chaque page correspond à une étape numérotée du guide.</li><li><b>Mode automatique</b> : regarder un vol complet en écoutant les annonces.</li><li><b>Mode guidé</b> : refaire le vol vous-même, le guide coche vos actions.</li><li><b>Sans guide</b>, puis avec des <b>pannes</b> et des <b>scénarios</b>.</li><li>Valider avec le <b>QCM</b>.</li><li>Passer l'<b>examen blanc</b> : sans aide, décollage seulement si tout est validé.</li></ol>
   <div class="box snd"><b class="t">Le son fait partie de l'apprentissage</b>Un pilote entend une panne avant de la lire. Montez le volume (ou mettez un casque) : moteurs, vent, pluie, alarmes, annonces de l'équipage et de l'avion sont simulés en direct. Réglages : bouton « 🔊 Son » de la barre. L'annexe « Les sons du vol » permet de les écouter un par un. <br><button type="button" class="snd-b" data-snd="chime">🔊 Tester : single chime</button><button type="button" class="snd-b" data-snd="callouts">🔊 Tester : annonces radiosonde</button></div>`; }
 function overviewHTML(steps){ const groups=[]; steps.forEach((s,i)=>{ let g=groups[groups.length-1]; if(!g||g.ph!==s.ph){ g={ph:s.ph,items:[]}; groups.push(g); } g.items.push([i,s]); });
   return `<p>Voici tout le vol, du minibus jusqu'à l'avion stationné à l'arrivée. ${steps.length} étapes numérotées de 0 à ${steps.length-1} — <b>les mêmes numéros</b> que le panneau du guide pendant le vol. Cliquez une phase pour y aller.</p>
@@ -266,7 +274,8 @@ function dom(){ let b=$('brief'); if(b) return b; b=document.createElement('sect
   swipe(b);
   $('br-prev').onclick=()=>go(BR.i-1); $('br-next').onclick=()=>go(BR.i+1); $('br-x').onclick=close; $('br-go').onclick=launch; $('br-skip').onclick=launch; $('br-snd').onclick=()=>SND.panel&&SND.panel();
   $('brief-nav-t').onclick=()=>b.classList.toggle('nav'); $('br-all').onclick=()=>{ BR.all=!BR.all; $('br-all').classList.toggle('on',BR.all); render(); };
-  b.addEventListener('click',e=>{ const t=e.target.closest('[data-go],[data-snd],[data-mode],[data-full]'); if(!t) return;
+  b.addEventListener('click',e=>{ const t=e.target.closest('[data-launch],[data-go],[data-snd],[data-mode],[data-full]'); if(!t) return;
+    if(t.dataset.launch){ e.stopPropagation(); launchMode(t.dataset.launch); return; }
     if(t.dataset.go!=null){ BR.all=false; $('br-all').classList.remove('on'); go(+t.dataset.go); }
     else if(t.dataset.snd){ SND.unlock&&SND.unlock(); setTimeout(()=>SND.play(t.dataset.snd),60); }
     else if(t.dataset.mode){ setMode(t.dataset.mode); render(); }
@@ -295,6 +304,19 @@ function go(i){ if(i<0||i>=BR.pages.length) return; BR.i=i; render(); }
 function prep(){ if(!BR.fromSim){ ACK=selAC; A=AC[ACK]; MI=MISSIONS[selMI]; } buildPages(); }
 function show(fromSim,page){ BR.fromSim=!!fromSim; if(fromSim){ BR.wasPaused=paused; paused=true; } prep(); BR.i=page||0; BR.all=false; dom().hidden=false; $('br-all').classList.remove('on'); render(); try{ SND.unlock&&SND.unlock(); }catch(e){} }
 function close(){ const b=$('brief'); if(b) b.hidden=true; if(BR.fromSim){ paused=BR.wasPaused; } }
+// bouton « Lancer » de chaque carte : démarre directement le parcours correspondant
+function launchMode(id){ const fw=(AC[selAC]||A).kind==='fw', full=fw?'full-fw':'full-rw', libre=fw?'jfk-cdg':'heli-ny';
+  if(BR.fromSim){ BR.fromSim=false; paused=false; }
+  let m='guide';
+  if(['guide','auto','free','exam'].includes(id)){ if(!MISSIONS[selMI]||!MISSIONS[selMI].full) selMI=full; m=id==='exam'?'guide':id; window.EXAM_PENDING=id==='exam'; }
+  else if(id==='libre'){ selMI=libre; m='free'; }
+  else if(id==='scn'||id==='radio'){ if(!MISSIONS[selMI]) selMI=libre; m=curMode(); }
+  else if(id==='acad'){ const b=$('brief'); if(b) b.hidden=true; if(window.ACAD) ACAD.open(); return; }
+  else if(id==='qcm'){ const b=$('brief'); if(b) b.hidden=true; try{ qcmOpen(); }catch(e){} return; }
+  try{ renderMenu(); }catch(e){} setMode(m); launch();
+  if(id==='scn') setTimeout(()=>{ try{ scnOpen(true); }catch(e){} },600);
+  if(id==='radio') setTimeout(()=>{ try{ atcOpen(true); }catch(e){} },600); }
+BR.launchMode=launchMode;
 function launch(){ const b=$('brief'); if(BR.fromSim){ close(); return; } if(b) b.hidden=true; try{ SND.unlock&&SND.unlock(); }catch(e){} startMission(); }
 BR.show=show; BR.close=close; BR.extraFor=extraFor; BR.whyW=whyW; BR.PHX=PHX;
 

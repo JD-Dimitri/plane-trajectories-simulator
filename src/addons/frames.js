@@ -30,13 +30,16 @@ PT.scrFor=l=>/BAT|EXT PWR|GEN|ELEC|APU/i.test(l)?'sd':/ENG|N1|N2|EGT|MASTER|IGN|
 /* ---------- où se trouve la commande ---------- */
 function defOf(kind,id){ try{ if(kind==='sw'){ for(const col of OVH[ACK].secs) for(const [t,items] of col) for(const it of items) if(it[0]===id) return {sec:t,l:it[1]}; }
   if(kind==='pd'){ for(const [t,items] of PED[ACK]) for(const it of items) if(it[0]===id) return {sec:t,l:it[1]}; } }catch(e){} return null; }
-PT.where=sel=>{ const m=/data-(sw|pd|f)="([^"]+)"/.exec(sel||''); if(!m) return ''; const d=defOf(m[1],m[2]);
+PT.el=function(sel){ if(!sel) return null; let all=[]; try{ all=[...document.querySelectorAll(sel)]; }catch(e){ return null; } if(!all.length) return null;
+  const vis=all.find(e=>{ const t=e.closest('.sw')||e; return t.offsetParent!==null&&!e.closest('[hidden]'); }); if(vis) return vis;
+  if(sel.startsWith('[data-pd')){ const p=all.find(e=>e.closest('#ped')); if(p) return p; } return all.find(e=>e.closest('#ovh'))||all[0]; };
+PT.where=sel=>{ if(/^#atc/.test(sel||'')) return 'Panneau Radio (bouton « Radio »)'; if(/^#f-/.test(sel||'')) return 'Bandeau FCU (au-dessus des écrans)'; const m=/data-(sw|pd|f)="([^"]+)"/.exec(sel||''); if(!m) return ''; const d=defOf(m[1],m[2]);
   return m[1]==='sw'?`Panneau plafond${d?' › '+d.sec:''}`:m[1]==='pd'?`${A.kind==='fw'?'Pédestal':'Console'}${d?' › '+d.sec:''}`:'Bandeau FCU (au-dessus des écrans)'; };
 PT.help=sel=>{ const m=/data-(sw|pd|f)="([^"]+)"/.exec(sel||''); return m&&typeof H320!=='undefined'&&ACK==='a320'&&H320[m[2]]?H320[m[2]]:''; };
 const SCRN={pfd:'Écran PFD (pilotage : assiette, vitesse, altitude)',nd:'Écran ND (navigation : route, carte)',ewd:'Écran moteurs (E/WD : N1, EGT, N2, volets)',sd:'Écran systèmes (SD : électricité, APU, carburant)',panel:'Planche de bord'};
 PT.scrName=k=>SCRN[k]||SCRN.panel;
 /* ---------- sous-étapes numérotées d'une étape ---------- */
-PT.subs=function(st){ const out=(st.items||[]).map((it,j)=>{ let ok=false; try{ ok=!!it[1](); }catch(e){} const sel=it[3]&&!/^#mcdu/.test(it[3])?it[3]:null, scr=sel?null:PT.scrFor(it[0]);
+PT.subs=function(st){ const out=(st.items||[]).map((it,j)=>{ let ok=false; try{ ok=!!it[1](); }catch(e){} const sel=it[3]&&!/^#mcdu/.test(it[3])?it[3]:null, scr=sel?null:(it[4]||PT.scrFor(it[0])||st.scr||null);
     return {n:j+1,l:it[0],ok,sel,scr,where:sel?PT.where(sel):scr?PT.scrName(scr):(st.calc?'Calcul papier (panneau du guide)':st.walk?'À pied, autour de l\'appareil':'Commandes de vol'),help:sel?PT.help(sel):''}; });
   const r=PT.result(st), all=out.every(s=>s.ok); out.push({n:out.length+1,l:'Résultat : '+r.t,ok:all&&AUTO.stage==='done',scr:r.scr,final:true,where:r.scr?PT.scrName(r.scr):''}); return out; };
 PT.current=subs=>subs.find(s=>!s.ok&&!s.final)||subs[subs.length-1];
@@ -85,15 +88,21 @@ function ensurePanels(subs,cur){ // ouvrir le panneau de la sous-étape courante
   if(want==='ovh'&&opened.ped&&$('ped')&&!$('ped').hidden&&innerWidth<900){ $('ped').hidden=true; $('b-ped').classList.remove('on'); opened.ped=false; }
   if(!need.ovh&&opened.ovh){ $('ovh').hidden=true; ovhPinned=false; $('b-ovh').classList.remove('on'); opened.ovh=false; }
   if(!need.ped&&opened.ped&&$('ped')){ $('ped').hidden=true; $('b-ped').classList.remove('on'); opened.ped=false; }
-  if(cur&&cur.sel){ const el=document.querySelector(cur.sel); const t=el&&(el.closest('.sw')||el); if(t&&t!==PT._sc){ PT._sc=t; try{ t.scrollIntoView({block:'center',inline:'nearest'}); }catch(e){} } } }
+  if(cur&&cur.sel&&cur.sel.startsWith('#atc')&&$('atc')&&$('atc').hidden){ try{ atcOpen(true); }catch(e){} }
+  if(cur&&cur.sel&&cur.sel.startsWith('[data-sw')){ const e0=PT.el(cur.sel), z=e0&&e0.closest('.zone320'); if(z&&z.hidden&&typeof a320Tab==='function') a320Tab(z.dataset.zone); }
+  if(cur&&cur.sel){ const el=PT.el(cur.sel); const t=el&&(el.closest('.sw')||el); if(t&&t!==PT._sc){ PT._sc=t; try{ t.scrollIntoView({block:'center',inline:'nearest'}); }catch(e){} } } }
 let frames=[];
-function draw(){ const on=AUTO.on&&GD.on&&!paused&&$('menu').hidden&&!(document.getElementById('brief')&&!$('brief').hidden)&&view!=='walk';
-  if(!on){ lay.innerHTML=''; frames=[]; if(!AUTO.on){ if(opened.ovh){ opened.ovh=false; } if(opened.ped){ opened.ped=false; } } return; }
+function draw(){ const on=(AUTO.on||(window.SCNG&&SCNG.on))&&GD.on&&!paused&&$('menu').hidden&&!(document.getElementById('brief')&&!$('brief').hidden)&&view!=='walk';
+  if(!on){ window.PT_TARGET=false; lay.innerHTML=''; frames=[]; if(!AUTO.on){ if(opened.ovh){ opened.ovh=false; } if(opened.ped){ opened.ped=false; } } return; }
   const st=GD.steps[GD.i]; if(!st) return; const subs=PT.subs(st), cur=PT.current(subs); ensurePanels(subs,cur);
   const shown=(r,ok,all)=>{ const pts=[[0.5,0.5],[0.25,0.3],[0.75,0.7]]; return pts[all?'every':'some'](([fx,fy])=>{ const x=r.left+r.width*fx, y=r.top+r.height*fy; if(x<0||y<0||x>innerWidth||y>innerHeight) return false; const h=document.elementFromPoint(x,y); return h&&ok(h); }); };   // pas de cadre sur une commande ou un écran caché par un panneau
-  { const ab=$('abub'); const rc=cur.sel?visible(document.querySelector(cur.sel)):cur.scr?PT.scrRect(cur.scr):null; if(ab&&rc&&ab.classList.contains('cmp')) ab.classList.toggle('tp',rc.top+rc.height/2>innerHeight*0.5); }
+  { const e1=cur.sel?PT.el(cur.sel):null, r1=e1?visible(e1):cur.scr?PT.scrRect(cur.scr):null;   // un panneau secondaire cache la commande à actionner : on le ferme
+    if(r1){ const h=document.elementFromPoint(r1.left+r1.width/2,r1.top+r1.height/2), pn=h&&h.closest('#atc,#guide,#fail,#qcm,#help,#scn,#snd');
+      if(pn&&!(cur.sel&&cur.sel.startsWith('#'+pn.id))){ if(pn.id==='atc') atcOpen(false); else if(pn.id==='fail') failOpen(false); else if(pn.id==='scn') scnOpen(false); else pn.hidden=true; } } }
+  { const ab=$('abub'); const rc=cur.sel?visible(PT.el(cur.sel)):cur.scr?PT.scrRect(cur.scr):null; window.PT_TARGET=!!rc; if(ab&&rc&&ab.classList.contains('cmp')) ab.classList.toggle('tp',rc.top+rc.height/2>innerHeight*0.5); }
+  const EXM=!!(window.EXAM&&EXAM.on&&!EXAM.reveal);   // examen blanc : on encadre le BLOC, pas la commande
   const want=[]; subs.forEach(s=>{ let r=null;
-    if(s.sel){ const el=document.querySelector(s.sel); r=visible(el); const t=el&&(el.closest('.sw')||el); if(r&&!shown(r,h=>t.contains(h)||h.contains(t))) r=null; }
+    if(s.sel){ const el=PT.el(s.sel); r=visible(el); let t=el&&(el.closest('.sw')||el); if(r&&EXM){ const b=el.closest('.sec')||el.closest('.panel')||t; t=b; r=b.getBoundingClientRect(); } if(r&&!shown(r,h=>t.contains(h)||h.contains(t))) r=null; }
     else if(s.scr){ r=PT.scrRect(s.scr); if(r&&!shown(r,h=>h.id==='ckc',true)) r=null; }
     if(r) want.push({s,r}); });
   // plusieurs sous-étapes sur le même écran : on regroupe les numéros sur un seul cadre
@@ -104,14 +113,14 @@ function draw(){ const on=AUTO.on&&GD.on&&!paused&&$('menu').hidden&&!(document.
     Object.assign(d.style,{left:(g.r.left-p)+'px',top:(g.r.top-p)+'px',width:(g.r.width+2*p)+'px',height:(g.r.height+2*p)+'px'});
     d.className='fr'+(isCur?' cur':'')+(ok?' ok':'')+(fin?' fin':'');
     const N=subs.length; d.querySelector('i').textContent=g.list.map(s=>s.final?'✓ '+s.n+'/'+N:s.n+'/'+N).join(' · ');
-    const lab=isCur?cur:g.list.find(s=>!s.ok)||g.list[0]; d.querySelector('b').textContent=(lab.final?'Vérifier : ':'')+lab.l.replace(/^Résultat : /,''); }); tip(groups,subs,cur);
+    const lab=isCur?cur:g.list.find(s=>!s.ok)||g.list[0]; d.querySelector('b').textContent=EXM?(lab.sel?'[ ? ] bloc à utiliser':lab.scr?'[ ? ] écran à surveiller':'[ ? ]'):(lab.final?'Vérifier : ':'')+lab.l.replace(/^Résultat : /,''); }); tip(groups,subs,cur,EXM);
   const ab=$('abub'), gc=groups.find(x=>x.list.includes(cur)); if(ab&&gc&&ab.classList.contains('cmp')) ab.classList.toggle('tp',gc.r.top+gc.r.height/2>innerHeight*0.5); }
 const SCRH={pfd:'Regardez l\'horizon artificiel (assiette), la bande de vitesse à gauche, l\'altitude à droite, le vario.',nd:'Regardez la route (trait), votre avion (triangle), la distance et le cap.',
   ewd:'Regardez les moteurs : N1, EGT (température), N2 ; les volets et les messages en bas.',sd:'Regardez la page système : batteries, générateurs, APU, carburant.',panel:'Regardez les instruments de la planche de bord.'};
-function tip(groups,subs,cur){ let t=lay.querySelector('.tip'); const st=GD.steps[GD.i], g=groups.find(x=>x.list.includes(cur));
+function tip(groups,subs,cur,EXM){ let t=lay.querySelector('.tip'); const st=GD.steps[GD.i], g=groups.find(x=>x.list.includes(cur));
   if(!g){ if(t) t.remove(); return; } if(!t){ t=document.createElement('div'); t.className='tip'; lay.appendChild(t); }
   const N=subs.length, sc=cur.scr||(cur.final?PT.result(st).scr:null);
-  t.className='tip'+(cur.final?' fin':''); t.innerHTML=`<div class="h"><span>${cur.final?'✓ ':''}${cur.n}/${N}</span>${cur.final?'SOUS-ÉTAPE FINALE':'SOUS-ÉTAPE'}</div><b>${cur.final?PT.result(st).t:cur.l}</b>${cur.help?`<small>${cur.help}</small>`:''}${!cur.sel&&sc?`<small>${SCRH[sc]||''}</small>`:''}${cur.where?`<small>📍 ${cur.where}</small>`:''}`;
+  t.className='tip'+(cur.final&&!EXM?' fin':''); t.innerHTML=EXM?`<div class="h"><span>${cur.n}/${N}</span>EXAMEN BLANC</div><b>[ ? ] Trouvez la bonne commande dans ce bloc</b><small>Étape : ${st.t}</small>`:`<div class="h"><span>${cur.final?'✓ ':''}${cur.n}/${N}</span>${cur.final?'SOUS-ÉTAPE FINALE':'SOUS-ÉTAPE'}</div><b>${cur.final?PT.result(st).t:cur.l}</b>${cur.help?`<small>${cur.help}</small>`:''}${!cur.sel&&sc?`<small>${SCRH[sc]||''}</small>`:''}${cur.where?`<small>📍 ${cur.where}</small>`:''}`;
   const r=g.r, W=t.offsetWidth, H=t.offsetHeight, up=r.top>H+24; const x=Math.min(innerWidth-W-6,Math.max(6,r.left+r.width/2-W/2));
   t.style.left=x+'px'; t.style.top=(up?r.top-H-16:Math.min(innerHeight-H-6,r.top+r.height+16))+'px'; t.classList.add(up?'up':'dn'); t.style.setProperty('--ax',Math.max(10,Math.min(W-24,r.left+r.width/2-x-6))+'px'); }
 PT._tip=tip;

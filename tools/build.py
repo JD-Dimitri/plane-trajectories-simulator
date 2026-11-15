@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble index.html = src/base.html (moteur du simulateur) + les modules src/addons/*.js (V7.x).
+"""Assemble index.html = src/base.html (moteur du simulateur) + les modules src/addons/*.js (V8.x).
 
 Usage :
   python3 tools/build.py          -> écrit index.html (version publiée)
@@ -8,7 +8,7 @@ Usage :
 import pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-ORDER = ["audio", "brief", "bubble", "drag", "close", "view", "frames"]   # l'ordre compte : chaque module s'appuie sur les précédents
+ORDER = ["audio", "brief", "bubble", "drag", "close", "view", "frames", "scn", "exam", "acad"]   # l'ordre compte : chaque module s'appuie sur les précédents
 ANCHOR = "selMI=null; resetState(); setModel(); sysDefaults(); resize(); openMenu(); requestAnimationFrame(loop);\n\n</script>"
 CDN = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
 
