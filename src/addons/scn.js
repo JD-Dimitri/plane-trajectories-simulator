@@ -129,7 +129,7 @@ SCNS.push(
   ref:[['BEA — rapport final D-AIPX (mars 2016), présentation','https://www.bea.aero/uploads/tx_elyextendttnews/2016_03_15_D-AIPX_Presentation_Presse_FR_06.pdf'],['Commission européenne — groupe de travail AESA sur le vol 9525 (2015)','https://transport.ec.europa.eu/news-events/news/european-aviation-commission-releases-task-forces-report-germanwings-incident-2016-09-22_en']],
   seed:9526,limit:900,base:'jfk-cdg',cruise:38000,
   init(){ SG.clicked={}; SG.flags={}; SG.minAlt=99999; SYS.door='NORM';
-    Object.assign(S,{lat:43.55,lon:5.05,psi:40*D2R}); try{ STN.MARSEILLE=STN.MARSEILLE||{n:'Marseille Control',f:133.330,est:1}; ATC.curSt='MARSEILLE'; }catch(e){} AP.hdg=40; AP.lat='HDG'; AP.alt=38000; try{ fcuSync(); }catch(e){}
+    Object.assign(S,{lat:43.55,lon:5.05,psi:18*D2R}); try{ STN.MARSEILLE=STN.MARSEILLE||{n:'Marseille Control',f:133.330,est:1}; ATC.curSt='MARSEILLE'; }catch(e){} AP.hdg=18; AP.lat='NAV'; AP.alt=38000; try{ fcuSync(); }catch(e){}
     SCN.trig=[{c:()=>SG.on&&GD.i===1&&SG.stepT&&performance.now()-SG.stepT>8000,f:()=>failSet('depress',true)}]; },
   eval(L){ return [['Deux personnes dans le poste avant la sortie du commandant',!!SG.clicked.callFwd,SG.clicked.callFwd?'oui':'non'],['Transpondeur 7700',String(SYS.xpdrCode)==='7700',String(SYS.xpdrCode)],['MAYDAY transmis',!!L.mayday,L.mayday?'oui':'non'],
     ['Jamais sous l\'altitude de sécurité (15 000 ft)',SG.minAlt>=15000,fmt(Math.min(SG.minAlt,alt()),0)+' ft mini'],['Retour du commandant autorisé, porte en NORM',!!SG.flags.unlocked&&SYS.door==='NORM',SYS.door]]; },

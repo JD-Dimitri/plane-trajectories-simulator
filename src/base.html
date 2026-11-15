@@ -257,6 +257,12 @@ const wrap360=a=>((a%360)+360)%360, wrapPi=a=>{ a=(a+Math.PI)%(2*Math.PI); if(a<
 const fmt=(x,d=0)=>x==null||!isFinite(x)?'—':x.toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const pad=(n,l=3)=>String(Math.round(n)).padStart(l,'0');
 const ls={get:k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set:(k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} }};
+/* plan de vol (FMS) : suivi de la ligne verte avec correction d'écart latéral, séquencement des points */
+function fplnHdg(la,lo){ const F=window.FPLN; if(!F||F.pts.length<2) return AP.hdg; if(F.i<1) F.i=1;
+  for(;;){ const B=F.pts[F.i], A=F.pts[F.i-1], c=brg(A[0],A[1],B[0],B[1]), dB=gcKm(la,lo,B[0],B[1]), along=dB*Math.cos((brg(la,lo,B[0],B[1])-c)*D2R);
+    if((dB<3.7||along<0)&&F.i<F.pts.length-1){ F.i++; continue; } break; }
+  const A=F.pts[F.i-1], B=F.pts[F.i], c=brg(A[0],A[1],B[0],B[1]), dA=gcKm(A[0],A[1],la,lo)/6371, xtk=Math.asin(Math.sin(dA)*Math.sin((brg(A[0],A[1],la,lo)-c)*D2R))*6371;   // écart latéral (km, + = à droite) sur l'orthodromie
+  F.xtk=xtk; return wrap360(brg(la,lo,B[0],B[1])-clamp(xtk/1.852*12,-40,40)); }
 function gcKm(a1,o1,a2,o2){ const d=Math.sin((a2-a1)*D2R/2)**2+Math.cos(a1*D2R)*Math.cos(a2*D2R)*Math.sin((o2-o1)*D2R/2)**2; return 2*6371*Math.asin(Math.sqrt(d)); }
 function brg(a1,o1,a2,o2){ const y=Math.sin((o2-o1)*D2R)*Math.cos(a2*D2R), x=Math.cos(a1*D2R)*Math.sin(a2*D2R)-Math.sin(a1*D2R)*Math.cos(a2*D2R)*Math.cos((o2-o1)*D2R); return wrap360(Math.atan2(y,x)*R2D); }
 /* atmosphère standard (ISA) */
@@ -506,7 +512,7 @@ function fwStep(dt){ const a=A, st=S, rho=isaRho(st.alt), sig=rho/1.225, fl=a.fl
     if(lawNow(a)==='fbw'){ thT=clamp(thT,-15*D2R,30*D2R); const aProt=(CLmax-0.08-CL0)/a.CLa; thT=Math.min(thT,st.gam+aProt); }   // protections loi normale
     const thR=(lawNow(a)==='fbw'?3:4)*D2R; st.th+=clamp(thT-st.th,-thR*dt,thR*dt)+(st.stall?-4*D2R*dt:0);
     // roulis
-    if(AP.on){ const IL2=AP.appr?ilsDev():null; let tgt=AP.lat==='NAV'&&MI.dest?wrap360(brg(st.lat,st.lon,APTS[MI.dest].lat,APTS[MI.dest].lon)+(AP.wxOff||0)):AP.hdg; if(IL2&&IL2.d<40000) tgt=(IL2.h<40||Math.abs(IL2.loc)>90)?IL2.crs:wrap360(IL2.crs+clamp(IL2.loc*3.5,-35,35)); if(MI&&(AP.lat==='NAV'||(IL2&&IL2.d<40000))) tgt=wrap360(tgt-windDrift(tgt));   // route visée → cap corrigé de la dérive if(AP.lat==='NAV') AP.hdg=tgt;
+    if(AP.on){ const IL2=AP.appr?ilsDev():null; let tgt=AP.lat==='NAV'&&(window.FPLN||MI.dest)?wrap360((window.FPLN?fplnHdg(st.lat,st.lon):brg(st.lat,st.lon,APTS[MI.dest].lat,APTS[MI.dest].lon))+(AP.wxOff||0)):AP.hdg; if(IL2&&IL2.d<40000) tgt=(IL2.h<40||Math.abs(IL2.loc)>90)?IL2.crs:wrap360(IL2.crs+clamp(IL2.loc*3.5,-35,35)); if(MI&&(AP.lat==='NAV'||(IL2&&IL2.d<40000))) tgt=wrap360(tgt-windDrift(tgt));   // route visée → cap corrigé de la dérive if(AP.lat==='NAV') AP.hdg=tgt;
       const e=wrapPi((tgt-st.psi*R2D)*D2R)*R2D, nearG=(st.alt-elevAt(st.lat,st.lon))<40, phT=clamp(e*1.6,nearG?-3:-25,nearG?3:25)*D2R; st.ph+=clamp(phT-st.ph,-5*D2R*dt,5*D2R*dt); }
     else if(lawNow(a)==='fbw'){ if(Math.abs(rin)>0.04) st.ph+=rin*15*D2R*dt; else if(Math.abs(st.ph)>33*D2R) st.ph-=Math.sign(st.ph)*5*D2R*dt; st.ph=clamp(st.ph,-67*D2R,67*D2R); }
     else { st.ph+=rin*22*D2R*dt; st.ph=clamp(st.ph,-85*D2R,85*D2R); }
@@ -1516,7 +1522,8 @@ function drawND320(g,x,y,w,h,ad,side){ screen(g,x,y,w,h); if(!hasPower()) return
   txt(g,String(rng/(rose||plan?2:2)),-r/2*0.72,-r/2*0.72,'#9aa',h*0.04,'center');
   const P=(lat,lon)=>{ const d=gcKm(S.lat,S.lon,lat,lon)/1.852, b=(brg(S.lat,S.lon,lat,lon)-up)*D2R, k=r/(rose||plan?rng/2:rng)*d; return [Math.sin(b)*k,-Math.cos(b)*k,d]; };
   // route du plan de vol (vert = active, comme le ND réel)
-  const fp=[[S.lat,S.lon]]; if(MI.dest){ fp.push([APTS[MI.dest].lat,APTS[MI.dest].lon]); } g.strokeStyle=COL.grn; g.lineWidth=2; g.beginPath(); fp.forEach(([la,lo],i)=>{ const p=P(la,lo); i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]); }); g.stroke();
+  const fp=[]; if(window.FPLN){ const F=FPLN; F.pts.forEach((q,k)=>{ if(k>=Math.max(0,F.i-1)) fp.push([q[0],q[1]]); }); } else { fp.push([S.lat,S.lon]); if(MI.dest) fp.push([APTS[MI.dest].lat,APTS[MI.dest].lon]); } g.strokeStyle=COL.grn; g.lineWidth=2; g.beginPath(); fp.forEach(([la,lo],i)=>{ const p=P(la,lo); i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]); }); g.stroke();
+  if(window.FPLN) FPLN.pts.forEach((q,k)=>{ if(k<FPLN.i||!q[2]) return; const p=P(q[0],q[1]); if(p[2]>rng*1.3) return; g.strokeStyle=k===FPLN.i?COL.wh:COL.grn; g.beginPath(); g.moveTo(p[0],p[1]-5); g.lineTo(p[0]+5,p[1]); g.lineTo(p[0],p[1]+5); g.lineTo(p[0]-5,p[1]); g.closePath(); g.stroke(); txt(g,q[2],p[0]+8,p[1],k===FPLN.i?COL.wh:COL.grn,h*0.04); });
   if(MI.dest){ const p=P(APTS[MI.dest].lat,APTS[MI.dest].lon); if(p[2]<rng*1.3){ g.strokeStyle=COL.wh; g.strokeRect(p[0]-5,p[1]-5,10,10); txt(g,MI.dest,p[0]+9,p[1],COL.wh,h*0.045); } }
   if(SYS.arptL||SYS.arptR) for(const k in APTS){ if(k===MI.dest) continue; const a=APTS[k]; const p=P(a.lat,a.lon); if(p[2]>rng*1.2) continue; txt(g,'✦ '+k,p[0],p[1],COL.mag,h*0.04,'center'); }
   // pistes à grande échelle

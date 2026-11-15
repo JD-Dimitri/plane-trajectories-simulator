@@ -257,6 +257,12 @@ const wrap360=a=>((a%360)+360)%360, wrapPi=a=>{ a=(a+Math.PI)%(2*Math.PI); if(a<
 const fmt=(x,d=0)=>x==null||!isFinite(x)?'—':x.toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const pad=(n,l=3)=>String(Math.round(n)).padStart(l,'0');
 const ls={get:k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set:(k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} }};
+/* plan de vol (FMS) : suivi de la ligne verte avec correction d'écart latéral, séquencement des points */
+function fplnHdg(la,lo){ const F=window.FPLN; if(!F||F.pts.length<2) return AP.hdg; if(F.i<1) F.i=1;
+  for(;;){ const B=F.pts[F.i], A=F.pts[F.i-1], c=brg(A[0],A[1],B[0],B[1]), dB=gcKm(la,lo,B[0],B[1]), along=dB*Math.cos((brg(la,lo,B[0],B[1])-c)*D2R);
+    if((dB<3.7||along<0)&&F.i<F.pts.length-1){ F.i++; continue; } break; }
+  const A=F.pts[F.i-1], B=F.pts[F.i], c=brg(A[0],A[1],B[0],B[1]), dA=gcKm(A[0],A[1],la,lo)/6371, xtk=Math.asin(Math.sin(dA)*Math.sin((brg(A[0],A[1],la,lo)-c)*D2R))*6371;   // écart latéral (km, + = à droite) sur l'orthodromie
+  F.xtk=xtk; return wrap360(brg(la,lo,B[0],B[1])-clamp(xtk/1.852*12,-40,40)); }
 function gcKm(a1,o1,a2,o2){ const d=Math.sin((a2-a1)*D2R/2)**2+Math.cos(a1*D2R)*Math.cos(a2*D2R)*Math.sin((o2-o1)*D2R/2)**2; return 2*6371*Math.asin(Math.sqrt(d)); }
 function brg(a1,o1,a2,o2){ const y=Math.sin((o2-o1)*D2R)*Math.cos(a2*D2R), x=Math.cos(a1*D2R)*Math.sin(a2*D2R)-Math.sin(a1*D2R)*Math.cos(a2*D2R)*Math.cos((o2-o1)*D2R); return wrap360(Math.atan2(y,x)*R2D); }
 /* atmosphère standard (ISA) */
@@ -506,7 +512,7 @@ function fwStep(dt){ const a=A, st=S, rho=isaRho(st.alt), sig=rho/1.225, fl=a.fl
     if(lawNow(a)==='fbw'){ thT=clamp(thT,-15*D2R,30*D2R); const aProt=(CLmax-0.08-CL0)/a.CLa; thT=Math.min(thT,st.gam+aProt); }   // protections loi normale
     const thR=(lawNow(a)==='fbw'?3:4)*D2R; st.th+=clamp(thT-st.th,-thR*dt,thR*dt)+(st.stall?-4*D2R*dt:0);
     // roulis
-    if(AP.on){ const IL2=AP.appr?ilsDev():null; let tgt=AP.lat==='NAV'&&MI.dest?wrap360(brg(st.lat,st.lon,APTS[MI.dest].lat,APTS[MI.dest].lon)+(AP.wxOff||0)):AP.hdg; if(IL2&&IL2.d<40000) tgt=(IL2.h<40||Math.abs(IL2.loc)>90)?IL2.crs:wrap360(IL2.crs+clamp(IL2.loc*3.5,-35,35)); if(MI&&(AP.lat==='NAV'||(IL2&&IL2.d<40000))) tgt=wrap360(tgt-windDrift(tgt));   // route visée → cap corrigé de la dérive if(AP.lat==='NAV') AP.hdg=tgt;
+    if(AP.on){ const IL2=AP.appr?ilsDev():null; let tgt=AP.lat==='NAV'&&(window.FPLN||MI.dest)?wrap360((window.FPLN?fplnHdg(st.lat,st.lon):brg(st.lat,st.lon,APTS[MI.dest].lat,APTS[MI.dest].lon))+(AP.wxOff||0)):AP.hdg; if(IL2&&IL2.d<40000) tgt=(IL2.h<40||Math.abs(IL2.loc)>90)?IL2.crs:wrap360(IL2.crs+clamp(IL2.loc*3.5,-35,35)); if(MI&&(AP.lat==='NAV'||(IL2&&IL2.d<40000))) tgt=wrap360(tgt-windDrift(tgt));   // route visée → cap corrigé de la dérive if(AP.lat==='NAV') AP.hdg=tgt;
       const e=wrapPi((tgt-st.psi*R2D)*D2R)*R2D, nearG=(st.alt-elevAt(st.lat,st.lon))<40, phT=clamp(e*1.6,nearG?-3:-25,nearG?3:25)*D2R; st.ph+=clamp(phT-st.ph,-5*D2R*dt,5*D2R*dt); }
     else if(lawNow(a)==='fbw'){ if(Math.abs(rin)>0.04) st.ph+=rin*15*D2R*dt; else if(Math.abs(st.ph)>33*D2R) st.ph-=Math.sign(st.ph)*5*D2R*dt; st.ph=clamp(st.ph,-67*D2R,67*D2R); }
     else { st.ph+=rin*22*D2R*dt; st.ph=clamp(st.ph,-85*D2R,85*D2R); }
@@ -1516,7 +1522,8 @@ function drawND320(g,x,y,w,h,ad,side){ screen(g,x,y,w,h); if(!hasPower()) return
   txt(g,String(rng/(rose||plan?2:2)),-r/2*0.72,-r/2*0.72,'#9aa',h*0.04,'center');
   const P=(lat,lon)=>{ const d=gcKm(S.lat,S.lon,lat,lon)/1.852, b=(brg(S.lat,S.lon,lat,lon)-up)*D2R, k=r/(rose||plan?rng/2:rng)*d; return [Math.sin(b)*k,-Math.cos(b)*k,d]; };
   // route du plan de vol (vert = active, comme le ND réel)
-  const fp=[[S.lat,S.lon]]; if(MI.dest){ fp.push([APTS[MI.dest].lat,APTS[MI.dest].lon]); } g.strokeStyle=COL.grn; g.lineWidth=2; g.beginPath(); fp.forEach(([la,lo],i)=>{ const p=P(la,lo); i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]); }); g.stroke();
+  const fp=[]; if(window.FPLN){ const F=FPLN; F.pts.forEach((q,k)=>{ if(k>=Math.max(0,F.i-1)) fp.push([q[0],q[1]]); }); } else { fp.push([S.lat,S.lon]); if(MI.dest) fp.push([APTS[MI.dest].lat,APTS[MI.dest].lon]); } g.strokeStyle=COL.grn; g.lineWidth=2; g.beginPath(); fp.forEach(([la,lo],i)=>{ const p=P(la,lo); i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]); }); g.stroke();
+  if(window.FPLN) FPLN.pts.forEach((q,k)=>{ if(k<FPLN.i||!q[2]) return; const p=P(q[0],q[1]); if(p[2]>rng*1.3) return; g.strokeStyle=k===FPLN.i?COL.wh:COL.grn; g.beginPath(); g.moveTo(p[0],p[1]-5); g.lineTo(p[0]+5,p[1]); g.lineTo(p[0],p[1]+5); g.lineTo(p[0]-5,p[1]); g.closePath(); g.stroke(); txt(g,q[2],p[0]+8,p[1],k===FPLN.i?COL.wh:COL.grn,h*0.04); });
   if(MI.dest){ const p=P(APTS[MI.dest].lat,APTS[MI.dest].lon); if(p[2]<rng*1.3){ g.strokeStyle=COL.wh; g.strokeRect(p[0]-5,p[1]-5,10,10); txt(g,MI.dest,p[0]+9,p[1],COL.wh,h*0.045); } }
   if(SYS.arptL||SYS.arptR) for(const k in APTS){ if(k===MI.dest) continue; const a=APTS[k]; const p=P(a.lat,a.lon); if(p[2]>rng*1.2) continue; txt(g,'✦ '+k,p[0],p[1],COL.mag,h*0.04,'center'); }
   // pistes à grande échelle
@@ -4181,7 +4188,7 @@ SCNS.push(
   ref:[['BEA — rapport final D-AIPX (mars 2016), présentation','https://www.bea.aero/uploads/tx_elyextendttnews/2016_03_15_D-AIPX_Presentation_Presse_FR_06.pdf'],['Commission européenne — groupe de travail AESA sur le vol 9525 (2015)','https://transport.ec.europa.eu/news-events/news/european-aviation-commission-releases-task-forces-report-germanwings-incident-2016-09-22_en']],
   seed:9526,limit:900,base:'jfk-cdg',cruise:38000,
   init(){ SG.clicked={}; SG.flags={}; SG.minAlt=99999; SYS.door='NORM';
-    Object.assign(S,{lat:43.55,lon:5.05,psi:40*D2R}); try{ STN.MARSEILLE=STN.MARSEILLE||{n:'Marseille Control',f:133.330,est:1}; ATC.curSt='MARSEILLE'; }catch(e){} AP.hdg=40; AP.lat='HDG'; AP.alt=38000; try{ fcuSync(); }catch(e){}
+    Object.assign(S,{lat:43.55,lon:5.05,psi:18*D2R}); try{ STN.MARSEILLE=STN.MARSEILLE||{n:'Marseille Control',f:133.330,est:1}; ATC.curSt='MARSEILLE'; }catch(e){} AP.hdg=18; AP.lat='NAV'; AP.alt=38000; try{ fcuSync(); }catch(e){}
     SCN.trig=[{c:()=>SG.on&&GD.i===1&&SG.stepT&&performance.now()-SG.stepT>8000,f:()=>failSet('depress',true)}]; },
   eval(L){ return [['Deux personnes dans le poste avant la sortie du commandant',!!SG.clicked.callFwd,SG.clicked.callFwd?'oui':'non'],['Transpondeur 7700',String(SYS.xpdrCode)==='7700',String(SYS.xpdrCode)],['MAYDAY transmis',!!L.mayday,L.mayday?'oui':'non'],
     ['Jamais sous l\'altitude de sécurité (15 000 ft)',SG.minAlt>=15000,fmt(Math.min(SG.minAlt,alt()),0)+' ft mini'],['Retour du commandant autorisé, porte en NORM',!!SG.flags.unlocked&&SYS.door==='NORM',SYS.door]]; },
@@ -5239,6 +5246,23 @@ setInterval(()=>{ const ab=$('abub'); if(!ab||ab.hidden||!GD.on) return; let s=a
   if(s.dataset.sig===sig) return; s.dataset.sig=sig;
   s.innerHTML='<button type="button" data-all="1" title="Toutes les étapes">🧭</button>'+GD.steps.map((x,i)=>`<button type="button" data-k="${i}" class="${i===GD.i?'cur':i<GD.i?'dn':''}" title="${i}. ${String(x.t).replace(/"/g,'')}">${i}</button>`).join('');
   const c=s.querySelector('.cur'); if(c) c.scrollIntoView({block:'nearest',inline:'center'}); },700);
+})();
+
+</script>
+<script>
+/* ===== PLAN DE VOL (FMS) : la ligne verte du ND est la route, et le mode NAV la suit =====
+   Avion : orthodromie aéroport de départ → destination (ou position actuelle → destination si le vol commence en l'air).
+   En mode NAV, le pilote automatique corrige l'écart latéral (≈ 12° par mille nautique, interception à 40° au plus) et séquence les points.
+   Germanwings 9525 : route Barcelone → Provence → Grenoble → Genève → Luxembourg → Düsseldorf [points pédagogiques]. */
+(function(){
+function nearestRw(la,lo){ let best=null,bd=1e9; for(const k in APTS){ const a=APTS[k]; if(!a||a.heli||!(a.rw||[]).length) continue; const d=gcKm(la,lo,a.lat,a.lon); if(d<bd){ bd=d; best=k; } } return bd<15?best:null; }
+function setPlan(){ window.FPLN=null; try{ if(!MI||A.kind!=='fw'||!MI.dest||!APTS[MI.dest]) return; const D=APTS[MI.dest]; const dep=S.onGround?nearestRw(S.lat,S.lon):null; const a=dep?APTS[dep]:null;
+  window.FPLN={pts:[a?[a.lat,a.lon,dep]:[S.lat,S.lon,''],[D.lat,D.lon,MI.dest]],i:1}; }catch(e){} }
+window.FMS_SET=setPlan;
+const _sm=startMission; startMission=function(){ const r=_sm.apply(this,arguments); setPlan(); return r; };
+// scénarios : on recalcule après leur mise en place (position de croisière)
+const _ss=scnStart; scnStart=function(){ const r=_ss.apply(this,arguments); setTimeout(()=>{ try{ if(SCN.cur&&SCN.cur.id==='GW-ROUTE'){ window.FPLN={pts:[[41.297,2.078,'LEBL'],[43.55,5.05,'PROVENCE'],[45.20,5.80,'GRENOBLE'],[46.24,6.11,'GENEVE'],[49.63,6.21,'LUX'],[51.289,6.767,'EDDL']],i:2};
+      AP.lat='NAV'; S.psi=brg(S.lat,S.lon,45.2,5.8)*D2R; AP.hdg=Math.round(brg(S.lat,S.lon,45.2,5.8)); try{ fcuSync(); }catch(e){} } else setPlan(); }catch(e){} },120); return r; };
 })();
 
 </script>
