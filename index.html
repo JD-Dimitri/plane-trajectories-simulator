@@ -4140,6 +4140,8 @@ const SG=window.SCNG, S_=id=>`[data-sw="${id}"]`;
 SG.clicked={}; SG.flags={}; SG.stepT=0;
 addEventListener('click',e=>{ const t=e.target.closest&&e.target.closest('[data-sw],[data-pd]'); if(t) SG.clicked[t.dataset.sw||t.dataset.pd]=performance.now(); },true);
 setInterval(()=>{ if(SG.on&&typeof SYS!=='undefined'&&SYS.door==='UNLOCK') SG.flags.unlocked=true; },300);
+setInterval(()=>{ if(!SG.on||!SCN.cur||SCN.cur.id!=='GW-ROUTE') return; const a=alt(); if(FAIL.depress&&a>1000) SG.minAlt=Math.min(SG.minAlt||99999,a); const st=GD.steps[GD.i]; if(st&&st.part==='E'&&!SG.flags.buzz){ SG.flags.buzz=true; flash('Buzzer : le commandant demande à rentrer','am'); try{ SND.play('chime'); }catch(e){} } },500);
+const alt=()=>{ try{ return airdata().alt; }catch(e){ return 0; } };
 const inStep=s=>()=>SG.stepT&&performance.now()-SG.stepT>s*1000;
 const sw=(id,v)=>()=>{ SYS[id]=v; try{ sysEffect(id); }catch(e){} try{ a320Sync(); }catch(e){} try{ ovhSync(); }catch(e){} };
 const mayday=['Prévenir le contrôle (Radio › Appeler)',()=>!!(SCN.log&&SCN.log.mayday),()=>SG.callEmer(),'#atc [data-a="call"]'];
@@ -4153,12 +4155,38 @@ SCNS.push(
   init(){ SG.clicked={}; SG.flags={}; SYS.door='NORM'; },
   eval(){ return [['Membre d\'équipage appelé avant la sortie',!!SG.clicked.callFwd,SG.clicked.callFwd?'oui':'non'],['Accès autorisé puis porte remise en NORM',!!SG.flags.unlocked&&SYS.door==='NORM',SYS.door],['Altitude sélectionnée conforme (FL350)',AP.alt===35000,fmt(AP.alt,0)+' ft']]; },
   debrief:'Après l\'accident, l\'AESA a recommandé en 2015 la présence permanente de deux personnes dans le poste, ainsi qu\'une évaluation psychologique des pilotes avant leur embauche. Le rapport final du BEA (mars 2016) porte surtout sur le suivi médical des pilotes et la détection des troubles psychiques. La porte blindée protège le poste ; les procédures d\'accès et la surveillance mutuelle de l\'équipage complètent cette protection.'},
+ {id:'GW-ROUTE',cat:'A',ac:'a320',name:'Germanwings 9525 — parcours Barcelone → Düsseldorf, sans le crash',
+  context:'Le vrai trajet du 24 mars 2015 : A320, croisière au FL380 au sud des Alpes, juste après la clairance « direct IRMAR ». Le crash n\'est pas rejoué : au moment critique du vrai vol, la situation devient une urgence de pilotage — dépressurisation rapide alors que le commandant est sorti du poste, descente d\'urgence au-dessus du relief.',
+  wx:'Croisière, hors nuages.',phase:'Croisière FL380, pilote automatique engagé.',triggers:'Le commandant quitte le poste ; quelques secondes plus tard : dépressurisation rapide.',fails:'CAB PR SYS 1+2 FAULT (dépressurisation).',
+  auto:'Aucun.',expected:'Règle des deux personnes avant la sortie du commandant, porte en NORM ; masques, descente d\'urgence vers l\'altitude minimale de sécurité du secteur (pas 10 000 ft au-dessus des Alpes), 7700, MAYDAY, déroutement vers Marseille ; autoriser le retour du commandant puis porte en NORM ; surveillance croisée de l\'altitude sélectionnée.',
+  ref:[['BEA — rapport final D-AIPX (mars 2016), présentation','https://www.bea.aero/uploads/tx_elyextendttnews/2016_03_15_D-AIPX_Presentation_Presse_FR_06.pdf'],['Commission européenne — groupe de travail AESA sur le vol 9525 (2015)','https://transport.ec.europa.eu/news-events/news/european-aviation-commission-releases-task-forces-report-germanwings-incident-2016-09-22_en']],
+  seed:9526,limit:900,base:'jfk-cdg',cruise:38000,
+  init(){ SG.clicked={}; SG.flags={}; SG.minAlt=99999; SYS.door='NORM';
+    Object.assign(S,{lat:43.55,lon:5.05,psi:40*D2R}); try{ STN.MARSEILLE=STN.MARSEILLE||{n:'Marseille Control',f:133.330,est:1}; ATC.curSt='MARSEILLE'; }catch(e){} AP.hdg=40; AP.lat='HDG'; AP.alt=38000; try{ fcuSync(); }catch(e){}
+    SCN.trig=[{c:()=>SG.on&&GD.i===1&&SG.stepT&&performance.now()-SG.stepT>8000,f:()=>failSet('depress',true)}]; },
+  eval(L){ return [['Deux personnes dans le poste avant la sortie du commandant',!!SG.clicked.callFwd,SG.clicked.callFwd?'oui':'non'],['Transpondeur 7700',String(SYS.xpdrCode)==='7700',String(SYS.xpdrCode)],['MAYDAY transmis',!!L.mayday,L.mayday?'oui':'non'],
+    ['Jamais sous l\'altitude de sécurité (15 000 ft)',SG.minAlt>=15000,fmt(Math.min(SG.minAlt,alt()),0)+' ft mini'],['Retour du commandant autorisé, porte en NORM',!!SG.flags.unlocked&&SYS.door==='NORM',SYS.door]]; },
+  debrief:'Le vrai vol : à 9 h 30 min 24 le commandant sort du poste ; 29 secondes plus tard l\'altitude sélectionnée passe de 38 000 ft à 100 ft, l\'avion descend en continu et percute le relief à 9 h 41 min 06 (BEA, rapport final 2016). Ici, la même situation — un pilote seul au-dessus des Alpes, une descente rapide — est traitée comme une urgence normale : une descente ne s\'arrête jamais sous l\'altitude de sécurité, et l\'altitude sélectionnée est toujours annoncée et vérifiée par l\'autre membre d\'équipage. Les recommandations du BEA portent sur le suivi médical et psychologique des pilotes ; l\'AESA avait recommandé en 2015 deux personnes en permanence dans le poste.'},
  {id:'F-FUEL',cat:'A',ac:'a320',name:'Fuite de carburant au-dessus de l\'Atlantique (fictif)',context:'Croisière transatlantique ; le carburant diminue plus vite que prévu.',wx:'Croisière.',phase:'Croisière FL350.',
   triggers:'t = 20 s : fuite de carburant (≈ 3 t/h).',fails:'FUEL F.USED/FOB DISAGREE.',auto:'Aucun.',expected:'Reconnaître l\'écart carburant, laisser X FEED fermé, prévenir le contrôle, se dérouter vers le terrain le plus proche.',seed:303,limit:900,base:'jfk-cdg',cruise:true,
   init(){ SCN.trig=[{t:20,f:()=>failSet('fuelLeak',true)}]; },
   eval(L){ return [['Contrôle prévenu',!!L.mayday,L.mayday?'oui':'non'],['X FEED resté fermé',!SYS.xfeed,SYS.xfeed?'OUVERT (aggrave la fuite)':'fermé']]; },
   debrief:'Une fuite se détecte par le suivi carburant : écart entre carburant utilisé et carburant à bord. Ouvrir l\'intercommunication (X FEED) ferait perdre aussi le carburant du côté sain.'});
+const MSA=16000;   // altitude minimale de sécurité du secteur [ESTIMÉ, valeur pédagogique : sommets des Alpes du Sud jusqu'à ≈ 3 400 m + marge]
 const P2={
+ 'GW-ROUTE':[
+  {part:'A',pn:'PRÉPARER',ph:'Préparer',t:'FL380 au sud des Alpes : le commandant doit sortir',txt:'Vous êtes OPL sur le Barcelone → Düsseldorf, clairance « direct IRMAR » reçue. Le commandant doit quitter le poste quelques minutes. Règle des deux personnes : un membre d\'équipage de cabine vient dans le poste ; la porte reste en NORM.',res:'Deux personnes dans le poste, porte en NORM.',scr:'nd',items:[
+   ['Appeler un PNC (interphone CALLS › FWD)',()=>!!SG.clicked.callFwd,()=>{ SG.clicked.callFwd=performance.now(); },S_('callFwd')],['COCKPIT DOOR : NORM',()=>SYS.door==='NORM',sw('door','NORM'),S_('door')]]},
+  {part:'B',pn:'DÉTECTER',ph:'Détecter',t:'Le moment critique : alarme cabine',txt:'Le commandant est sorti. C\'est à ce moment que, dans le vrai vol, la descente a commencé. Ici : dépressurisation rapide. À 38 000 ft, le temps de conscience utile ne dure que quelques dizaines de secondes.',res:'Dépressurisation identifiée : masques et descente immédiate.',scr:'ewd',items:[['Alarme CAB PR (attendre)',()=>!!FAIL.depress,null,null,'ewd']]},
+  {part:'C',pn:'AGIR',ph:'Agir',t:'Descente d\'urgence… au-dessus du relief',txt:'Masques équipage (geste réel, non simulé). On descend vers 10 000 ft <b>sauf si le relief l\'interdit</b> : au-dessus des Alpes, on s\'arrête à l\'altitude minimale de sécurité du secteur, ici '+MSA.toLocaleString('fr-FR')+' ft. Jamais 100 ft. Puis 7700 et MAYDAY.',res:'Descente engagée vers l\'altitude de sécurité, contrôle prévenu.',scr:'pfd',items:[
+   ['FCU : altitude '+MSA.toLocaleString('fr-FR')+' ft (altitude de sécurité)',()=>AP.alt<=MSA+500&&AP.alt>=15000,()=>{ AP.alt=MSA; AP.on=true; try{ fcuSync(); }catch(e){} },'#f-alt'],['Descente engagée',()=>(S.gam||0)<-0.03||alt()<36000,null,null,'pfd'],
+   ['Transpondeur 7700',()=>String(SYS.xpdrCode)==='7700',sw('xpdrCode',7700),S_('xpdrCode')],mayday]},
+  {part:'D',pn:'STABILISER',ph:'Stabiliser',t:'Palier à l\'altitude de sécurité, déroutement',txt:'L\'avion se stabilise à l\'altitude de sécurité : on ne descend plus tant que le relief n\'est pas dégagé. Cap vers Marseille-Provence, au sud-ouest, où le relief permet de continuer la descente.',res:'Palier au-dessus du relief, cap vers Marseille.',scr:'nd',items:[
+   ['FCU : cap 220 (Marseille)',()=>AP.lat==='HDG'&&Math.abs(((AP.hdg-220+540)%360)-180)<15,()=>{ AP.lat='HDG'; AP.hdg=220; try{ fcuSync(); }catch(e){} },'#f-hdg'],['Altitude ≤ '+(MSA+500).toLocaleString('fr-FR')+' ft, jamais sous 15 000 ft',()=>alt()<MSA+500&&SG.minAlt>=15000,null,null,'pfd']]},
+  {part:'E',pn:'CONTRÔLER L\'ACCÈS',ph:'Contrôler',t:'Le commandant demande à rentrer',txt:'Le buzzer sonne : identifier le commandant (caméra, interphone), autoriser avec le sélecteur UNLOCK, puis remettre en NORM. À deux dans le poste, on refait le point.',res:'Commandant de retour, porte en NORM.',scr:'sd',items:[
+   ['COCKPIT DOOR : UNLOCK (autoriser)',()=>!!SG.flags.unlocked,sw('door','UNLOCK'),S_('door')],['COCKPIT DOOR : NORM',()=>!!SG.flags.unlocked&&SYS.door==='NORM',sw('door','NORM'),S_('door')]]},
+  {part:'F',pn:'SURVEILLER',ph:'Surveiller',t:'Surveillance croisée de l\'altitude sélectionnée',txt:'Chaque changement d\'altitude au FCU s\'annonce et se vérifie par l\'autre pilote : « altitude sélectionnée '+MSA.toLocaleString('fr-FR')+' — vérifié ». Une valeur sous l\'altitude de sécurité se conteste immédiatement.',res:'Altitude vérifiée à deux, trajectoire sûre.',scr:'pfd',items:[
+   ['Altitude FCU ≥ altitude de sécurité',()=>AP.alt>=15000,()=>{ AP.alt=MSA; try{ fcuSync(); }catch(e){} },'#f-alt'],['Vérifier PFD et ND (6 s)',inStep(6),null,null,'nd']]}],
  'GW-SEC':[
   {part:'A',pn:'PRÉPARER',ph:'Préparer',t:'Avant de quitter le poste',txt:'Règle des deux personnes : avant de sortir, on fait venir un membre d\'équipage dans le poste. La porte reste en NORM (accès d\'urgence possible par le clavier).',res:'Deux personnes dans le poste, porte en NORM.',scr:'pfd',items:[
    ['Appeler un PNC (interphone CALLS › FWD)',()=>!!SG.clicked.callFwd,()=>{ SG.clicked.callFwd=performance.now(); try{ callChime&&0; }catch(e){} },S_('callFwd')],['COCKPIT DOOR : NORM',()=>SYS.door==='NORM',sw('door','NORM'),S_('door')]]},
@@ -4176,9 +4204,9 @@ const _parts=PT.parts; PT.parts=function(st){ st=st||GD.steps||[]; const out=_pa
 // chronomètre d'étape pour les vérifications temporisées
 let lastI=-1; setInterval(()=>{ if(SG.on&&GD.i!==lastI){ lastI=GD.i; SG.stepT=performance.now(); } if(!SG.on) lastI=-1; },200);
 // cartes du menu
-const MAP={'sc-1549':'US1549','sc-9525':'GW-SEC','sc-fict':'F-FUEL'};
+const MAP={'sc-1549':'US1549','sc-9525':'GW-ROUTE','sc-fict':'F-FUEL'};
 const fix=()=>{ if(typeof MISSIONS==='undefined') return; MISSIONS['sc-1549'].soon=false; MISSIONS['sc-1549'].d='Amerrissage sur l\'Hudson (2009) : scénario guidé, étapes encadrées.';
-  MISSIONS['sc-9525'].soon=false; MISSIONS['sc-9525'].n='Germanwings 9525 · sécurité du poste'; MISSIONS['sc-9525'].d='Leçons du BEA et de l\'AESA : porte du poste, règle des deux personnes, surveillance croisée. Le crash n\'est pas rejoué.';
+  MISSIONS['sc-9525'].soon=false; MISSIONS['sc-9525'].n='Germanwings 9525 · Barcelone → Düsseldorf'; MISSIONS['sc-9525'].d='Le vrai trajet au FL380 au-dessus des Alpes, sans le crash : la partie critique devient une urgence (commandant hors du poste, dépressurisation, descente d\'urgence au-dessus du relief).';
   MISSIONS['sc-fict'].soon=false; MISSIONS['sc-fict'].n='Scénario fictif · fuite carburant A320'; MISSIONS['sc-fict'].d='Croisière JFK → Paris : fuite de carburant, procédure et déroutement guidés.'; };
 fix(); try{ renderMenu(); }catch(e){}
 const goB=$('go'), _go=goB.onclick; goB.onclick=function(){ const id=MAP[selMI]; if(id){ $('menu').hidden=true; paused=false; scnStart(id); try{ SCN.view='run'; scnOpen(true,'run'); }catch(e){} return; } return _go.apply(this,arguments); };

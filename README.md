@@ -23,7 +23,7 @@ Il faut une connexion internet pour three.js et les polices (CDN).
 - **Mode automatique** : bulle par étape avec chronomètre, hiérarchie `PILOTER L'APPAREIL › PARTIE › ÉTAPE › SOUS-ÉTAPE n/N`, commandes encadrées en rouge et numérotées (vert quand c'est fait), sous-étape finale sur l'écran du résultat.
 - **Académie** (avant le simulateur) : cours débutant (l'avion et ses parties, comment il vole, moteurs, instruments, météo, navigation et radio, le métier de pilote), cours du simulateur (phases, calculs), le vrai pilotage (LAPL / PPL, médical, école, examen théorique à 9 épreuves, budget) et la reconversion vers pilote de ligne (médical classe 1, voies ENAC / cadets / intégré / modulaire, financement, formation). Questions en fin de module, progression gardée.
 - **Examen blanc** : vol complet sans aide, blocs et écrans encadrés `[ ? ]` sans nommer la commande, QCM d'aide après 30 s, questions de calcul (masse, carburant, VR, descente, VAPP) et de tour avion, décollage seulement si tout est validé (sinon épreuve éliminatoire), tableau ✓ / ✗ et bloc-notes final avec renvoi vers le dossier, le mode automatique ou le mode guidé de l'étape ratée.
-- **Scénarios guidés** (US Airways 1549, sécurité du poste après Germanwings 9525 — sans reconstitution du crash —, fuite carburant fictive, pannes) avec le même système de cadres rouges / verts numérotés.
+- **Scénarios guidés** (US Airways 1549, Germanwings 9525 sur le vrai trajet Barcelone → Düsseldorf au FL380 au-dessus des Alpes, sans le crash (la partie critique devient une urgence : commandant hors du poste, dépressurisation, descente d'urgence arrêtée à l'altitude de sécurité, retour au poste, surveillance croisée), module sécurité du poste,, fuite carburant fictive, pannes) avec le même système de cadres rouges / verts numérotés.
 - **Bouton « Lancer »** sur chaque carte de mode du dossier : le parcours correspondant démarre directement.
 - **Son** 100 % synthétisé (Web Audio) : moteurs, rotors, vent, roulage, alarmes réelles, annonces radiosonde, équipage et cabine, météo, aéroport.
 - **Mobile** : image recentrée pour voir la piste, barre compacte, panneaux déplaçables et fermables, glisser pour changer de page.
@@ -62,6 +62,7 @@ Dernière vérification (V8.0) : examen blanc A320 complet réussi (25/25, déco
 
 | Version | Changement |
 | --- | --- |
+| V8.1 | Germanwings 9525 : parcours Barcelone → Düsseldorf sans le crash, partie critique remplacée par une urgence de pilotage au-dessus du relief |
 | V8.0 | Examen blanc, Académie (cours débutant → brevet → reconversion), boutons « Lancer » sur les cartes du dossier |
 | V7.8 | Scénarios guidés avec cadres rouges / verts : US Airways 1549, sécurité du poste (Germanwings 9525), fuite carburant fictive, pannes |
 | V7.7 | Fin du repoussage dans l'axe de la voie : roulage vers l'avant, piste devant soi ; repoussage expliqué et accéléré ×4 en mode automatique |
