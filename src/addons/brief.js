@@ -65,7 +65,7 @@ const MODES=[
  {id:'guide',k:'Recommandé pour apprendre',n:'Mode pédagogique guidé',ico:'🎓',
   what:'Un panneau numéroté (étape 0 → N) vous dit quoi faire et pourquoi. Chaque action se coche toute seule quand vous la réalisez réellement dans le cockpit (interrupteur, manette, bouton du FCU…).',
   you:'Vous faites tout : marcher autour de l\'avion, actionner les commandes, roulage, décollage, pilotage (ou pilote automatique), approche, atterrissage.',
-  help:'« Où ? » fait clignoter la commande à utiliser · « Faire » exécute une action · « Faire pour moi » toute l\'étape · ◀ ▶ pour naviguer · les calculs papier sont modifiables.',
+  help:'Dans le dossier, chaque action « 👁 Voir » ouvre le vrai bloc de commandes ou l\'écran concerné · « Où ? » fait clignoter la commande à utiliser · « Faire » exécute une action · « Faire pour moi » toute l\'étape · ◀ ▶ pour naviguer · les calculs papier sont modifiables.',
   who:'Débutant à intermédiaire. Missions « Parcours pilote complet ».'},
  {id:'auto',k:'Pour observer d\'abord',n:'Mode automatique (observation)',ico:'▶',
   what:'Le simulateur réalise tout le vol seul, comme un instructeur qui démontre : tour avion (déplacement automatique d\'un point à l\'autre), mise sous tension, démarrages, roulage sur les vraies voies, décollage, montée, croisière accélérée, descente, approche ILS, atterrissage, roulage, arrêt.',
@@ -220,9 +220,9 @@ function overviewHTML(steps){ const groups=[]; steps.forEach((s,i)=>{ let g=grou
    ${LS.tripH?`<tr><th>Durée de vol prévue</th><td>${Math.floor(LS.tripH)} h ${String(Math.round((LS.tripH%1)*60)).padStart(2,'0')} (accélération du temps possible en croisière)</td></tr>`:''}
    <tr><th>Durées réelles au sol</th><td>${ACK==='a320'?'Alignement des centrales ≈ 10 min · démarrage ≈ 45 s par moteur · roulage ≈ 10 min':A.kind==='fw'?'Démarrage ≈ 30 s par réacteur · roulage ≈ 10 min':'Démarrage et montée en régime ≈ 2 à 5 min'}</td></tr></table>`; }
 function walkHTML(){ const W=WALKPTS[ACK]||[]; return `<p>Sens horaire en partant du nez. Les pastilles jaunes numérotées au sol marquent chaque point : approchez-vous à moins de ${A.kind==='fw'?5:2.6} m pour le valider.</p>`+W.map((p,i)=>`<div class="wp"><span class="n">${i+1}</span><div><b>${p[2]}</b><p>${p[3]}</p>${whyW(p[2])?`<p class="y">Pourquoi : ${whyW(p[2])}</p>`:''}</div></div>`).join(''); }
-function stepHTML(s,i,N){ const x=extraFor(s.t), ph=PHX[s.ph]||{}, items=(s.items||[]).map(it=>`<li><span>${it[0]}${it[3]?' <span class="sub" style="color:var(--mut);font-size:12px">— bouton « Où ? » pendant le vol</span>':''}</span></li>`).join('');
+function stepHTML(s,i,N){ const x=extraFor(s.t), ph=PHX[s.ph]||{}, items=(s.items||[]).map((it,j)=>`<li data-vis="${i}:${j}" title="Voir la commande ou l'écran"><span>${it[0]}<span class="vchip">👁 VOIR</span></span></li>`).join('');
   return `<div><span class="chip">${esc2(s.ph)}</span><span class="chip am">Étape ${i} / ${N}</span>${s.calc?'<span class="chip g">Calcul</span>':''}${s.walk?'<span class="chip g">À pied</span>':''}</div>
-   <h1>${s.t}</h1><p>${s.txt}</p>
+   <h1>${s.t}</h1><p>${s.txt}</p>${(s.items||[]).length?`<button type="button" class="visb" data-vis="${i}:-1">👁 Voir les écrans et commandes de cette étape</button>`:''}
    ${items?`<h3>Actions à réaliser (dans cet ordre)</h3><ol class="act">${items}</ol>`:''}
    ${s.walk&&/Tour|visite/i.test(s.t)?`<h3>Les points du tour avion</h3>${walkHTML()}`:''}
    ${i===0?`<h3>Météo de départ — METAR décodé</h3>${decodeMetar(WXS.met[depIcao()])}<h3>Météo de destination</h3>${decodeMetar(MI.dest?WXS.met[MI.dest]:null)}<div class="box"><b class="t">NOTAM et plan de vol</b>Dans la réalité on vérifie aussi les NOTAM (pistes ou feux hors service, travaux, zones militaires actives), le plan de vol déposé (route, niveau, heure) et le compte rendu matériel de l'avion (pannes tolérées par la MEL).</div>`:''}
@@ -259,7 +259,7 @@ function buildPages(){ BR.pages=[]; let steps=null;
   BR.steps=steps; const N=steps.length-1;
   BR.pages.push({g:'Avant de commencer',n:'i',t:'Les modes du simulateur expliqués',h:()=>`<span class="chip">Avant de commencer</span><h1>Les modes du simulateur expliqués</h1>`+modesHTML()});
   BR.pages.push({g:'Avant de commencer',n:'ii',t:'Le vol complet en un coup d\'œil',h:()=>`<span class="chip">Avant de commencer</span><h1>Le vol complet en un coup d'œil</h1>`+overviewHTML(steps)});
-  steps.forEach((s,i)=>BR.pages.push({g:s.ph,n:String(i),si:i,t:s.t,h:()=>stepHTML(s,i,N)}));
+  BR.steps=steps; steps.forEach((s,i)=>BR.pages.push({g:s.ph,n:String(i),si:i,t:s.t,h:()=>stepHTML(s,i,N)}));
   BR.pages.push({g:'Annexes',n:'A',t:'Les sons du vol : écouter et comprendre',h:()=>`<span class="chip">Annexe</span><h1>Les sons du vol : écouter et comprendre</h1>`+soundsHTML()});
   BR.pages.push({g:'Annexes',n:'B',t:'Commandes',h:()=>{ try{ buildHelp(); }catch(e){} const t=$('help-t'); return `<span class="chip">Annexe</span><h1>Commandes</h1><table>${t?t.innerHTML:''}</table>`; }});
   BR.pages.push({g:'Annexes',n:'C',t:'Limites et sources',h:()=>`<span class="chip">Annexe</span><h1>Limites et sources</h1><p>Procédures <b>pédagogiques</b>, reformulées d'après des sources publiques (manuels de formation, POH, réglementation EASA/FAA). Valeurs marquées [ESTIMÉ] : formules simplifiées, pas les tables du constructeur. Ce simulateur ne remplace ni le manuel de vol ni une formation agréée.</p>${(REFS[ACK]||[]).map(([t,u])=>u?`<p><a href="${u}" target="_blank" rel="noopener" style="color:var(--cy)">${t}</a></p>`:`<p>${t}</p>`).join('')}`});
@@ -274,7 +274,7 @@ function dom(){ let b=$('brief'); if(b) return b; b=document.createElement('sect
   swipe(b);
   $('br-prev').onclick=()=>go(BR.i-1); $('br-next').onclick=()=>go(BR.i+1); $('br-x').onclick=close; $('br-go').onclick=launch; $('br-skip').onclick=launch; $('br-snd').onclick=()=>SND.panel&&SND.panel();
   $('brief-nav-t').onclick=()=>b.classList.toggle('nav'); $('br-all').onclick=()=>{ BR.all=!BR.all; $('br-all').classList.toggle('on',BR.all); render(); };
-  b.addEventListener('click',e=>{ const t=e.target.closest('[data-launch],[data-go],[data-snd],[data-mode],[data-full]'); if(!t) return;
+  b.addEventListener('click',e=>{ const vv=e.target.closest('[data-vis]'); if(vv&&window.VIS){ const [a,c]=vv.dataset.vis.split(':').map(Number); VIS.open(a,c<0?null:c); return; } const t=e.target.closest('[data-launch],[data-go],[data-snd],[data-mode],[data-full]'); if(!t) return;
     if(t.dataset.launch){ e.stopPropagation(); launchMode(t.dataset.launch); return; }
     if(t.dataset.go!=null){ BR.all=false; $('br-all').classList.remove('on'); go(+t.dataset.go); }
     else if(t.dataset.snd){ SND.unlock&&SND.unlock(); setTimeout(()=>SND.play(t.dataset.snd),60); }
