@@ -66,6 +66,7 @@ Dernière vérification (V8.0) : examen blanc A320 complet réussi (25/25, déco
 
 | Version | Changement |
 | --- | --- |
+| V8.13 | Menu : plus de rubrique « Mission », un clic sur l'appareil lance son parcours ; ligne directrice cliquable des étapes de chaque appareil ; bouton Réinitialiser |
 | V8.12 | Un seul appareil à la fois (une mission propre à un appareil le sélectionne) ; même méthode pour tous : cours du simulateur par appareil (A320, Learjet 60, H125, R44, S-76) et questions d'examen hélicoptère |
 | V8.11 | Hélicoptères : chaque instrument s'agrandit au clic avec sa légende ; horizon artificiel alimenté (plus de drapeau OFF permanent) |
 | V8.10 | Menu de départ défilable (haut et bas) sur mobile et PC ; plus d'annonce « Flaps one » ni de bruit de volets au démarrage |
