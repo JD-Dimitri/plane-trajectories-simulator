@@ -66,6 +66,7 @@ Dernière vérification (V8.0) : examen blanc A320 complet réussi (25/25, déco
 
 | Version | Changement |
 | --- | --- |
+| V8.10 | Menu de départ défilable (haut et bas) sur mobile et PC ; plus d'annonce « Flaps one » ni de bruit de volets au démarrage |
 | V8.9 | FMS : la ligne verte du ND est le plan de vol (orthodromie départ → destination, route Barcelone → Düsseldorf pour Germanwings) ; le mode NAV la rejoint puis la suit avec correction d'écart latéral |
 | V8.8 | « 🧭 Étapes » : aller directement à n'importe quelle étape (avance rapide, saut du roulage) ; bulle rangée en haut à droite sur PC ; plus de guide en double en mode automatique |
 | V8.7 | Dossier de vol : chaque étape et chaque action ouvrent une fiche avec le vrai bloc de commandes (commande encadrée et numérotée) ou l'écran légendé ; fiche aussi depuis la bulle en vol |

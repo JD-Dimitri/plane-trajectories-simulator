@@ -261,6 +261,7 @@ function tick(){ const N=SND.n, P=SND.P; if(!SND.ready) return; const c=SND.ctx;
     if(fw&&!S.gear&&air&&SND.opt.callouts) setTimeout(()=>say('pnf','Gear up',{sub:'Copilote : train rentré'}),600);
     if(fw&&S.gear&&air&&SND.opt.callouts) setTimeout(()=>say('pnf','Gear down, three green',{sub:'Copilote : train sorti, trois vertes'}),(ACK==='a320'?10:7)*1000);
     ST.gear=S.gear; }
+  if(S.flap!==ST.flap&&(SND.quiet||0)>performance.now()){ ST.flap=S.flap; }   // mise en place de la mission : pas d'annonce
   if(S.flap!==ST.flap){ if(fw) flapRun(Math.abs(S.flap-ST.flap)*(ACK==='a320'?7:5)); if(fw&&SND.opt.callouts&&A.flaps[S.flap]) say('pnf',(S.flap?'Flaps '+A.flaps[S.flap].n:'Flaps zero'),{sub:'Copilote : volets '+A.flaps[S.flap].n}); ST.flap=S.flap; }
   if(SND.T.hyd&&t>SND.T.hyd){ set(P.hyd.gain,0,0.2); SND.T.hyd=0; } if(SND.T.flp&&t>SND.T.flp){ set(P.flp.gain,0,0.4); SND.T.flp=0; }
   // ---------- poste : alimentation, ventilation, climatisation ----------
@@ -423,3 +424,9 @@ SND.panel=sndPanel;
 function syncBtn(){ const b=document.getElementById('b-snd'); if(b){ b.textContent=SND.on?'🔊 Son':'🔇 Son'; b.classList.toggle('on',SND.on); } }
 { const bar=$('bar'), help=$('b-help'); if(bar&&help){ const b=document.createElement('button'); b.type='button'; b.id='b-snd'; b.title='Son : volumes, options, banque de sons'; b.onclick=sndPanel; help.before(b); syncBtn(); } }
 })();
+
+/* pas d'annonce « Flaps… » ni de bruit de volets pendant la mise en place d'une mission ou d'un scénario */
+(function(){ const q=()=>{ SND.quiet=performance.now()+4000; }; const w=n=>{ const f=window[n]; if(typeof f!=='function') return; window[n]=function(){ q(); const r=f.apply(this,arguments); q(); return r; }; };
+  try{ const a=startMission; startMission=function(){ q(); const r=a.apply(this,arguments); q(); return r; }; }catch(e){}
+  try{ const b=scnStart; scnStart=function(){ q(); const r=b.apply(this,arguments); q(); return r; }; }catch(e){}
+  try{ const c=resetState; resetState=function(){ q(); return c.apply(this,arguments); }; }catch(e){} })();

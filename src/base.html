@@ -18,9 +18,9 @@ button:hover{border-color:#4a627a} button.on{border-color:var(--acc);background:
 .num{font-family:'JetBrains Mono',monospace}
 .tag{font:600 10px 'Barlow Condensed',sans-serif;letter-spacing:.08em;padding:1px 5px;border-radius:3px;background:#3a2410;color:#ffb37a;margin-left:6px}
 /* ---- menu ---- */
-#menu{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,#0f2236 0,#05080c 70%);padding:16px;overflow:auto}
+#menu{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-start;justify-content:center;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 30%,#0f2236 0,#05080c 70%);padding:16px;overflow:auto}
 #menu[hidden]{display:none}
-#menu .box{width:min(1100px,100%);zoom:var(--ui)}
+#menu .box{width:min(1100px,100%);zoom:var(--ui);margin:auto 0}
 #menu h1{font:700 38px/1 'Barlow Condensed',sans-serif;letter-spacing:.02em;margin:0 0 4px}
 #menu h1 b{color:var(--acc)} #menu .sub{color:var(--mut);margin:0 0 18px}
 #menu h2{font:600 13px 'Barlow Condensed',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin:16px 0 8px}
