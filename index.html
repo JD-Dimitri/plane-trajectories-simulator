@@ -4649,7 +4649,8 @@ const PARTS=[
 const SRC=[['Programme et examens théoriques PPL/LAPL — ministère (DGAC)','https://www.ecologie.gouv.fr/politiques-publiques/examens-theoriques-devenir-personnel-navigant'],['Passage à 9 épreuves (déc. 2023) — AeroVFR','https://aerovfr.com/2023/10/de-la-pratique-de-lexamen-theorique'],['Fiche LAPL / PPL (heures, médical) — Aérogligli','https://www.aerogligli.fr/assets/img/resumes/fiche_resume_licences.pdf'],['FAA — Pilot\'s Handbook of Aeronautical Knowledge','https://www.faa.gov/regulations_policies/handbooks_manuals/aviation/phak'],['Coûts ENAC / intégré / modulaire (2026) — Salerya','https://salerya.fr/metiers/transport/pilote-de-ligne/formation-enac-vs-privee-roi/'],['Reconversion après 30 ans, médical classe 1 — Salerya','https://salerya.fr/metiers/transport/pilote-de-ligne/formation-enac-vs-privee-roi/reconversion-pilote-apres-30-ans/'],['Filière Cadets Air France — Air Journal','https://www.air-journal.fr/?p=275748'],['Financer une reconversion pilote (CPF, Transitions Pro, France Travail) — OPCO Direct','https://opcodirect.fr/metier/pilote-de-ligne'],['Pilote de ligne (ATPL intégré / modulaire) — CIDJ','https://www.cidj.com/s-orienter/metiers/pilote-de-ligne'],['Structure semi-monocoque (peau, cadres, lisses) — AeroToolbox','https://aerotoolbox.com/fuselage-structure/'],['A320 : dimensions officielles — Airbus','https://www.aircraft.airbus.com/en/aircraft/a320-family/a320ceo'],['Matériaux des hélicoptères (AS350 / H125) — Pilot Teacher','https://pilotteacher.com/what-are-helicopters-made-of-things-you-have-never-heard-of/'],['Composants composites du S-76 — NASA / DTIC','https://apps.dtic.mil/sti/html/tr/ADA233525/index.html']];
 
 /* ---------- lecteur ---------- */
-const LIST=[]; PARTS.forEach(p=>p.mods.forEach(m=>LIST.push({p,m})));
+const LIST=[]; function rebuild(){ LIST.length=0; PARTS.forEach(p=>p.mods.forEach(m=>LIST.push({p,m}))); } rebuild();
+function setPart(np){ const i=PARTS.findIndex(p=>p.id===np.id); if(i>=0) PARTS[i]=np; else PARTS.push(np); rebuild(); }
 const ST={i:0,toc:false}; const store={get(){ try{ return JSON.parse(localStorage.getItem('pt-acad')||'{}'); }catch(e){ return {}; } },set(v){ try{ localStorage.setItem('pt-acad',JSON.stringify(v)); }catch(e){} }};
 let done=store.get();
 function dom(){ let a=document.getElementById('acad'); if(a) return a; a=document.createElement('section'); a.id='acad'; a.hidden=true; a.setAttribute('aria-label','Académie');
@@ -4666,7 +4667,7 @@ function dom(){ let a=document.getElementById('acad'); if(a) return a; a=documen
   return a; }
 function home(){ return `<div class="kick">Avant le simulateur</div><h1>Apprendre à piloter, de zéro</h1><p>Commencez ici si vous n'avez jamais piloté. Quatre parties, à lire dans l'ordre : chaque module se termine par quelques questions. Votre progression est gardée sur cet appareil.</p>
   <div class="cards">${PARTS.map(p=>{ const n=p.mods.length, k=p.mods.filter(m=>done[m.id]).length; return `<button type="button" class="card" data-mod="${LIST.findIndex(x=>x.p===p)}"><span class="kick">${k}/${n} modules</span><b>${p.n}</b>${p.d}<div class="pg"><i style="width:${n?k/n*100:0}%"></i></div></button>`; }).join('')}</div>
-  <div class="box mg"><b class="t">Le parcours complet</b>1. Cours débutant → 2. Cours du simulateur → 3. Mode automatique puis guidé → 4. Examen blanc → 5. Le vrai pilotage (brevet) → 6. La reconversion professionnelle → 7. L'anatomie de chaque appareil.</div>
+  <div class="box mg"><b class="t">Le parcours complet</b>1. Cours débutant → 2. Cours du simulateur → 3. Mode automatique puis guidé → 4. Examen blanc → 5. Le vrai pilotage (brevet) → 6. La reconversion professionnelle → 7. Le cours aéronautique (structures, moteurs, systèmes) avec l'Atelier des systèmes.</div>
   <h2>Références</h2><ul class="src">${SRC.map(s=>`<li><a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a></li>`).join('')}</ul><p class="src">Chiffres et règles vérifiés en novembre 2026 ; ils évoluent : confirmez auprès de la DGAC, de votre médecin agréé et des écoles. Les formules de calcul du simulateur sont pédagogiques, pas les tables d'un constructeur.</p>`; }
 function modHTML(x,i){ const {p,m}=x, k=p.mods.indexOf(m)+1;
   return `<div class="kick">${p.n} · module ${k}/${p.mods.length}</div><h1>${m.t}</h1>${m.h}
@@ -4685,11 +4686,11 @@ function render(){ const a=dom(), body=a.querySelector('.in'), toc=a.querySelect
 function go(i){ ST.i=Math.max(-1,Math.min(LIST.length-1,i)); render(); }
 function open(i){ const a=dom(); a.hidden=false; ST.toc=false; go(i==null?-1:i); }
 function close(){ const a=dom(); a.hidden=true; }
-function act(k){ if(typeof selAC==='undefined') return; if(!selAC) selAC='a320'; if(!selMI||!MISSIONS[selMI]) selMI=(AC[selAC].kind==='fw')?'full-fw':'full-rw';
+function act(k){ if(k.startsWith('sys')){ const q=k.split(':'); close(); if(window.SYSAT) SYSAT.open(q[1],q[2]); return; } if(typeof selAC==='undefined') return; if(!selAC) selAC='a320'; if(!selMI||!MISSIONS[selMI]) selMI=(AC[selAC].kind==='fw')?'full-fw':'full-rw';
   close(); try{ renderMenu(); }catch(e){}
   if(k==='brief'){ if(window.BR&&BR.show) BR.show(false,0); return; }
   if(window.BR&&BR.launchMode) BR.launchMode(k); }
-window.ACAD={open,close,PARTS};
+window.ACAD={open,close,PARTS,setPart};
 
 /* ---------- entrée dans le menu (avant le choix de l'appareil) ---------- */
 function inject(){ document.querySelectorAll('#c-mi [data-mi^="sc-"]:not([disabled]) .k').forEach(k=>k.textContent='Scénario guidé'); const box=document.querySelector('#menu .box'); if(!box||box.querySelector('.acad-b')) return; const sub=box.querySelector('.sub');
@@ -5378,6 +5379,1098 @@ function decorate(){ const box=document.querySelector('#menu .box'); if(!box) re
   if(!box.querySelector('.m2-scn')){ const n=document.createElement('p'); n.className='m2-note m2-scn'; n.innerHTML='Vols libres, scénarios (US Airways 1549, Germanwings 9525, pannes) et examen blanc : boutons <b>« Scénarios »</b> et <b>« Procédures »</b> pendant le vol, ou cartes « Lancer » du dossier.'; box.querySelector('.m2-reset').after(n); } }
 const _rm=renderMenu; renderMenu=function(){ const r=_rm.apply(this,arguments); try{ decorate(); }catch(e){ console.warn('menu',e); } return r; };
 try{ decorate(); }catch(e){}
+})();
+
+</script>
+<script>
+/* ===== ATELIER DES SYSTÈMES : simulateur pédagogique bouton → pièce =====
+   À gauche les commandes réelles du poste, au centre l'écran système (type ECAM / VEMD), à droite le schéma de l'appareil.
+   Chaque commande colore les pièces qu'elle actionne réellement : électricité, électronique, carburant, hydraulique, air, mécanique, allumage, feux.
+   La logique de fonctionnement est simulée (ordre des actions, conditions, temporisations accélérées). Valeurs indicatives [SIMULÉ]. */
+(function(){
+const C={el:'#3fd0ff',dat:'#b48cff',fu:'#ffa21a',hg:'#3ddc84',hb:'#4a8bff',hy:'#ffe14a',ah:'#ff4a3d',ac:'#cfe9ff',me:'#e04ad8',ig:'#fff38a',hot:'#ff7a2a',oil:'#c58b4a',lt:'#ffffff',lr:'#ff3b30',lg:'#3ddc84',fire:'#ff1f1f',grn:'#3ddc84',warn:'#ffa21a'};
+const LEGN={el:'Électricité (courant continu / alternatif)',dat:'Électronique : calculateurs, signaux',fu:'Carburant',hg:'Hydraulique vert',hb:'Hydraulique bleu',hy:'Hydraulique jaune',ah:'Air chaud prélevé (bleed)',ac:'Air conditionné, cabine',me:'Mouvement mécanique',ig:'Allumage (étincelles)',hot:'Combustion, gaz chauds',oil:'Huile, transmission',lt:'Éclairage extérieur',fire:'Feu, alarme'};
+const css=document.createElement('style'); css.textContent=`
+#sysat[hidden]{display:none!important}
+#sysat{position:fixed;inset:0;z-index:72;background:#050a10;color:#e8eef2;display:flex;flex-direction:column;font:14px/1.45 'Inter',system-ui,sans-serif}
+#sysat header{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 9px;border-bottom:1px solid #1d2f40;background:#08111a}
+#sysat header .tt{flex:1 1 180px;min-width:0}#sysat header .tt b{display:block;font:700 19px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase}#sysat header .tt span{color:#8fa4b8;font-size:12px}
+#sysat button,#sysat select{background:#132232;color:#fff;border:1px solid #2b3d50;border-radius:8px;padding:6px 9px;font:600 13px 'Barlow Condensed',sans-serif;letter-spacing:.04em;cursor:pointer}
+#sysat .hrow{display:flex;gap:4px;align-items:center;flex-wrap:wrap}#sysat .pre{display:flex;gap:4px;flex-wrap:wrap}#sysat header button{white-space:nowrap}#sysat .pre button.on{background:#e04ad8;border-color:#e04ad8}
+#sysat .main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(280px,340px) minmax(300px,1fr) minmax(300px,1fr);grid-template-areas:"ctl mid sch";overflow:hidden}
+#sysat .ctl{grid-area:ctl;overflow:auto;padding:8px;border-right:1px solid #1d2f40;background:#07101a}
+#sysat .mid{grid-area:mid;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+#sysat .sch{grid-area:sch;overflow:auto;padding:8px;border-left:1px solid #1d2f40;display:flex;flex-direction:column;gap:6px}
+#sysat .sch svg.ac{width:100%;max-height:calc(100vh - 170px);background:radial-gradient(#0c1a28,#060c12);border:1px solid #1d2f40;border-radius:10px;touch-action:manipulation}
+#sysat .grp{border:1px solid #1d2f40;border-radius:10px;margin:0 0 8px;background:#0a1520}
+#sysat .grp h4{margin:0;padding:6px 9px;font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.12em;color:#9fb3c4;text-transform:uppercase;border-bottom:1px solid #1d2f40;display:flex;justify-content:space-between}
+#sysat .grp h4 small{color:#5f7d99;letter-spacing:.04em;font-weight:500}
+#sysat .row{display:flex;flex-wrap:wrap;gap:6px;padding:8px}
+#sysat .pb{width:74px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;padding:0;cursor:pointer;color:#e8eef2}
+#sysat .pb .k{width:56px;height:44px;border-radius:5px;background:linear-gradient(#2b3540,#1a2129);border:2px solid #4a5866;display:flex;flex-direction:column;justify-content:space-around;align-items:center;font:700 10.5px 'JetBrains Mono',monospace;box-shadow:inset 0 -3px 0 #0006}
+#sysat .pb:active .k{transform:translateY(1px)}#sysat .pb .k i{font-style:normal;min-height:12px;letter-spacing:.02em}
+#sysat .pb .l{font:600 11px 'Barlow Condensed',sans-serif;letter-spacing:.04em;text-align:center;line-height:1.1;color:#cfd8df}
+#sysat .pb.mom .k{border-radius:50%;width:46px}#sysat .pb.grd .k{outline:2px dashed #ff3b3088;outline-offset:2px}
+#sysat .sel{display:flex;flex-direction:column;gap:3px;min-width:0}#sysat .sel .l{font:600 11px 'Barlow Condensed',sans-serif;letter-spacing:.04em;color:#cfd8df}
+#sysat .seg{display:flex;border:1px solid #2b3d50;border-radius:8px;overflow:hidden}#sysat .seg button{border:0;border-radius:0;padding:6px 8px;background:#101c28;font-size:12px}#sysat .seg button+button{border-left:1px solid #2b3d50}
+#sysat .seg button.on{background:#e8eef2;color:#061018}#sysat .ctl .flash{animation:saflash .5s 4}@keyframes saflash{50%{box-shadow:0 0 0 3px #e04ad8;background:#e04ad855}}
+#sysat .tabs{display:flex;flex-wrap:wrap;gap:3px}#sysat .tabs button{padding:4px 7px;font-size:12px;background:#0d1924}#sysat .tabs button.on{background:#3fd0ff;color:#041018;border-color:#3fd0ff}
+#sysat .scr{background:#000;border:6px solid #1c232b;border-radius:10px;box-shadow:inset 0 0 0 1px #333}
+#sysat .scr svg{display:block;width:100%;height:auto}#sysat .scr svg text{font-family:'JetBrains Mono',monospace}
+#sysat .ex{border:1px solid #1d2f40;border-radius:10px;background:#0a1520;padding:9px 11px}
+#sysat .ex h3{margin:0;font:700 19px 'Barlow Condensed',sans-serif;color:#fff}#sysat .ex .w{color:#8fa4b8;font-size:12.5px;margin:1px 0 6px}
+#sysat .ex ol{margin:4px 0;padding-left:0;list-style:none;counter-reset:x}#sysat .ex li{display:flex;gap:7px;margin:5px 0;align-items:flex-start}
+#sysat .ex li i{flex:none;width:12px;height:12px;border-radius:3px;margin-top:4px;box-shadow:0 0 6px currentColor}
+#sysat .ex .blk{border:1px solid #ffa21a;background:#2a1a05;color:#ffd9a8;border-radius:8px;padding:7px 9px;margin:6px 0;animation:sablk 1s ease-in-out 3}
+@keyframes sablk{50%{box-shadow:0 0 0 3px #ffa21a66}}#sysat .ex .blk button{margin-top:5px;background:#ffa21a;color:#1a0f00;border:0}
+#sysat .ex .live{font:12.5px 'JetBrains Mono',monospace;color:#9fe8b8;margin-top:6px;white-space:pre-line}
+#sysat .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}#sysat .chips button{font:500 12px 'Inter',sans-serif;padding:3px 7px;border-radius:999px;letter-spacing:0}
+#sysat .leg{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px;color:#b8c6d2}#sysat .leg span{display:inline-flex;align-items:center;gap:4px}#sysat .leg i{width:10px;height:10px;border-radius:2px;display:inline-block}
+#sysat .pinfo{border:1px solid #1d2f40;border-radius:10px;padding:7px 9px;background:#0a1520;font-size:13px}#sysat .pinfo b{color:#fff}
+#sysat .tour{border:2px solid #e04ad8;border-radius:10px;background:#16091a;padding:9px 11px}#sysat .tour b.t{display:block;font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.12em;color:#e04ad8;text-transform:uppercase}
+#sysat .tour p{margin:4px 0}#sysat .tour .bt{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}#sysat .tour .go{background:#e04ad8;border:0}#sysat .tour .wt{color:#ffd9a8;font-size:12.5px}
+#sysat svg.ac .bd{fill:#0f1e2c;stroke:#5f7d99;stroke-width:1.1}#sysat svg.ac .bdl{fill:none;stroke:#5f7d99;stroke-width:1.4}
+#sysat svg.ac .sp{fill:#152a3d;stroke:#3d5870;stroke-width:.7;cursor:pointer}#sysat svg.ac .sp.ring{fill:none;stroke:none}
+#sysat svg.ac .sf{fill:none;stroke:#1f3346;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;cursor:pointer}
+#sysat svg.ac .on.sp{fill:var(--c);fill-opacity:.8;stroke:var(--c);stroke-width:1}#sysat svg.ac .on.sp.ring{fill:none;stroke-width:2}
+#sysat svg.ac .on.dim.sp{fill-opacity:.3}#sysat svg.ac .on.sf{stroke:var(--c);stroke-width:2.4}
+#sysat svg.ac .on.flow{stroke-dasharray:5 4;animation:saf .7s linear infinite}#sysat svg.ac .on.rev{stroke-dasharray:5 4;animation:saf .7s linear infinite reverse}
+@keyframes saf{to{stroke-dashoffset:-9}}#sysat svg.ac .on.blink{animation:sab .6s steps(2,start) infinite}@keyframes sab{50%{opacity:.12}}
+#sysat svg.ac .on.spin{animation:sar var(--sp,.4s) linear infinite;transform-box:view-box}@keyframes sar{to{transform:rotate(360deg)}}
+#sysat svg.ac .tch{stroke:#fff!important;stroke-width:2.2!important;filter:drop-shadow(0 0 4px #fff)}
+#sysat svg.ac .tags text{fill:#fff;font:600 9px 'Inter',sans-serif;paint-order:stroke;stroke:#000;stroke-width:3px}#sysat svg.ac .tags line{stroke:#fff;stroke-width:.7;stroke-dasharray:2 2}
+#sysat svg.ac .lbl{fill:#6f8aa3;font:600 8px 'Inter',sans-serif;pointer-events:none}
+#samenu{display:flex;gap:12px;align-items:center;width:100%;text-align:left;margin:4px 0;padding:11px 14px;border-radius:12px;border:1px solid #3fd0ff;background:linear-gradient(90deg,#062033,#0a141e);color:#fff;cursor:pointer;font:500 14px 'Inter',sans-serif}
+#samenu b{display:block;font:700 19px 'Barlow Condensed',sans-serif;letter-spacing:.04em}#samenu .e{font-size:28px}
+@media (max-width:900px){
+ #sysat .main{display:block;overflow:auto}
+ #sysat .top>*{grid-area:auto!important}#sysat header .tt{flex:1 1 120px}#sysat header .tt b{font-size:16px}#sysat .hrow{order:9;flex:1 1 100%;overflow-x:auto;flex-wrap:nowrap}#sysat .pre{flex-wrap:nowrap}#sysat header select{max-width:46vw}
+ #sysat .top{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:58% 42%;gap:4px;background:#050a10;padding:4px;border-bottom:1px solid #1d2f40}
+ #sysat .sch,#sysat .mid,#sysat .ctl{overflow:visible;border:0}
+ #sysat .top .sch{padding:0}#sysat .top .sch svg.ac{max-height:36vh;height:36vh}
+ #sysat .top .scrw{display:flex;flex-direction:column;gap:3px;min-width:0}#sysat .top .scr{border-width:3px}
+ #sysat .top .tabs button{padding:3px 5px;font-size:10.5px}
+ #sysat .ctl{padding:6px}#sysat .pb{width:66px}#sysat .pb .k{width:52px;height:40px}
+ #sysat header .tt span{display:none}
+}`;
+document.head.appendChild(css);
+
+/* ---------- outils SVG ---------- */
+const MOD={}; let M=null, S=null, K=null, D=null, AC='a320', LAST=null, LASTV=null, PAGE='', TCH=[], tTch=0, TOUR=null, TI=0, PRE='cold', timer=0, tPrev=0, exPrev='', pgPrev='';
+const mir=(d,W=400)=>{ let cmd='',k=0; return d.match(/[MLHVCQZ]|-?\d+(\.\d+)?/g).map(x=>{ if(/[A-Z]/.test(x)){ cmd=x; k=0; return x; } const n=+x; if(cmd==='H') return W-n; if(cmd==='V') return n; return (k++%2===0)?W-n:n; }).join(' '); };
+const P=(id,d,c='sp')=>`<path data-p="${id}" class="${c}" d="${d}"/>`, F=(id,d)=>P(id,d,'sf');
+const R=(id,x,y,w,h,rx=1.5,c='sp')=>`<rect data-p="${id}" class="${c}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`;
+const Ci=(id,x,y,r,c='sp')=>`<circle data-p="${id}" class="${c}" cx="${x}" cy="${y}" r="${r}"/>`;
+const RR=(a,b,x,y,w,h,rx)=>R(a,x,y,w,h,rx)+R(b,400-x-w,y,w,h,rx), CC=(a,b,x,y,r)=>Ci(a,x,y,r)+Ci(b,400-x,y,r), PP=(a,b,d,c)=>P(a,d,c)+P(b,mir(d),c), FF=(a,b,d)=>F(a,d)+F(b,mir(d));
+const Lb=(x,y,t,a='middle')=>`<text class="lbl" x="${x}" y="${y}" text-anchor="${a}">${t}</text>`;
+/* écran type ECAM */
+const G='#3ddc84',AM='#ffa21a',W='#f2f4f6',CY='#3fd0ff',RD='#ff3b30',MG='#e04ad8',GY='#5a6672';
+const T=(x,y,t,c=W,z=11,a='start')=>`<text x="${x}" y="${y}" fill="${c}" font-size="${z}" text-anchor="${a}">${t}</text>`;
+const BX=(x,y,w,h,c=W)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${c}" stroke-width="1.2"/>`;
+const LN=(p,c=G,w=1.6)=>`<polyline points="${p}" fill="none" stroke="${c}" stroke-width="${w}"/>`;
+const ARC=(x,y,r,v,max,lab,unit,c=G,red)=>{ const a0=Math.PI*0.8,a1=Math.PI*2.2,a=a0+(a1-a0)*Math.max(0,Math.min(1,v/max)); const px=t=>x+r*Math.cos(t),py=t=>y+r*Math.sin(t);
+  return `<path d="M${px(a0)} ${py(a0)} A${r} ${r} 0 1 1 ${px(a1)} ${py(a1)}" fill="none" stroke="${W}" stroke-width="1.4"/>${red?`<path d="M${px(a0+(a1-a0)*red)} ${py(a0+(a1-a0)*red)} A${r} ${r} 0 0 1 ${px(a1)} ${py(a1)}" fill="none" stroke="${RD}" stroke-width="2.4"/>`:''}<line x1="${x}" y1="${y}" x2="${px(a)}" y2="${py(a)}" stroke="${c}" stroke-width="2.2"/>${T(x,y+r*0.75,Math.round(v)+(unit||''),c,12,'middle')}${T(x,y-r-4,lab,CY,10,'middle')}`; };
+const SCR=(body,memo)=>`<svg viewBox="0 0 320 230">${body}${memo&&memo.length?`<line x1="0" y1="196" x2="320" y2="196" stroke="${GY}"/>`+memo.slice(0,3).map((m,i)=>T(6+(i%2)*160,210+Math.floor(i/2)*14,m[1],m[0],10.5)).join(''):''}</svg>`;
+const OFFSCR=(why)=>`<svg viewBox="0 0 320 230"><rect width="320" height="230" fill="#000"/>${T(160,105,'ÉCRAN ÉTEINT',GY,16,'middle')}${T(160,128,why,GY,10.5,'middle')}</svg>`;
+
+/* ================= AIRBUS A320 ================= */
+(function(){
+const body=`<path class="bd" d="M200 14 C214 14 222 40 222 72 V520 C222 548 212 578 200 592 C188 578 178 548 178 520 V72 C178 40 186 14 200 14 Z"/>
+<path class="bd" d="M178 230 L34 318 L30 334 L178 300 Z"/><path class="bd" d="${mir('M178 230 L34 318 L30 334 L178 300 Z')}"/>
+<path class="bd" d="M180 505 L118 548 L118 560 L180 540 Z"/><path class="bd" d="${mir('M180 505 L118 548 L118 560 L180 540 Z')}"/><path class="bdl" d="M200 498 V590"/>`;
+const parts=
+ R('cabin',182,140,36,330,6)+
+ PP('tLi','tRi','M174 238 L102 282 L102 312 L174 296 Z')+PP('tLo','tRo','M98 284 L62 306 L62 322 L98 313 Z')+R('tC',181,254,38,36,3)+
+ PP('slatL','slatR','M170 238 L64 302 L66 307 L170 243 Z')+PP('splL','splR','M172 286 L106 301 L106 306 L172 291 Z')+PP('flapL','flapR','M176 294 L102 311 L102 317 L176 300 Z')+PP('ailL','ailR','M94 311 L44 322 L43 329 L94 318 Z')+
+ PP('elevL','elevR','M180 534 L120 554 L120 559 L180 539 Z')+R('rud',198,560,4,30,1)+
+ FF('waiL','waiR','M112 271 L66 299')+
+ F('f_cond','M200 312 V140')+F('f_ac','M196 82 V44')+F('f_dc','M204 73 V49')+
+ F('f_gen1','M134 262 L176 252 L184 240 V87')+F('f_gen2',mir('M134 262 L176 252 L184 240 V87'))+F('f_apug','M188 558 V105')+F('f_ext','M244 110 H223')+
+ FF('f_fu1','f_fu2','M160 282 L146 268 L136 262')+F('f_xf','M160 292 L176 296 H224 L240 292')+F('f_fuC','M192 276 V296 M208 276 V296')+F('f_apuf','M184 296 V558')+
+ FF('f_bl1','f_bl2','M136 248 L176 246')+F('f_xb','M176 246 H224')+F('f_pk1','M184 246 V326')+F('f_pk2','M216 246 V326')+F('f_apub','M194 572 L181 552 V248')+F('f_pm','M190 326 V320 M210 326 V320')+
+ FF('f_hGe','f_hYe','M122 276 L150 300 L176 330 L188 352')+F('f_hG','M188 361 V530 L150 552')+F('f_hB','M200 372 V560')+F('f_hY','M212 361 V530 L250 552')+
+ F('f_hGw','M186 352 L176 300 L48 323 '+mir('M186 352 L176 300 L48 323').replace(/^M/,'M'))+F('f_hBw','M198 352 L178 295 L50 318 '+mir('M198 352 L178 295 L50 318'))+F('f_hYw','M210 352 L179 290 L52 313 '+mir('M210 352 L179 290 L52 313'))+
+ F('f_rat','M222 302 L204 356')+
+ P('wshield','M188 30 C194 26 206 26 212 30','sf')+R('scr',189,35,22,6,1)+R('ovh',193,45,14,4,1)+CC('probe','probe',184,50,2.2)+
+ R('bat1',183,62,9,7)+R('bat2',208,62,9,7)+R('dcbus',185,73,30,5)+R('acbus1',185,82,14,5)+R('acbus2',201,82,14,5)+R('adiru',185,91,30,5)+R('fctlc',185,100,14,5)+R('fmgc',201,100,14,5)+
+ Ci('ngear',200,116,4.5)+Ci('taxi',200,125,2)+R('extrcp',218,107,5,6,1)+R('gpu',244,100,24,18,3)+
+ Ci('pC1',192,272,3)+Ci('pC2',208,272,3)+CC('pL1','pR1',160,276,3)+CC('pL2','pR2',160,288,3)+Ci('xfv',200,296,3.2)+
+ RR('e1','e2',117,222,22,62,9)+FF('e1fan','e2fan','M119 230 H137')+RR('e1core','e2core',123,240,10,30,3)+CC('e1ig','e2ig',128,252,2)+CC('e1st','e2st',121.5,262,2.4)+RR('e1idg','e2idg',132,258,5,8,1)+RR('e1hp','e2hp',119.5,270,5,6,1)+RR('e1fadec','e2fadec',132,244,5,6,1)+
+ P('e1lip','M117 226 C117 219 139 219 139 226','sf')+P('e2lip',mir('M117 226 C117 219 139 219 139 226'),'sf')+R('e1fire',120,236,16,38,4,'sp ring')+R('e2fire',264,236,16,38,4,'sp ring')+FF('e1ex','e2ex','M128 284 V298')+
+ CC('lp1','lp2',146,268,2.6)+CC('ag1','ag2',146,252,2.6)+F('f_ag1','M146 252 L134 250')+
+ Ci('xbv',200,246,3.2)+R('pack1',182,326,16,13,2)+R('pack2',202,326,16,13,2)+R('mixer',188,312,24,8,2)+R('ofv',217,486,5,8,1)+
+ R('hG',184,352,9,9,2)+R('hB',195.5,352,9,9,2)+R('hY',207,352,9,9,2)+Ci('pB',200,368,3)+Ci('pYe',211,368,3)+R('ptu',190,376,20,5,2)+Ci('rat',224,300,3.6)+
+ R('mgL',182,306,6,11,2)+R('mgR',212,306,6,11,2)+Ci('brk',185,311.5,1.6)+Ci('brk',215,311.5,1.6)+
+ R('apu',192,560,16,18,4)+R('apugen',193,555,6,4,1)+R('apuflap',203,555,5,4,1)+F('apuex','M200 578 V594')+
+ Ci('navL',31,328,3)+Ci('navR',369,328,3)+Ci('navT',200,594,2.5)+CC('stb','stb',35,321,2)+Ci('stb',200,588,1.8)+Ci('bcn',200,226,2.6)+Ci('bcn',200,420,2.6)+CC('land','land',168,242,2.2)+CC('logo','logo',150,548,2);
+const labels=Lb(200,10,'NEZ')+Lb(60,262,'AILE GAUCHE')+Lb(340,262,'AILE DROITE')+Lb(128,214,'MOTEUR 1')+Lb(272,214,'MOTEUR 2')+Lb(238,60,'SOUTE AVIONIQUE','start')+Lb(226,570,'APU','start')+Lb(246,96,'GPU','start');
+const NM={cabin:'Cabine pressurisée (fuselage entre cloisons étanches avant et arrière)',tLi:'Réservoir intérieur gauche (inner tank, caisson de voilure)',tRi:'Réservoir intérieur droit',tLo:'Réservoir extérieur gauche (outer tank)',tRo:'Réservoir extérieur droit',tC:'Réservoir central, dans le caisson central de voilure',
+ slatL:'Becs de bord d\'attaque gauches (slats 1 à 5)',slatR:'Becs de bord d\'attaque droits',splL:'Spoilers gauches 1 à 5 (destructeurs de portance)',splR:'Spoilers droits 1 à 5',flapL:'Volets Fowler gauches (intérieur + extérieur)',flapR:'Volets Fowler droits',ailL:'Aileron gauche',ailR:'Aileron droit',elevL:'Gouverne de profondeur gauche',elevR:'Gouverne de profondeur droite',rud:'Gouverne de direction (sur la dérive)',
+ waiL:'Antigivrage voilure gauche : becs 3-4-5 chauffés par tube piccolo',waiR:'Antigivrage voilure droit',f_cond:'Gaines de distribution d\'air conditionné (sous plancher vers cabine et poste)',f_ac:'Alimentation 115 V AC des écrans et calculateurs',f_dc:'Alimentation 28 V DC du poste',
+ f_gen1:'Câble d\'alimentation IDG 1 → barre AC 1',f_gen2:'Câble d\'alimentation IDG 2 → barre AC 2',f_apug:'Câble génératrice APU → barres AC',f_ext:'Câble du groupe de parc',f_fu1:'Tuyauterie d\'alimentation moteur 1 (via vanne BP)',f_fu2:'Tuyauterie d\'alimentation moteur 2',f_xf:'Collecteur d\'intercommunication carburant',f_fuC:'Sorties des pompes du réservoir central',f_apuf:'Ligne carburant de l\'APU',
+ f_bl1:'Conduit pneumatique moteur 1 : prélèvement (bleed) ou air de démarrage',f_bl2:'Conduit pneumatique moteur 2',f_xb:'Conduit d\'intercommunication pneumatique (cross bleed)',f_pk1:'Conduit vers pack 1',f_pk2:'Conduit vers pack 2',f_apub:'Conduit d\'air de l\'APU',f_pm:'Sorties des packs vers le mélangeur',
+ f_hGe:'Tuyauterie verte : pompe moteur 1 → réservoir',f_hYe:'Tuyauterie jaune : pompe moteur 2 → réservoir',f_hG:'Circuit vert 3000 psi vers l\'empennage',f_hB:'Circuit bleu 3000 psi vers l\'empennage',f_hY:'Circuit jaune 3000 psi vers l\'empennage',f_hGw:'Circuit vert dans les ailes (ailerons, spoilers, volets, becs)',f_hBw:'Circuit bleu dans les ailes',f_hYw:'Circuit jaune dans les ailes',f_rat:'Ligne RAT → circuit bleu',
+ wshield:'Pare-brise chauffé (film conducteur)',scr:'Six écrans (DU) : PFD, ND, E/WD, SD',ovh:'Panneau supérieur (overhead) et éclairage intégré',probe:'Sondes Pitot, prises statiques, sondes d\'incidence et TAT (réchauffées)',
+ bat1:'Batterie 1 Ni-Cd 24 V 23 Ah',bat2:'Batterie 2 Ni-Cd 24 V 23 Ah',dcbus:'Barres courant continu 28 V (DC 1, DC 2, DC BAT, DC ESS) et TR',acbus1:'Barre AC 1 (115 V, 400 Hz)',acbus2:'Barre AC 2 (115 V, 400 Hz)',adiru:'ADIRU 1-2-3 : centrales anémo-barométriques (ADR) et inertielles à gyrolasers (IR)',fctlc:'Calculateurs de commandes de vol : 2 ELAC, 3 SEC, 2 FAC',fmgc:'FMGC 1 et 2 : gestion du vol, guidage, pilote automatique',
+ ngear:'Atterrisseur avant (amortisseur oléopneumatique, 2 roues, orientation)',taxi:'Phare de roulage et de décollage (sur le train avant)',extrcp:'Prise de parc électrique',gpu:'Groupe de parc au sol (GPU) 115 V 400 Hz, 90 kVA',
+ pC1:'Pompe du réservoir central 1 (115 V AC)',pC2:'Pompe du réservoir central 2',pL1:'Pompe de gavage aile gauche 1',pL2:'Pompe de gavage aile gauche 2',pR1:'Pompe de gavage aile droite 1',pR2:'Pompe de gavage aile droite 2',xfv:'Vanne d\'intercommunication carburant (crossfeed, moteurs électriques)',
+ e1:'Nacelle moteur 1 (CFM56-5B ou LEAP-1A) : entrée d\'air, capots, inverseur',e2:'Nacelle moteur 2',e1fan:'Soufflante (fan), attelage basse pression N1',e2fan:'Soufflante moteur 2',e1core:'Générateur de gaz : compresseur HP, chambre de combustion, turbines (attelage N2)',e2core:'Générateur de gaz moteur 2',e1ig:'Bougies d\'allumage A et B moteur 1',e2ig:'Bougies d\'allumage moteur 2',e1st:'Démarreur pneumatique moteur 1 (boîte d\'accessoires)',e2st:'Démarreur pneumatique moteur 2',
+ e1idg:'IDG 1 : génératrice à entraînement intégré 90 kVA',e2idg:'IDG 2',e1hp:'Pompe hydraulique entraînée par le moteur 1 (EDP, circuit vert)',e2hp:'Pompe hydraulique moteur 2 (EDP, circuit jaune)',e1fadec:'FADEC moteur 1 (calculateur ECU double canal)',e2fadec:'FADEC moteur 2',e1lip:'Lèvre d\'entrée d\'air moteur 1 (antigivrage)',e2lip:'Lèvre d\'entrée d\'air moteur 2',e1fire:'Boucles de détection incendie moteur 1',e2fire:'Boucles de détection incendie moteur 2',e1ex:'Tuyère moteur 1',e2ex:'Tuyère moteur 2',
+ lp1:'Vanne carburant basse pression (LP) moteur 1, dans le mât',lp2:'Vanne LP moteur 2',ag1:'Bouteilles d\'extincteur moteur 1 (agents 1 et 2)',ag2:'Bouteilles d\'extincteur moteur 2',f_ag1:'Ligne de décharge de l\'agent extincteur',xbv:'Vanne de cross bleed',pack1:'Pack 1 : groupe de conditionnement (échangeurs + machine à cycle à air)',pack2:'Pack 2',mixer:'Mélangeur (mixer unit)',ofv:'Vanne de décharge de pressurisation (outflow valve)',
+ hG:'Réservoir hydraulique vert',hB:'Réservoir hydraulique bleu',hY:'Réservoir hydraulique jaune',pB:'Pompe électrique bleue',pYe:'Pompe électrique jaune',ptu:'PTU, unité de transfert de puissance vert ↔ jaune',rat:'RAT : éolienne de secours (pompe bleue + génératrice de secours)',
+ mgL:'Atterrisseur principal gauche (2 roues)',mgR:'Atterrisseur principal droit (2 roues)',brk:'Freins carbone multidisques',apu:'APU : groupe auxiliaire de puissance (turbine à gaz dans le cône de queue)',apugen:'Génératrice de l\'APU 90 kVA',apuflap:'Volet d\'entrée d\'air de l\'APU',apuex:'Échappement APU',
+ navL:'Feu de navigation gauche (rouge)',navR:'Feu de navigation droit (vert)',navT:'Feu de navigation arrière (blanc)',stb:'Feux à éclats blancs (strobes)',bcn:'Feux anticollision rouges (beacon), dessus et dessous',land:'Phares d\'atterrissage (emplanture)',logo:'Feux de logo (éclairent la dérive)'};
+
+const st=v=>v; // lisibilité
+const OFF=['','OFF|wh'], NONE=['',''];
+const pbOff=id=>s=>s[id]?NONE:OFF;
+const pbOn=(id,t='ON')=>s=>s[id]?['',t+'|cy']:NONE;
+const ctl=[
+ {g:'Électricité',w:'overhead · panneau ELEC (35VU)',c:[
+  {id:'bat1',l:'BAT 1',t:'pb',pg:'ELEC',pt:['bat1','dcbus'],lt:pbOff('bat1')},
+  {id:'bat2',l:'BAT 2',t:'pb',pg:'ELEC',pt:['bat2','dcbus'],lt:pbOff('bat2')},
+  {id:'ext',l:'EXT PWR',t:'pb',pg:'ELEC',pt:['gpu','f_ext','extrcp','acbus1','acbus2'],lt:s=>s.ext&&s.ground?['','ON|cy']:(s.ground?['AVAIL|gn','']:NONE)},
+  {id:'apuGen',l:'APU GEN',t:'pb',pg:'ELEC',pt:['apugen','f_apug'],lt:pbOff('apuGen')},
+  {id:'gen1',l:'GEN 1',t:'pb',pg:'ELEC',pt:['e1idg','f_gen1','acbus1'],lt:pbOff('gen1')},
+  {id:'gen2',l:'GEN 2',t:'pb',pg:'ELEC',pt:['e2idg','f_gen2','acbus2'],lt:pbOff('gen2')}]},
+ {g:'APU',w:'overhead · panneau APU (25VU) et AIR COND (30VU)',c:[
+  {id:'apuMaster',l:'APU MASTER SW',t:'pb',pg:'APU',pt:['apu','apuflap'],lt:s=>s.apuMaster?['','ON|cy']:NONE},
+  {id:'apuStart',l:'APU START',t:'mom',pg:'APU',pt:['apu','bat1','bat2','f_apuf'],lt:s=>[s.apuSt===2?'AVAIL|gn':'',s.apuSt===1?'ON|cy':'']},
+  {id:'apuBleed',l:'APU BLEED',t:'pb',pg:'BLEED',pt:['apu','f_apub','xbv'],lt:pbOn('apuBleed')}]},
+ {g:'Carburant',w:'overhead · panneau FUEL (40VU)',c:[
+  {id:'pL1',l:'L TK PUMP 1',t:'pb',pg:'FUEL',pt:['pL1','tLi'],lt:s=>pumpLt(s,'pL1')},{id:'pL2',l:'L TK PUMP 2',t:'pb',pg:'FUEL',pt:['pL2','tLi'],lt:s=>pumpLt(s,'pL2')},
+  {id:'pC1',l:'CTR TK PUMP 1',t:'pb',pg:'FUEL',pt:['pC1','tC'],lt:s=>pumpLt(s,'pC1')},{id:'pC2',l:'CTR TK PUMP 2',t:'pb',pg:'FUEL',pt:['pC2','tC'],lt:s=>pumpLt(s,'pC2')},
+  {id:'pR1',l:'R TK PUMP 1',t:'pb',pg:'FUEL',pt:['pR1','tRi'],lt:s=>pumpLt(s,'pR1')},{id:'pR2',l:'R TK PUMP 2',t:'pb',pg:'FUEL',pt:['pR2','tRi'],lt:s=>pumpLt(s,'pR2')},
+  {id:'xfeed',l:'X FEED',t:'pb',pg:'FUEL',pt:['xfv','f_xf'],lt:s=>s.xfeed?['OPEN|gn','ON|cy']:NONE}]},
+ {g:'Démarrage moteurs',w:'pylône central (pedestal) · panneau ENG',c:[
+  {id:'eMode',l:'ENG MODE',t:'sel',o:['CRANK','NORM','IGN'],ol:['CRANK','NORM','IGN/START'],pg:'ENG',pt:['e1fadec','e2fadec']},
+  {id:'m1',l:'ENG 1 MASTER',t:'sw',pg:'ENG',pt:['lp1','e1st','e1ig','e1core','e1fadec']},
+  {id:'m2',l:'ENG 2 MASTER',t:'sw',pg:'ENG',pt:['lp2','e2st','e2ig','e2core','e2fadec']},
+  {id:'thr',l:'MANETTES DE POUSSÉE',t:'sel',o:['IDLE','CL','TOGA'],ol:['IDLE','CL','TOGA'],pg:'ENG',pt:['e1fadec','e2fadec','e1core','e2core','e1fan','e2fan']}]},
+ {g:'Air · conditionnement',w:'overhead · panneau AIR COND (30VU)',c:[
+  {id:'b1',l:'ENG 1 BLEED',t:'pb',pg:'BLEED',pt:['f_bl1','e1core'],lt:pbOff('b1')},{id:'b2',l:'ENG 2 BLEED',t:'pb',pg:'BLEED',pt:['f_bl2','e2core'],lt:pbOff('b2')},
+  {id:'xbleed',l:'X BLEED',t:'sel',o:['SHUT','AUTO','OPEN'],ol:['SHUT','AUTO','OPEN'],pg:'BLEED',pt:['xbv','f_xb']},
+  {id:'pack1',l:'PACK 1',t:'pb',pg:'BLEED',pt:['pack1','mixer','f_cond'],lt:pbOff('pack1')},{id:'pack2',l:'PACK 2',t:'pb',pg:'BLEED',pt:['pack2','mixer','f_cond'],lt:pbOff('pack2')},
+  {id:'ditch',l:'DITCHING',t:'pb',pg:'PRESS',pt:['ofv','pack1','pack2'],lt:pbOn('ditch')}]},
+ {g:'Hydraulique',w:'overhead · panneau HYD (40VU)',c:[
+  {id:'hEP1',l:'G ENG 1 PUMP',t:'pb',pg:'HYD',pt:['e1hp','f_hGe','hG'],lt:pbOff('hEP1')},
+  {id:'hBE',l:'BLUE ELEC PUMP',t:'pb',pg:'HYD',pt:['pB','hB'],lt:pbOff('hBE')},
+  {id:'hEP2',l:'Y ENG 2 PUMP',t:'pb',pg:'HYD',pt:['e2hp','f_hYe','hY'],lt:pbOff('hEP2')},
+  {id:'hYE',l:'Y ELEC PUMP',t:'pb',pg:'HYD',pt:['pYe','hY'],lt:pbOn('hYE')},
+  {id:'ptu',l:'PTU',t:'pb',pg:'HYD',pt:['ptu','hG','hY'],lt:pbOff('ptu')},
+  {id:'rat',l:'RAT MAN ON',t:'mom',grd:1,pg:'HYD',pt:['rat','f_rat','hB'],lt:s=>s.rat?['','ON|cy']:NONE}]},
+ {g:'Antigivrage · sondes',w:'overhead · ANTI ICE (30VU)',c:[
+  {id:'wai',l:'WING ANTI ICE',t:'pb',pg:'BLEED',pt:['waiL','waiR'],lt:pbOn('wai')},
+  {id:'eai1',l:'ENG 1 ANTI ICE',t:'pb',pg:'BLEED',pt:['e1lip'],lt:pbOn('eai1')},{id:'eai2',l:'ENG 2 ANTI ICE',t:'pb',pg:'BLEED',pt:['e2lip'],lt:pbOn('eai2')},
+  {id:'probe',l:'PROBE / WINDOW HEAT',t:'pb',pg:'ELEC',pt:['probe','wshield'],lt:pbOn('probe')}]},
+ {g:'Navigation inertielle',w:'overhead · ADIRS (49VU)',c:[
+  {id:'ir1',l:'IR 1',t:'sel',o:['OFF','NAV','ATT'],ol:['OFF','NAV','ATT'],pg:'ELEC',pt:['adiru','probe']},
+  {id:'ir2',l:'IR 2',t:'sel',o:['OFF','NAV','ATT'],ol:['OFF','NAV','ATT'],pg:'ELEC',pt:['adiru','probe']},
+  {id:'ir3',l:'IR 3',t:'sel',o:['OFF','NAV','ATT'],ol:['OFF','NAV','ATT'],pg:'ELEC',pt:['adiru','probe']}]},
+ {g:'Feux extérieurs',w:'overhead · EXT LT (25VU)',c:[
+  {id:'beacon',l:'BEACON',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'FEUX',pt:['bcn']},
+  {id:'strobe',l:'STROBE',t:'sel',o:['OFF','AUTO','ON'],ol:['OFF','AUTO','ON'],pg:'FEUX',pt:['stb']},
+  {id:'nav',l:'NAV & LOGO',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'FEUX',pt:['navL','navR','navT','logo']},
+  {id:'land',l:'LAND',t:'sel',o:[false,true],ol:['RETRACT','ON'],pg:'FEUX',pt:['land']},
+  {id:'taxi',l:'NOSE',t:'sel',o:['OFF','TAXI','T.O'],ol:['OFF','TAXI','T.O'],pg:'FEUX',pt:['taxi']}]},
+ {g:'Commandes de vol · train',w:'mini-manche, palonnier, pedestal, planche de bord',c:[
+  {id:'stick',l:'MINI-MANCHE',t:'pad',o:[['L','◀ gauche'],['R','droite ▶'],['F','▲ piquer'],['A','▼ cabrer']],pg:'F/CTL',pt:['fctlc','ailL','ailR','splL','splR','elevL','elevR']},
+  {id:'ped',l:'PALONNIER',t:'pad',o:[['L','◀ pied gauche'],['R','pied droit ▶']],pg:'F/CTL',pt:['fctlc','rud']},
+  {id:'flaps',l:'LEVIER VOLETS',t:'sel',o:[0,1,2,3,4],ol:['0','1','2','3','FULL'],pg:'F/CTL',pt:['flapL','flapR','slatL','slatR']},
+  {id:'spd',l:'AÉROFREINS',t:'sel',o:[0,1],ol:['RET','FULL'],pg:'F/CTL',pt:['splL','splR']},
+  {id:'gear',l:'LEVIER DE TRAIN',t:'sel',o:['UP','DOWN'],ol:['UP','DOWN'],pg:'WHEEL',pt:['ngear','mgL','mgR']},
+  {id:'pbrake',l:'PARK BRK',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'WHEEL',pt:['brk']}]},
+ {g:'Feu moteur (exercice)',w:'overhead · FIRE (20VU)',c:[
+  {id:'fireSim',l:'SIMULER FEU MOT. 1',t:'mom',pg:'ENG',pt:['e1fire','e1'],lt:s=>s.fire1?['','FEU|rd']:NONE},
+  {id:'ff1',l:'ENG 1 FIRE',t:'mom',grd:1,pg:'ENG',pt:['lp1','f_bl1','e1hp','e1idg','ag1'],lt:s=>[s.fire1?'FIRE|rd':'',s.ff1?'PUSHED|wh':'']},
+  {id:'ag1',l:'AGENT 1',t:'mom',pg:'ENG',pt:['ag1','f_ag1','e1'],lt:s=>[s.ff1&&!s.ag1?'SQUIB|wh':'',s.ag1?'DISCH|am':'']}]}
+];
+function pumpLt(s,id){ const k=kk(s); return !s[id]?OFF:(!k.acAny?['FAULT|am','']:NONE); }
+function init(){ return {ground:true,bat1:false,bat2:false,ext:false,apuMaster:false,apuSt:0,apuN:0,apuFlap:0,apuGen:true,apuBleed:false,gen1:true,gen2:true,
+  pL1:true,pL2:true,pC1:true,pC2:true,pR1:true,pR2:true,xfeed:false,eMode:'NORM',m1:false,m2:false,thr:'IDLE',es:[0,0],n2:[0,0],eg:[15,15],sf:[0,0],
+  b1:true,b2:true,xbleed:'AUTO',pack1:true,pack2:true,ditch:false,hEP1:true,hBE:true,hEP2:true,hYE:false,ptu:true,rat:false,gP:0,bP:0,yP:0,
+  wai:false,waiT:0,eai1:false,eai2:false,probe:false,ir1:'OFF',ir2:'OFF',ir3:'OFF',al:[0,0,0],beacon:false,strobe:'OFF',nav:false,land:false,taxi:'OFF',
+  stick:'N',stickT:0,ped:'N',pedT:0,flaps:0,fp:0,spd:0,gear:'DOWN',gp:1,pbrake:true,fire1:false,ff1:false,ag1:false,agT:0,
+  fuel:{lo:690,li:2800,c:2400,ri:2800,ro:690},cab:0,t:0}; }
+function kk(s){ const k={};
+ k.apuAv=s.apuSt===2; k.extOn=s.ext&&s.ground; k.apuG=k.apuAv&&s.apuGen;
+ k.g=[s.es[0]===2&&s.gen1&&!s.ff1, s.es[1]===2&&s.gen2];
+ k.src1=k.g[0]?'GEN 1':k.extOn?'EXT PWR':k.apuG?'APU GEN':k.g[1]?'GEN 2':null;
+ k.src2=k.g[1]?'GEN 2':k.extOn?'EXT PWR':k.apuG?'APU GEN':k.g[0]?'GEN 1':null;
+ k.ac1=!!k.src1; k.ac2=!!k.src2; k.acAny=k.ac1||k.ac2; k.ratG=s.rat&&!s.ground&&s.bP>1500; k.acEss=k.acAny||k.ratG;
+ k.dcbat=s.bat1||s.bat2; k.dcAny=k.acAny||k.dcbat||k.ratG;
+ k.pump=id=>s[id]&&k.acAny; k.fL=k.pump('pL1')||k.pump('pL2'); k.fR=k.pump('pR1')||k.pump('pR2'); k.fC=k.pump('pC1')||k.pump('pC2');
+ k.lp=[s.m1&&!s.ff1&&k.dcAny, s.m2&&k.dcAny]; k.xf=s.xfeed&&k.dcAny;
+ k.apuBl=k.apuAv&&s.apuBleed; k.xb=s.xbleed==='OPEN'||(s.xbleed==='AUTO'&&k.apuBl);
+ k.ebv=[s.es[0]===2&&s.b1&&!k.apuBl&&!s.ff1, s.es[1]===2&&s.b2&&!k.apuBl];
+ let L=k.apuBl||k.ebv[0], Rr=k.ebv[1]; if(k.xb){ const x=L||Rr; L=x; Rr=x; } k.duct=[L,Rr];
+ k.sv=[0,1].map(i=>s.es[i]===1&&s.n2[i]<50); k.anyStart=s.es[0]===1||s.es[1]===1;
+ k.burn=[0,1].map(i=>k.lp[i]&&((s.es[i]===1&&s.n2[i]>=22)||s.es[i]===2));
+ k.ign=[0,1].map(i=>s.es[i]===1&&s.n2[i]>=16&&s.n2[i]<50);
+ k.pack=[s.pack1&&k.duct[0]&&!k.anyStart&&!s.ditch&&k.dcAny, s.pack2&&k.duct[1]&&!k.anyStart&&!s.ditch&&k.dcAny];
+ k.tG=(s.es[0]===2&&s.hEP1&&!s.ff1)?3000:0; k.tY=((s.es[1]===2&&s.hEP2)||(s.hYE&&k.acAny))?3000:0;
+ k.tB=(s.hBE&&k.acAny&&(s.es[0]===2||s.es[1]===2))?3000:((s.rat&&!s.ground)?2500:0);
+ k.ptuRun=s.ptu&&Math.abs(k.tG-k.tY)>=500&&(k.tG>0||k.tY>0)&&!(s.ground&&s.pbrake&&s.m1!==s.m2);
+ if(k.ptuRun){ if(!k.tG) k.tG=2900; else k.tY=2900; }
+ k.G=s.gP>1450; k.B=s.bP>1450; k.Y=s.yP>1450; k.elac=k.dcAny;
+ k.irOn=[s.ir1,s.ir2,s.ir3].map(v=>v!=='OFF'&&k.dcAny);
+ k.lights=k.acAny; k.waiOn=s.wai&&(k.duct[0]||k.duct[1])&&(!s.ground||s.waiT<30);
+ return k; }
+const N1T={IDLE:19.5,CL:84,TOGA:94}, N2T={IDLE:58.5,CL:93,TOGA:98}, EGTT={IDLE:410,CL:690,TOGA:790}, FFT={IDLE:290,CL:1900,TOGA:2900};
+function step(s,dt){ const k=kk(s); s.t+=dt;
+ // APU
+ s.apuFlap=Math.max(0,Math.min(1,s.apuFlap+(s.apuMaster&&k.dcAny?dt/2:-dt/2)));
+ if(s.apuSt===1){ if(!s.apuMaster||!k.dcAny){ s.apuSt=3; } else if(s.apuFlap>=1){ s.apuN=Math.min(100,s.apuN+dt*8.5); if(s.apuN>=95){ s.apuSt=2; } } }
+ if(s.apuSt===2&&!s.apuMaster) s.apuSt=3;
+ if(s.apuSt===3){ s.apuN=Math.max(0,s.apuN-dt*12); if(s.apuN<=0) s.apuSt=0; }
+ if(s.apuSt===2) s.apuN+=(100-s.apuN)*Math.min(1,dt);
+ // moteurs
+ for(let i=0;i<2;i++){ const m=s['m'+(i+1)];
+  if(s.es[i]===1){
+   if(!m||(!k.lp[i]&&s.n2[i]>=22)) s.es[i]=0;
+   else if(s.n2[i]<50){ if(k.duct[i]){ s.n2[i]+=dt*(s.n2[i]<22?4.4:5.6); s.sf[i]=0; } else { s.n2[i]=Math.max(0,s.n2[i]-dt*3); s.sf[i]=1; } }
+   else { s.n2[i]+=dt*2.6; if(s.n2[i]>=N2T.IDLE){ s.es[i]=2; } }
+  } else if(s.es[i]===2){ if(!m||!k.lp[i]) s.es[i]=0; else { const t=s.ground&&s.thr!=='IDLE'&&s.pbrake?N2T.IDLE+6:N2T[s.thr]; s.n2[i]+=(t-s.n2[i])*Math.min(1,dt*0.8); } }
+  else s.n2[i]=Math.max(0,s.n2[i]-dt*5);
+  const egt=k.burn[i]?(s.es[i]===1?655:EGTT[s.thr]):18+s.n2[i]*.5; s.eg[i]+=(egt-s.eg[i])*Math.min(1,dt*(egt>s.eg[i]?0.9:0.35)); }
+ // carburant
+ const ff=[0,1].map(i=>k.burn[i]?(s.es[i]===2?FFT[s.thr]:180):0), use=(ff[0]+ff[1]+(s.apuSt===2?120:0))*dt/3600;
+ if(k.fC&&s.fuel.c>0) s.fuel.c=Math.max(0,s.fuel.c-use); else { s.fuel.li=Math.max(0,s.fuel.li-use/2); s.fuel.ri=Math.max(0,s.fuel.ri-use/2); }
+ // hydraulique
+ s.gP+=(k.tG-s.gP)*Math.min(1,dt*2.5); s.bP+=(k.tB-s.bP)*Math.min(1,dt*2.5); s.yP+=(k.tY-s.yP)*Math.min(1,dt*2.5);
+ // volets / train
+ const fAv=k.G||k.Y, sAv=k.G||k.B, spd=(fAv&&sAv?0.45:(fAv||sAv?0.22:0));
+ if(s.fp!==s.flaps&&spd){ const d=s.flaps-s.fp; s.fp+=Math.sign(d)*Math.min(Math.abs(d),dt*spd); }
+ const gt=s.gear==='DOWN'?1:0; if(s.gp!==gt){ if(k.G&&!s.ground) s.gp+=Math.sign(gt-s.gp)*Math.min(Math.abs(gt-s.gp),dt/6); else if(gt===1&&!k.G&&s.grav) s.gp=Math.min(1,s.gp+dt/8); }
+ s.stickT=Math.max(0,s.stickT-dt); if(!s.stickT) s.stick='N'; s.pedT=Math.max(0,s.pedT-dt); if(!s.pedT) s.ped='N';
+ // ADIRS
+ ['ir1','ir2','ir3'].forEach((id,j)=>{ if(s[id]==='OFF'||!k.dcAny) s.al[j]=0; else s.al[j]=Math.min(1,s.al[j]+dt/(s[id]==='ATT'?2:16)); });
+ if(s.wai) s.waiT+=dt; else s.waiT=0;
+ // feu
+ if(s.ag1&&s.fire1){ s.agT+=dt; if(s.agT>3&&!k.lp[0]) { s.fire1=false; } }
+ { const tg=s.ground?0:((k.pack[0]||k.pack[1])&&!s.ditch?6000:25000); s.cab+=Math.max(-dt*350,Math.min(dt*350,tg-s.cab)); }
+}
+function ev(s){ const k=kk(s), p={}; const A=(id,c,m)=>{ p[id]=m?[c,m]:c; };
+ // électricité
+ if(k.extOn){ A('gpu','el'); A('f_ext','el','flow'); A('extrcp','el'); }
+ if(k.apuG){ A('apugen','el'); A('f_apug','el','flow'); }
+ if(k.g[0]){ A('e1idg','el'); A('f_gen1','el','flow'); } if(k.g[1]){ A('e2idg','el'); A('f_gen2','el','flow'); }
+ if(s.bat1) A('bat1','el',k.acAny?null:'blink'); if(s.bat2) A('bat2','el',k.acAny?null:'blink');
+ if(k.dcAny){ A('dcbus','el'); A('f_dc','el','flow'); A('ovh','el','dim'); }
+ if(k.ac1) A('acbus1','el'); if(k.ac2) A('acbus2','el');
+ if(k.acAny){ A('scr','el'); A('f_ac','el','flow'); } else if(k.ratG) A('scr','el','dim');
+ if(k.irOn.some(x=>x)) A('adiru','dat',Math.min(...s.al.filter((v,j)=>k.irOn[j]))<1?'blink':null);
+ if(k.elac) A('fctlc','dat'); if(k.acAny) A('fmgc','dat');
+ [0,1].forEach(i=>{ if(k.dcAny&&(s['m'+(i+1)]||s.eMode!=='NORM'||s.es[i])) A('e'+(i+1)+'fadec','dat'); });
+ // carburant
+ ['tLi','tRi','tLo','tRo','tC'].forEach(t=>A(t,'fu','dim'));
+ ['pL1','pL2','pC1','pC2','pR1','pR2'].forEach(id=>{ if(k.pump(id)) A(id,'fu'); else if(s[id]&&!k.acAny) A(id,'warn','blink'); });
+ if(k.fC) A('f_fuC','fu','flow');
+ [0,1].forEach(i=>{ const n=i+1, feed=i?k.fR:k.fL; if(k.lp[i]) A('lp'+n,'fu'); if(k.burn[i]) A('f_fu'+n,'fu','flow'); else if(feed||k.fC) A('f_fu'+n,'fu','st'); });
+ if(k.xf){ A('xfv','fu'); A('f_xf','fu','st'); }
+ if(s.apuSt===1||s.apuSt===2) A('f_apuf','fu','flow');
+ // APU
+ if(s.apuMaster&&k.dcAny) A('apuflap','me',s.apuFlap<1?'blink':null);
+ if(s.apuSt===1) A('apu','me','blink'); else if(s.apuSt===2) A('apu','hot'); else if(s.apuSt===3) A('apu','me','dim');
+ if(s.apuSt===2) A('apuex','hot','flow');
+ // air
+ if(k.apuBl) A('f_apub','ah','flow'); if(k.xb){ A('xbv','ah'); if(k.duct[0]||k.duct[1]) A('f_xb','ah','flow'); }
+ [0,1].forEach(i=>{ const n=i+1; if(k.sv[i]&&k.duct[i]){ A('f_bl'+n,'ah','rev'); A('e'+n+'st','ah','blink'); } else if(k.ebv[i]) A('f_bl'+n,'ah','flow');
+   if(k.ign[i]) A('e'+n+'ig','ig','blink'); if(k.burn[i]) A('e'+n+'core','hot',s.es[i]===1?'blink':null); else if(s.n2[i]>2) A('e'+n+'core','me','dim');
+   if(s.n2[i]>8) A('e'+n+'fan','me','flow'); if(s.es[i]===2) A('e'+n+'ex','hot','flow');
+   if(s['eai'+n]&&s.es[i]===2) A('e'+n+'lip','ah','flow'); });
+ if(k.duct[0]&&s.pack1) A('f_pk1','ah',k.pack[0]?'flow':'st'); if(k.duct[1]&&s.pack2) A('f_pk2','ah',k.pack[1]?'flow':'st');
+ if(k.pack[0]) A('pack1','ac'); if(k.pack[1]) A('pack2','ac');
+ if(k.pack[0]||k.pack[1]){ A('f_pm','ac','flow'); A('mixer','ac'); A('f_cond','ac','flow'); A('cabin','ac','dim'); }
+ if(s.ditch) A('ofv','warn'); else if(!s.ground&&(k.pack[0]||k.pack[1])) A('ofv','ac');
+ if(k.waiOn){ A('waiL','ah','flow'); A('waiR','ah','flow'); }
+ if(k.acAny&&(s.probe||s.es[0]===2||s.es[1]===2)){ A('probe','el'); A('wshield','el'); }
+ // hydraulique
+ if(s.gP>200){ A('hG','hg'); A('f_hG','hg','st'); A('f_hGw','hg','st'); } if(s.bP>200){ A('hB','hb'); A('f_hB','hb','st'); A('f_hBw','hb','st'); } if(s.yP>200){ A('hY','hy'); A('f_hY','hy','st'); A('f_hYw','hy','st'); }
+ if(s.es[0]===2&&s.hEP1&&!s.ff1){ A('e1hp','hg'); A('f_hGe','hg','flow'); } if(s.es[1]===2&&s.hEP2){ A('e2hp','hy'); A('f_hYe','hy','flow'); }
+ if(s.hBE&&k.acAny&&(s.es[0]===2||s.es[1]===2)) A('pB','hb'); if(s.hYE&&k.acAny) A('pYe','hy');
+ if(k.ptuRun) A('ptu',k.tG===2900?'hg':'hy','blink');
+ if(s.rat){ A('rat','me',s.ground?null:'blink'); if(!s.ground) A('f_rat','hb','flow'); }
+ // commandes de vol
+ const roll=s.stick==='L'||s.stick==='R', pitch=s.stick==='F'||s.stick==='A';
+ const okAil=(k.G||k.B)&&k.elac, okEl=(k.G||k.B||k.Y)&&k.elac, okRud=k.G||k.B||k.Y;
+ if(roll){ ['ailL','ailR'].forEach(x=>A(x,okAil?'me':'warn','blink')); ['splL','splR'].forEach(x=>A(x,(k.G||k.B||k.Y)&&k.elac?'me':'warn',null)); }
+ if(pitch) ['elevL','elevR'].forEach(x=>A(x,okEl?'me':'warn','blink'));
+ if(s.ped!=='N') A('rud',okRud?'me':'warn','blink');
+ if(s.spd&&!roll) ['splL','splR'].forEach(x=>A(x,(k.G||k.B||k.Y)?'me':'warn',null));
+ if(s.fp>0.02||s.flaps>0){ const mv=Math.abs(s.fp-s.flaps)>0.02, ok=(k.G||k.Y)||(k.G||k.B); ['flapL','flapR'].forEach(x=>A(x,mv&&!ok?'warn':'me',mv?'blink':null)); ['slatL','slatR'].forEach(x=>A(x,mv&&!ok?'warn':'me',mv?'blink':null)); }
+ const gm=s.gp>0.99?['grn',null]:(s.gp<0.01?null:['me','blink']); if(gm){ ['ngear','mgL','mgR'].forEach(x=>A(x,gm[0],gm[1])); }
+ if(s.pbrake&&(s.yP>200||true)) A('brk','hy');
+ // feux
+ if(k.lights){ if(s.nav){ A('navL','lr'); A('navR','lg'); A('navT','lt'); A('logo','lt'); } if(s.beacon) A('bcn','lr','blink');
+  if(s.strobe==='ON'||(s.strobe==='AUTO'&&!s.ground)) A('stb','lt','blink'); if(s.land) A('land','lt'); if(s.taxi!=='OFF') A('taxi','lt'); }
+ // feu moteur
+ if(s.fire1){ A('e1','fire','blink'); A('e1fire','fire','blink'); } if(s.ag1){ A('ag1','ac'); if(s.agT<3) A('f_ag1','ac','flow'); }
+ // live
+ const lv=[]; if(s.apuSt===1) lv.push(`APU : N ${Math.round(s.apuN)} %${s.apuFlap<1?' · volet d\'entrée d\'air en ouverture':''}`);
+ [0,1].forEach(i=>{ if(s.es[i]===1) lv.push(`MOTEUR ${i+1} : N2 ${s.n2[i].toFixed(0)} %  ${k.sv[i]?(k.duct[i]?'· vanne de démarrage OUVERTE':'· PAS D\'AIR au démarreur !'):'· démarreur coupé'}${k.ign[i]?' · ALLUMAGE':''}${k.burn[i]?' · carburant HP ouvert · EGT '+Math.round(s.eg[i])+' °C':''}`); });
+ if(s.al.some((v,j)=>k.irOn[j]&&v<1)) lv.push('ADIRS : alignement '+Math.round(Math.min(...s.al.filter((v,j)=>k.irOn[j]))*100)+' %');
+ if(Math.abs(s.fp-s.flaps)>0.02) lv.push('VOLETS/BECS en mouvement'+(!(k.G||k.Y||k.B)?' — BLOQUÉS : pas de pression hydraulique':''));
+ if(s.gp>0.01&&s.gp<0.99) lv.push('TRAIN en manœuvre (trappes ouvertes)');
+ if(k.ptuRun) lv.push('PTU en fonctionnement (bruit d\'« aboiement » caractéristique)');
+ const memo=[]; if(s.fire1) memo.push([RD,'ENG 1 FIRE']); if(k.apuAv) memo.push([G,'APU AVAIL']); if(k.apuBl) memo.push([G,'APU BLEED']);
+ [0,1].forEach(i=>{ if(s.sf[i]&&s.es[i]===1) memo.push([AM,'ENG '+(i+1)+' START FAULT']); }); if(k.ptuRun) memo.push([G,'HYD PTU']); if(s.rat&&!s.ground) memo.push([AM,'RAT OUT']);
+ if(k.dcAny&&!k.acAny&&s.ground) memo.push([AM,'ELEC : BAT ONLY']); if(s.pbrake&&k.dcAny) memo.push([G,'PARK BRK']); if(s.ditch) memo.push([AM,'DITCHING']);
+ return {p,k,lv,memo}; }
+
+/* ----- pages écran (style ECAM, SD) ----- */
+function page(pg,s,d){ const k=d.k, c=b=>b?G:AM;
+ if(!k.acAny&&!k.ratG) return OFFSCR(k.dcAny?'Batteries seules : pas de 115 V AC pour les écrans':'Aucune source électrique');
+ let b='';
+ if(pg==='ELEC'){ const bv=on=>on?(k.acAny?'28.0':'25.6'):'0.0';
+  b+=T(160,14,'ELEC',W,12,'middle')+BX(10,22,62,32,c(s.bat1))+T(16,35,'BAT 1',c(s.bat1))+T(16,49,bv(s.bat1)+' V',s.bat1?G:GY)+BX(248,22,62,32,c(s.bat2))+T(254,35,'BAT 2',c(s.bat2))+T(254,49,bv(s.bat2)+' V',s.bat2?G:GY);
+  b+=T(160,40,'DC BAT',c(k.dcbat||k.acAny),11,'middle')+LN(`72,38 135,38`,s.bat1?G:GY)+LN(`248,38 185,38`,s.bat2?G:GY);
+  b+=T(40,84,'DC 1',c(k.ac1),11,'middle')+T(160,84,'DC ESS',c(k.dcAny),11,'middle')+T(280,84,'DC 2',c(k.ac2),11,'middle');
+  b+=T(40,120,'AC 1',c(k.ac1),11,'middle')+T(160,120,'AC ESS',c(k.acEss),11,'middle')+T(280,120,'AC 2',c(k.ac2),11,'middle')+LN('40,110 40,90',k.ac1?G:GY)+LN('280,110 280,90',k.ac2?G:GY)+T(40,102,'TR 1',k.ac1?W:GY,9,'middle')+T(280,102,'TR 2',k.ac2?W:GY,9,'middle');
+  const gb=(x,lab,on,src)=>BX(x,140,64,48,on?W:AM)+T(x+32,153,lab,on?W:AM,10.5,'middle')+(on?T(x+32,168,'115 V',G,10,'middle')+T(x+32,181,'400 HZ',G,10,'middle'):T(x+32,172,src,AM,9,'middle'));
+  b+=gb(4,'GEN 1',k.g[0],s.gen1?'MOT. ARRÊTÉ':'OFF')+gb(86,'APU GEN',k.apuG,s.apuSt===2?'OFF':'APU ARRÊTÉ')+gb(168,'EXT PWR',k.extOn,s.ground?'AVAIL':'—')+gb(250,'GEN 2',k.g[1],s.gen2?'MOT. ARRÊTÉ':'OFF');
+  if(k.ac1) b+=LN(`36,140 36,126`)+T(60,134,'← '+k.src1,G,8.5); if(k.ac2) b+=LN(`282,140 282,126`)+T(200,134,k.src2+' →',G,8.5); }
+ else if(pg==='APU'){ b+=T(160,14,'APU',W,12,'middle')+ARC(80,80,40,s.apuN,110,'N','%',s.apuN>0?G:GY)+ARC(220,80,40,s.apuSt?Math.max(s.apuN*6.2,0):20,1000,'EGT','°C',G,0.9);
+  b+=T(160,150,s.apuSt===2?'AVAIL':s.apuSt===1?'DÉMARRAGE':s.apuSt===3?'ARRÊT':'',s.apuSt===2?G:CY,14,'middle')+T(20,175,'VOLET ENTRÉE AIR : '+(s.apuFlap>=1?'OUVERT':s.apuFlap>0?'EN TRANSIT':'FERMÉ'),s.apuFlap>=1?G:W,10)+T(20,189,'BLEED : '+(k.apuBl?'35 PSI':'—')+'   GEN : '+(k.apuG?'115 V 400 HZ':'—'),k.apuBl?G:W,10); }
+ else if(pg==='BLEED'){ b+=T(160,14,'BLEED',W,12,'middle');
+  const v=(x,y,o)=>`<circle cx="${x}" cy="${y}" r="8" fill="none" stroke="${o?G:W}" stroke-width="1.4"/><line x1="${o?x:x-6}" y1="${o?y-6:y}" x2="${o?x:x+6}" y2="${o?y+6:y}" stroke="${o?G:W}" stroke-width="2"/>`;
+  b+=T(60,40,'PACK 1',c(k.pack[0]),11,'middle')+T(260,40,'PACK 2',c(k.pack[1]),11,'middle')+v(60,64,k.pack[0])+v(260,64,k.pack[1]);
+  b+=LN(`60,72 60,120 260,120 260,72`,k.duct[0]||k.duct[1]?G:GY)+v(160,120,k.xb)+T(160,108,'X BLEED',W,9,'middle');
+  b+=v(60,160,k.ebv[0])+v(260,160,k.ebv[1])+LN('60,128 60,152',k.duct[0]?G:GY)+LN('260,128 260,152',k.duct[1]?G:GY)+T(60,186,'ENG 1',W,10,'middle')+T(260,186,'ENG 2',W,10,'middle');
+  b+=v(120,150,k.apuBl)+T(120,174,'APU',W,10,'middle')+LN('120,142 120,120',k.apuBl?G:GY);
+  b+=T(10,140,(k.duct[0]?'40':'0')+' PSI',k.duct[0]?G:AM,10)+T(270,140,(k.duct[1]?'40':'0')+' PSI',k.duct[1]?G:AM,10);
+  if(k.anyStart) b+=T(160,88,'PACKS FERMÉS : DÉMARRAGE',AM,9.5,'middle'); if(k.waiOn) b+=T(160,148,'ANTI ICE AILE',G,9.5,'middle'); }
+ else if(pg==='ENG'){ b+=T(160,14,'ENGINE',W,12,'middle');
+  [0,1].forEach(i=>{ const x=i?240:80, n1=s.es[i]===2?N1T[s.thr]*(s.n2[i]/N2T[s.thr]):s.n2[i]*0.28; b+=ARC(x,58,30,n1,110,'N1','%',G,0.92)+ARC(x,128,26,s.eg[i],1000,'EGT','°C',s.eg[i]>900?RD:G,0.95)+T(x,178,'N2 '+s.n2[i].toFixed(1)+' %',G,11,'middle');
+   if(s.es[i]===1) b+=T(x,192,(k.ign[i]?'IGN A  ':'')+(k.sv[i]?'START VLV':'')+(k.burn[i]?' FUEL':''),k.sv[i]&&!k.duct[i]?AM:CY,9,'middle'); });
+  b+=T(160,58,'N1',CY,10,'middle')+T(160,128,'EGT',CY,10,'middle')+T(160,92,'FF '+[0,1].map(i=>k.burn[i]?(s.es[i]===2?FFT[s.thr]:180):0).join(' | ')+' kg/h',G,9,'middle'); }
+ else if(pg==='HYD'){ b+=T(160,14,'HYD',W,12,'middle'); [['GREEN',s.gP,60,'ENG 1',s.es[0]===2&&s.hEP1],['BLUE',s.bP,160,'ELEC',s.hBE&&k.acAny&&(s.es[0]===2||s.es[1]===2)],['YELLOW',s.yP,260,'ENG 2',s.es[1]===2&&s.hEP2]].forEach(([n,p,x,pu,on])=>{
+   b+=T(x,38,n,p>1450?G:AM,12,'middle')+T(x,60,Math.round(p/50)*50+'',p>1450?G:AM,16,'middle')+T(x,74,'PSI',CY,9,'middle')+LN(`${x},80 ${x},120`,p>1450?G:AM)+BX(x-22,120,44,22,on?G:AM)+T(x,135,pu,on?G:AM,9.5,'middle'); });
+  b+=T(260,165,'ELEC',s.hYE&&k.acAny?G:W,9.5,'middle')+T(160,165,s.rat?'RAT':'',s.rat?G:W,9.5,'middle')+T(110,100,k.ptuRun?'◀ PTU ▶':'PTU',k.ptuRun?G:(s.ptu?W:AM),10,'middle'); }
+ else if(pg==='FUEL'){ b+=T(160,14,'FUEL',W,12,'middle')+T(160,32,'FOB '+Math.round(s.fuel.lo+s.fuel.li+s.fuel.c+s.fuel.ri+s.fuel.ro)+' KG',G,11,'middle');
+  const tk=(x,w,q,lab)=>BX(x,120,w,40,W)+T(x+w/2,145,Math.round(q),G,11,'middle')+T(x+w/2,172,lab,W,8.5,'middle');
+  b+=tk(4,40,s.fuel.lo,'OUTER')+tk(46,68,s.fuel.li,'INNER')+tk(120,80,s.fuel.c,'CENTER')+tk(206,68,s.fuel.ri,'INNER')+tk(276,40,s.fuel.ro,'OUTER');
+  const pu=(x,id)=>BX(x-7,104,14,12,k.pump(id)?G:AM)+LN(`${x},104 ${x},96`,k.pump(id)?G:GY);
+  b+=pu(70,'pL1')+pu(90,'pL2')+pu(145,'pC1')+pu(175,'pC2')+pu(230,'pR1')+pu(250,'pR2')+LN('70,90 250,90',G);
+  b+=`<circle cx="160" cy="90" r="7" fill="#000" stroke="${k.xf?G:W}"/>`+T(160,80,'X FEED',W,8.5,'middle')+LN('80,90 80,52',k.lp[0]?G:AM)+LN('240,90 240,52',k.lp[1]?G:AM)+T(80,48,'ENG 1 LP '+(k.lp[0]?'OPEN':'SHUT'),k.lp[0]?G:AM,8.5,'middle')+T(240,48,'ENG 2 LP '+(k.lp[1]?'OPEN':'SHUT'),k.lp[1]?G:AM,8.5,'middle'); }
+ else if(pg==='F/CTL'){ b+=T(160,14,'F/CTL',W,12,'middle'); const hl=(x,y,on)=>T(x,y,on[0]?'G':'',on[0]?G:AM,9)+T(x+9,y,on[1]?'B':'',G,9)+T(x+18,y,on[2]?'Y':'',G,9);
+  const def=v=>v; b+=T(40,40,'AIL',W,10,'middle')+T(280,40,'AIL',W,10,'middle')+LN(`28,${60+(s.stick==='L'?-14:s.stick==='R'?14:0)} 52,60`,(k.G||k.B)?G:AM,3)+LN(`268,60 292,${60+(s.stick==='L'?14:s.stick==='R'?-14:0)}`,(k.G||k.B)?G:AM,3);
+  b+=T(160,40,'SPD BRK',W,10,'middle')+[1,2,3,4,5].map(n=>T(96+n*20,60,(s.spd||(s.stick==='L'&&n>1)||(s.stick==='R'&&n>1))?'▲':'—',(k.G||k.B||k.Y)?G:AM,11,'middle')).join('');
+  b+=T(80,110,'ELEV',W,10,'middle')+T(240,110,'ELEV',W,10,'middle')+LN(`68,${130+(s.stick==='F'?10:s.stick==='A'?-10:0)} 92,130`,(k.G||k.B)?G:AM,3)+LN(`228,130 252,${130+(s.stick==='F'?10:s.stick==='A'?-10:0)}`,(k.Y||k.B)?G:AM,3);
+  b+=T(160,150,'RUD',W,10,'middle')+LN(`160,160 ${160+(s.ped==='L'?-14:s.ped==='R'?14:0)},186`,(k.G||k.B||k.Y)?G:AM,3)+T(10,190,'ELAC 1-2 · SEC 1-2-3 : '+(k.elac?'OK':'PANNE'),k.elac?G:AM,9);
+  b+=T(250,186,'FLAPS '+['0','1','2','3','FULL'][Math.round(s.fp)],(Math.abs(s.fp-s.flaps)>0.02)?CY:G,10,'middle'); }
+ else if(pg==='WHEEL'){ b+=T(160,14,'WHEEL',W,12,'middle'); const tri=(x,y)=>{ const g=s.gp>0.99, tr=s.gp>0.01&&s.gp<0.99; return tr?`<path d="M${x-12} ${y} L${x+12} ${y} L${x} ${y+18} Z" fill="none" stroke="${RD}" stroke-width="2"/>`:g?`<path d="M${x-12} ${y} L${x+12} ${y} L${x} ${y+18} Z" fill="${G}"/>`:T(x,y+12,'UP',W,10,'middle'); };
+  b+=tri(160,40)+tri(90,96)+tri(230,96)+T(160,150,'PARK BRK '+(s.pbrake?'ON':'OFF'),s.pbrake?G:W,11,'middle')+T(160,170,'ACCU JAUNE '+(s.yP>200?'3000':'2800')+' PSI · FREINS '+(k.G?'NORM (VERT)':'ALTN (JAUNE)'),G,9,'middle')+T(160,186,s.ground?'AU SOL — LEVIER VERROUILLÉ':'EN VOL',CY,9,'middle'); }
+ else if(pg==='PRESS'){ b+=T(160,14,'CAB PRESS',W,12,'middle')+ARC(80,80,38,s.cab,25000,'CAB ALT','',s.cab>9550?RD:G,0.4)+ARC(220,80,38,s.ground?0:Math.max(0,8.1-s.cab/3000),9,'ΔP','',G,0.9);
+  b+=T(160,150,'OUTFLOW VALVE : '+(s.ditch?'FERMÉE (DITCHING)':s.ground?'GRANDE OUVERTE (AU SOL)':'RÉGULE'),s.ditch?AM:G,10,'middle')+T(160,168,'PACK 1 '+(k.pack[0]?'FLOW':'OFF')+'   PACK 2 '+(k.pack[1]?'FLOW':'OFF'),k.pack[0]||k.pack[1]?G:AM,10,'middle'); }
+ else if(pg==='FEUX'){ b+=T(160,14,'FEUX EXTÉRIEURS (EXT LT)',W,12,'middle'); [['BEACON',s.beacon,'rouge, à éclats'],['STROBE',s.strobe==='ON'||(s.strobe==='AUTO'&&!s.ground),'blanc, à éclats'],['NAV + LOGO',s.nav,'rouge G · vert D · blanc AR'],['LANDING',s.land,'phares emplanture'],['NOSE',s.taxi!=='OFF',s.taxi]].forEach((r,i)=>{ b+=T(20,44+i*26,r[0],W,11)+T(130,44+i*26,r[1]&&k.lights?'ALLUMÉ':'ÉTEINT',r[1]&&k.lights?G:GY,11)+T(210,44+i*26,r[2],CY,9); }); }
+ return SCR(b,d.memo); }
+
+/* ----- explications : ce que fait réellement le bouton ----- */
+function ex(id,s,d){ const k=d.k, o={ln:[]}, ln=(c,t)=>o.ln.push([c,t]), blk=(t,go)=>{ o.blk=t; o.go=go; };
+ switch(id){
+ case 'bat1': case 'bat2': { const n=id.slice(-1); o.h='BAT '+n+' — Batterie '+n;
+  if(s[id]){ ln('el',`Le contacteur de batterie se ferme : la batterie ${n} (nickel-cadmium, 24 V, 23 Ah, dans la soute avionique sous le poste) est reliée à la barre DC BAT, puis aux barres DC ESS.`);
+   ln('dat','Le BCL (Battery Charge Limiter) surveille tension et courant ; contrôle avant vol : tension supérieure à 25,5 V sur la page ELEC.');
+   if(k.acAny) ln('el','Le 115 V alternatif est disponible : les transformateurs-redresseurs (TR 1 et 2) fournissent le 28 V continu et rechargent la batterie.');
+   else ln('el','Sans courant alternatif, la batterie est seule : les écrans principaux restent noirs ; elle peut démarrer l\'APU (démarreur électrique) et garder les circuits essentiels.'); }
+  else ln('el','Contacteur ouvert : la batterie est isolée. Seules les barres HOT, reliées directement sans bouton, restent sous tension (bouteilles d\'extincteur, ouverture de secours).'); break; }
+ case 'ext': o.h='EXT PWR — Prise de parc';
+  if(!s.ground){ blk('En vol il n\'y a pas de groupe de parc : le bouton n\'a aucun effet.'); break; }
+  if(s.ext){ ln('el','Le contacteur EXT PWR se ferme : le groupe de parc au sol (115 V, 400 Hz, 90 kVA) alimente les barres AC 1 et AC 2 par les contacteurs de liaison (bus tie).');
+   ln('el','Les transformateurs-redresseurs donnent le 28 V continu : les batteries se rechargent.'); ln('dat','Les six écrans s\'allument, les calculateurs démarrent ; les pompes carburant (115 V AC) peuvent tourner.');
+   ln('dat','Priorité automatique : génératrice moteur > groupe de parc > génératrice APU.'); }
+  else ln('el','Contacteur ouvert : le GPU reste branché (voyant AVAIL vert) mais n\'alimente plus l\'avion.'); break;
+ case 'gen1': case 'gen2': { const n=id.slice(-1); o.h='GEN '+n+' — Génératrice moteur '+n;
+  ln('me',`L\'IDG ${n} (génératrice à entraînement intégré, 90 kVA) est entraîné par la boîte d\'accessoires du moteur ${n} ; un régulateur hydromécanique garde une vitesse constante, donc 400 Hz.`);
+  if(!s[id]) ln('el','Bouton OFF : le relais de ligne (GLC) est ouvert, la génératrice est désexcitée ; la barre AC est reprise par une autre source.');
+  else if(s.es[+n-1]!==2) blk(`Moteur ${n} arrêté : l\'IDG ne tourne pas, aucune tension. Il faut d\'abord démarrer le moteur ${n}.`,'m'+n);
+  else ln('el',`Le relais GLC ${n} est fermé : l\'IDG ${n} alimente la barre AC ${n} (prioritaire sur le GPU et l\'APU).`); break; }
+ case 'apuGen': o.h='APU GEN — Génératrice APU'; ln('me','La génératrice (90 kVA) est montée directement sur la boîte de l\'APU.');
+  if(!s.apuGen) ln('el','OFF : la génératrice est désexcitée.'); else if(s.apuSt!==2) blk('L\'APU ne tourne pas : pas de courant. Démarrez l\'APU (APU MASTER SW puis START).','apuMaster'); else ln('el','APU AVAIL : la génératrice alimente les barres AC qui n\'ont pas de source prioritaire (moteur ou GPU).'); break;
+ case 'apuMaster': o.h='APU MASTER SW — Interrupteur général APU';
+  if(!s.apuMaster){ ln('dat','Arrêt : le calculateur ECB laisse tourner l\'APU environ 1 à 2 minutes à vide s\'il a fourni de l\'air (refroidissement), puis coupe le carburant ; le volet d\'entrée d\'air se referme.'); break; }
+  if(!k.dcAny){ blk('Aucun courant continu : le calculateur de l\'APU ne s\'allume pas. Mettez BAT 1 et BAT 2.','bat1'); break; }
+  ln('dat','Le calculateur ECB (Electronic Control Box) s\'alimente et fait son autotest ; la détection incendie de l\'APU est surveillée.');
+  ln('me','Un actionneur électrique ouvre le volet d\'entrée d\'air sur le flanc du cône de queue.'); ln('fu','La pompe carburant de l\'APU (28 V DC) se prépare à alimenter la ligne depuis le collecteur gauche.'); break;
+ case 'apuStart': o.h='APU START — Démarrage de l\'APU';
+  if(!s.apuMaster){ blk('Rien ne se passe : APU MASTER SW est sur OFF. Le calculateur de l\'APU, qui pilote le démarrage, n\'est pas alimenté.','apuMaster'); break; }
+  if(!k.dcAny){ blk('Pas de 28 V DC pour le démarreur électrique.','bat1'); break; }
+  ln('el','Le démarreur électrique (alimenté par les batteries via la barre DC BAT, ou par un TR si le 115 V est là) entraîne la turbine de l\'APU.');
+  ln('fu','Vers 7 % de régime : le carburant est injecté et les bougies s\'allument ; vers 55 % le démarreur se coupe.'); ln('hot','À 95 % : AVAIL (vert). L\'APU fournit alors électricité (génératrice) et air comprimé (prélèvement).');
+  if(s.apuFlap<1) ln('me','Le démarrage attend que le volet d\'entrée d\'air soit complètement ouvert.'); break;
+ case 'apuBleed': o.h='APU BLEED — Prélèvement d\'air APU';
+  if(!s.apuBleed){ ln('ah','Vanne de prélèvement APU fermée : plus d\'air de l\'APU dans le circuit pneumatique.'); break; }
+  if(s.apuSt!==2){ blk('L\'APU ne tourne pas (pas AVAIL) : la vanne s\'ouvre mais aucun air n\'arrive.','apuStart'); break; }
+  ln('ah','La vanne de prélèvement de l\'APU s\'ouvre : de l\'air comprimé (environ 35-40 psi, 200 °C) entre dans le conduit pneumatique.');
+  ln('ah','La vanne de cross bleed (sur AUTO) s\'ouvre : les deux côtés du circuit reçoivent l\'air ; les vannes de prélèvement moteurs se ferment automatiquement.');
+  ln('ac','Usages : les packs (climatisation, ventilation) et les démarreurs pneumatiques des moteurs.'); break;
+ case 'pL1': case 'pL2': case 'pC1': case 'pC2': case 'pR1': case 'pR2': { const tk={L:'aile gauche',C:'réservoir central',R:'aile droite'}[id[1]]; o.h=id.replace('p','').replace(/(\w)(\d)/,'$1 TK PUMP $2')+' — Pompe de gavage ('+tk+')';
+  ln('fu','Pompe centrifuge immergée dans le réservoir, entraînée par un moteur électrique 115 V AC : elle pousse le carburant vers le collecteur des moteurs.');
+  if(id[1]==='C') ln('fu','Les pompes du réservoir central refoulent à plus forte pression : le réservoir central est consommé en premier, les ailes servent de « masse » contre la flexion.');
+  if(!s[id]) ln('fu','OFF : la pompe s\'arrête ; un clapet évite que les autres pompes refoulent dans celle-ci.');
+  else if(!k.acAny) blk('Pas de 115 V AC : la pompe ne tourne pas, voyant FAULT (pression basse). Il faut le GPU, l\'APU ou une génératrice moteur.','ext');
+  else ln('fu','Pression établie : le collecteur est alimenté jusqu\'aux vannes basse pression (LP) des moteurs.'); break; }
+ case 'xfeed': o.h='X FEED — Intercommunication carburant'; ln('me','Deux moteurs électriques (28 V DC) font tourner la vanne d\'intercommunication.');
+  ln('fu',s.xfeed?'Vanne ouverte : un côté peut alimenter les deux moteurs (rééquilibrer les ailes, pompes en panne d\'un côté).':'Vanne fermée : chaque aile alimente son moteur.'); break;
+ case 'eMode': o.h='ENG MODE — Sélecteur de mode moteur';
+  if(s.eMode==='IGN'){ ln('dat','Les FADEC des deux moteurs sont alimentés (ils l\'étaient seulement si un MASTER était ON) et prêts à piloter un démarrage automatique.'); ln('ac','Les vannes des packs se fermeront pendant le démarrage : tout l\'air doit aller aux démarreurs.'); ln('ig','Aucune étincelle encore : l\'allumage viendra quand un ENG MASTER passera sur ON.'); }
+  else if(s.eMode==='CRANK') ln('me','Ventilation sèche (dry crank) : on fait tourner le moteur au démarreur sans carburant ni allumage, pour le purger.');
+  else ln('dat','NORM : allumage automatique seulement si nécessaire (réallumage en vol, pluie forte) ; c\'est la position une fois les moteurs démarrés.'); break;
+ case 'm1': case 'm2': { const n=+id[1], i=n-1; o.h=`ENG ${n} MASTER — Robinet carburant et démarrage moteur ${n}`;
+  if(!s[id]){ ln('fu','Vannes basse pression (dans le mât) et haute pression (FMU) fermées : plus de carburant, le moteur s\'arrête.'); ln('el','L\'IDG, la pompe hydraulique et le prélèvement d\'air de ce moteur s\'arrêtent avec lui.'); break; }
+  if(!k.dcAny){ blk('Aucun courant : le FADEC et les vannes ne fonctionnent pas. Mettez les batteries.','bat1'); break; }
+  ln('fu','La vanne carburant basse pression (LP), dans le mât, s\'ouvre.');
+  if(s.es[i]===2){ ln('hot','Le moteur tourne.'); break; }
+  if(s.eMode!=='IGN'&&s.es[i]!==1){ blk('ENG MODE n\'est pas sur IGN/START : aucune séquence de démarrage. Remettez MASTER sur OFF, mettez ENG MODE sur IGN/START, puis MASTER ON.','eMode'); break; }
+  if(!k.duct[i]){ blk('La vanne de démarrage s\'ouvre mais aucun air comprimé n\'arrive : le démarreur ne tourne pas, N2 reste à 0 (START FAULT). Il faut l\'air de l\'APU (APU BLEED ON), d\'un groupe de parc pneumatique, ou de l\'autre moteur avec X BLEED.','apuBleed'); }
+  ln('ah','1. Vanne de démarrage ouverte : l\'air comprimé fait tourner le démarreur pneumatique (petite turbine), qui entraîne l\'attelage haute pression (N2) par la boîte d\'accessoires.');
+  ln('ig','2. Vers 16 % de N2 : une bougie (A ou B, alternées à chaque démarrage) produit des étincelles dans la chambre de combustion.');
+  ln('fu','3. Vers 22 % : le FADEC ouvre la vanne haute pression du FMU, les injecteurs pulvérisent le carburant, la combustion démarre (l\'EGT monte).');
+  ln('ah','4. Vers 50 % : la vanne de démarrage se ferme, le démarreur se désaccouple, l\'allumage s\'arrête.');
+  ln('me','5. Vers 58 % : ralenti stabilisé. Le moteur entraîne l\'IDG (électricité), sa pompe hydraulique ('+(n===1?'circuit vert':'circuit jaune')+') et fournit son propre air.'); break; }
+ case 'thr': o.h='Manettes de poussée'; ln('dat','Les manettes ne sont reliées à aucun câble : des capteurs (résolveurs) envoient leur position au FADEC.');
+  ln('fu','Le FADEC règle le débit de carburant dans le FMU pour obtenir le N1 demandé (IDLE ≈ 20 %, CL ≈ 85 %, TOGA ≈ 94 %).'); ln('me','Plus de carburant → plus de gaz chauds → les turbines accélèrent la soufflante (N1) qui fournit l\'essentiel de la poussée.');
+  if(s.es[0]!==2&&s.es[1]!==2) blk('Aucun moteur ne tourne : déplacer les manettes ne produit rien.','m2'); break;
+ case 'b1': case 'b2': { const n=id[1]; o.h=`ENG ${n} BLEED — Prélèvement d\'air moteur ${n}`;
+  ln('ah','La vanne de régulation (PRV) prend de l\'air aux étages intermédiaire/haute pression du compresseur, le refroidit dans le pré-refroidisseur (precooler) avec de l\'air de soufflante, puis l\'envoie au conduit.');
+  if(!s[id]) ln('ah','OFF : vanne fermée.'); else if(s.es[+n-1]!==2) blk(`Moteur ${n} arrêté : pas d\'air à prélever.`,'m'+n); else if(k.apuBl) ln('ah','Fermée automatiquement tant que APU BLEED est ouvert.'); else ln('ah','Air disponible pour packs, antigivrage et démarrage de l\'autre moteur.'); break; }
+ case 'xbleed': o.h='X BLEED — Vanne d\'intercommunication pneumatique'; ln('me','Vanne à moteurs électriques entre les côtés gauche et droit du circuit pneumatique.');
+  ln('ah',s.xbleed==='AUTO'?'AUTO : ouverte quand l\'APU fournit de l\'air, fermée sinon.':s.xbleed==='OPEN'?'OPEN : un seul côté peut alimenter les deux (démarrage croisé d\'un moteur avec l\'air de l\'autre).':'SHUT : les deux côtés sont séparés.'); break;
+ case 'pack1': case 'pack2': { const n=id.slice(-1); o.h=`PACK ${n} — Groupe de conditionnement ${n}`;
+  ln('ah','La vanne de débit (FCV) laisse entrer l\'air chaud prélevé.'); ln('ac','Échangeurs (refroidis par l\'air extérieur) puis machine à cycle à air : un compresseur et une turbine sur le même arbre détendent et refroidissent l\'air.');
+  ln('ac','L\'air froid va au mélangeur (avec l\'air recyclé de la cabine), puis aux gaines du poste et de la cabine : il pressurise le fuselage.');
+  if(!s[id]) ln('ac','OFF : vanne fermée.'); else if(!k.duct[+n-1]) blk('Pas d\'air dans le conduit : il faut l\'APU (APU BLEED) ou un moteur.','apuBleed'); else if(k.anyStart) ln('ac','Fermé automatiquement pendant le démarrage d\'un moteur.'); break; }
+ case 'ditch': o.h='DITCHING — Amerrissage'; ln('me',s.ditch?'Ferme la vanne de décharge (outflow valve), les entrées d\'air de ventilation et les vannes des packs : le fuselage devient étanche pour flotter.':'Normal : la vanne de décharge régule la pression.'); break;
+ case 'hEP1': case 'hEP2': { const n=id[3], c=n==='1'?'hg':'hy', nm=n==='1'?'vert':'jaune'; o.h=`${n==='1'?'G ENG 1':'Y ENG 2'} PUMP — Pompe hydraulique moteur ${n}`;
+  ln(c,`Pompe à pistons (débit variable) entraînée par la boîte d\'accessoires du moteur ${n} : 3000 psi dans le circuit ${nm}.`);
+  if(!s[id]) ln(c,'OFF : la pompe est mise en débit nul (dépressurisée).'); else if(s.es[+n-1]!==2) blk(`Moteur ${n} arrêté : la pompe ne tourne pas.`,'m'+n); else ln(c,`Le circuit ${nm} alimente : ${n==='1'?'ailerons, spoilers 1 et 5, profondeur gauche, direction, volets, becs, train, freins normaux':'spoilers 2 et 4, profondeur droite, direction, volets, roulette de nez, freins alternés et de parc'}.`); break; }
+ case 'hBE': o.h='BLUE ELEC PUMP — Pompe électrique bleue'; ln('hb','Pompe entraînée par un moteur électrique 115 V AC ; en AUTO elle tourne dès qu\'un moteur tourne.');
+  if(!s.hBE) ln('hb','OFF : circuit bleu dépressurisé (sauf RAT).'); else if(!k.acAny) blk('Pas de 115 V AC.','ext'); else if(s.es[0]!==2&&s.es[1]!==2) ln('hb','Au sol, moteurs arrêtés, elle reste à l\'arrêt (logique AUTO).'); else ln('hb','Le bleu alimente : ailerons, spoiler 3, profondeur (G et D), direction, becs.'); break;
+ case 'hYE': o.h='Y ELEC PUMP — Pompe électrique jaune'; ln('hy','Pompe 115 V AC : pressurise le jaune au sol, moteurs arrêtés (freins, portes de soute, volets).');
+  if(s.hYE&&!k.acAny) blk('Pas de 115 V AC : la pompe ne tourne pas.','ext'); else if(s.hYE&&s.ptu) ln('hg','Par le PTU, le jaune pressurise aussi le vert (écart > 500 psi).'); break;
+ case 'ptu': o.h='PTU — Unité de transfert de puissance';
+  ln('me','Un moteur hydraulique et une pompe sur un même arbre, entre vert et jaune : aucune goutte de liquide ne passe d\'un circuit à l\'autre, seule la puissance mécanique.');
+  ln('hg','Il démarre seul si l\'écart de pression dépasse 500 psi (bruit d\'« aboiement »). Inhibé au premier démarrage, frein de parc serré.'); if(!s.ptu) ln('hy','OFF : transfert interdit.'); break;
+ case 'rat': o.h='RAT MAN ON — Éolienne de secours';
+  if(s.ground){ blk('Au sol, sans vent relatif, l\'hélice ne tourne pas : aucune pression. (Elle ne se rentre qu\'au sol, à la main.)'); }
+  ln('me','Un vérin à ressort fait sortir la RAT sous le fuselage, côté droit ; l\'hélice tourne grâce au vent relatif.'); ln('hb','Elle entraîne une pompe : le circuit bleu remonte à environ 2500 psi.');
+  ln('el','Le bleu fait tourner la génératrice de secours (CSM/G, 5 kVA) : barres AC ESS et DC ESS, PFD et écran ECAM du commandant.'); break;
+ case 'wai': o.h='WING ANTI ICE — Antigivrage voilure';
+  ln('ah','Deux vannes envoient l\'air chaud prélevé dans les becs 3, 4 et 5 de chaque aile, par un tube perforé (piccolo) qui chauffe le bord d\'attaque.');
+  if(s.wai&&!(k.duct[0]||k.duct[1])) blk('Pas d\'air dans le circuit pneumatique : rien ne chauffe.','apuBleed'); else if(s.wai&&s.ground) ln('ah','Au sol : les vannes ne s\'ouvrent que 30 secondes (test), pour ne pas surchauffer les becs.'); break;
+ case 'eai1': case 'eai2': { const n=id[3]; o.h=`ENG ${n} ANTI ICE — Antigivrage entrée d\'air`; ln('ah','De l\'air du compresseur haute pression est soufflé dans la lèvre d\'entrée d\'air de la nacelle.'); if(s[id]&&s.es[+n-1]!==2) blk('Moteur arrêté : pas d\'air chaud.','m'+n); break; }
+ case 'probe': o.h='PROBE / WINDOW HEAT'; ln('el','Des résistances chauffent les sondes Pitot, statiques, d\'incidence et TAT ; un film conducteur chauffe les pare-brise.');
+  ln('dat','Sans réchauffage, le givre boucherait une sonde Pitot : vitesse fausse sur le PFD (cas du vol AF447).'); ln('el','Automatique dès qu\'un moteur tourne ; le bouton force le chauffage au sol.'); if(!k.acAny) blk('Pas de 115 V AC : aucun chauffage.','ext'); break;
+ case 'ir1': case 'ir2': case 'ir3': { const n=id[2]; o.h=`IR ${n} — Centrale ADIRU ${n}`;
+  if(s[id]==='OFF'){ ln('dat','Centrale arrêtée : plus d\'attitude, de cap ni de position venant d\'elle.'); break; }
+  if(!k.dcAny){ blk('Aucun courant.','bat1'); break; }
+  ln('dat','L\'ADIRU réunit l\'ADR (vitesse, altitude, incidence, à partir des sondes) et l\'IR (attitude, cap, position).');
+  ln('dat',s[id]==='NAV'?'NAV : alignement. Les gyrolasers et accéléromètres mesurent la rotation de la Terre et la gravité pour trouver le nord vrai et la verticale (environ 10 minutes réelles, accélérées ici). L\'avion ne doit pas bouger.':'ATT : mode dégradé, attitude seulement (pas de position), cap à entrer à la main.');
+  if(!k.acAny) ln('el','Sur batterie seulement : voyant ON BAT, l\'ADIRU tient quelques minutes.'); break; }
+ case 'beacon': o.h='BEACON — Feux anticollision'; ln('lt','Feux rouges à éclats sur le dessus et le dessous du fuselage : ils annoncent au personnel au sol que les moteurs vont démarrer ou tournent.'); if(s.beacon&&!k.lights) blk('Pas de 115 V AC : les feux restent éteints.','ext'); break;
+ case 'strobe': o.h='STROBE — Feux à éclats'; ln('lt','Éclats blancs très puissants aux saumons et à la queue. AUTO : allumés automatiquement en vol (amortisseurs détendus).'); if(s.strobe!=='OFF'&&!k.lights) blk('Pas de 115 V AC.','ext'); break;
+ case 'nav': o.h='NAV & LOGO — Feux de navigation'; ln('lt','Rouge au saumon gauche, vert au saumon droit, blanc à la queue : un autre pilote sait dans quel sens vous allez. Les feux de logo éclairent la dérive.'); if(s.nav&&!k.lights) blk('Pas de 115 V AC.','ext'); break;
+ case 'land': o.h='LAND — Phares d\'atterrissage'; ln('me','Les phares, logés sous l\'emplanture, sortent par un moteur électrique puis s\'allument.'); ln('lt','Utilisés au décollage, à l\'atterrissage et sous 10 000 ft.'); if(s.land&&!k.lights) blk('Pas de 115 V AC.','ext'); break;
+ case 'taxi': o.h='NOSE — Phares du train avant'; ln('lt','TAXI : phare de roulage ; T.O : phare de décollage, plus puissant. Ils sont sur la jambe du train avant et s\'éteignent quand le train est rentré.'); break;
+ case 'stick': { o.h='Mini-manche (sidestick)'; const roll=LASTV==='L'||LASTV==='R';
+  ln('dat','Le mini-manche n\'est relié à aucune gouverne : il envoie un signal électrique aux calculateurs ELAC et SEC (commandes de vol électriques, fly-by-wire), qui protègent le domaine de vol.');
+  if(roll){ ln('hg','Roulis : les servocommandes des ailerons (vert + bleu) braquent les ailerons ; les spoilers 2 à 5 de l\'aile qui descend se lèvent.'); }
+  else { ln('hb','Tangage : les gouvernes de profondeur (gauche : vert + bleu, droite : jaune + bleu) braquent, puis le plan horizontal réglable (PHR, vis entraînée par des moteurs vert et jaune) suit.'); }
+  if(!k.elac) blk('Calculateurs non alimentés : aucun ordre.','bat1'); else if(!(k.G||k.B||k.Y)) blk('Aucune pression hydraulique : les vérins ne bougent pas, les gouvernes restent pendantes (cadre ambre). Il faut un moteur, la pompe électrique jaune (+ PTU) ou la RAT.','hYE'); break; }
+ case 'ped': o.h='Palonnier'; ln('me','Les pédales commandent la gouverne de direction : liaison mécanique (câbles) vers trois servocommandes, plus les ordres électriques des FAC (amortisseur de lacet).'); ln('hy','Les servocommandes sont alimentées par les trois circuits (vert, bleu, jaune).'); if(!(k.G||k.B||k.Y)) blk('Aucune pression hydraulique : la gouverne ne bouge pas.','hYE'); break;
+ case 'flaps': o.h='Levier des volets et becs';
+  ln('dat','Le levier commande deux calculateurs SFCC (Slat Flap Control Computers).'); ln('hg','Volets : deux moteurs hydrauliques (vert + jaune) dans le fuselage font tourner des arbres de transmission jusqu\'aux vérins à vis des chariots de volets.');
+  ln('hb','Becs : moteurs hydrauliques vert + bleu, même principe. Avec un seul circuit, le mouvement se fait à demi-vitesse.'); ln('me','Les volets Fowler reculent et s\'abaissent : plus de surface et de cambrure, donc plus de portance à basse vitesse.');
+  if(!(k.G||k.Y||k.B)) blk('Le levier bouge mais rien ne se passe : pas de pression hydraulique. Démarrez un moteur ou mettez Y ELEC PUMP (et PTU).','hYE'); break;
+ case 'spd': o.h='Levier des aérofreins'; ln('dat','Ordre électrique aux SEC.'); ln('me','Les spoilers 2 à 4 (en vol) se lèvent sur l\'extrados : la portance diminue et la traînée augmente.'); if(!(k.G||k.B||k.Y)) blk('Pas de pression hydraulique.','hYE'); break;
+ case 'gear': o.h='Levier de train';
+  if(s.ground&&LASTV==='UP'){ blk('Au sol le levier est verrouillé : les amortisseurs comprimés indiquent « avion au sol ». Rentrer le train écraserait l\'avion.'); break; }
+  ln('dat','Le levier commande deux calculateurs LGCIU et une vanne de sélection hydraulique.');
+  ln('hg','Circuit vert : les trappes s\'ouvrent, les vérins de relevage manœuvrent les jambes, les verrous (haut ou bas) se ferment, puis les trappes se referment.');
+  ln('me','Sur l\'écran WHEEL : triangle rouge en transit, vert quand le train est sorti et verrouillé.');
+  if(!k.G&&!s.ground) blk('Pas de pression verte : le train ne bouge pas. Secours : manivelle de sortie par gravité (déverrouillage mécanique).'); break;
+ case 'pbrake': o.h='PARK BRK — Frein de parc'; ln('hy','L\'accumulateur du circuit jaune envoie la pression aux freins carbone (multidisques) des 4 roues principales.'); ln('dat','Le frein de parc tient même moteurs arrêtés, tant que l\'accumulateur garde sa pression.'); break;
+ case 'fireSim': o.h='Exercice : feu moteur 1'; ln('fire','Les deux boucles de détection autour du moteur 1 détectent une surchauffe : alarme sonore continue, ENG 1 FIRE rouge, bouton ENG 1 FIRE et voyant sur le MASTER 1 allumés.'); ln('dat','Procédure : manette 1 IDLE, ENG 1 MASTER OFF, bouton ENG 1 FIRE poussé, AGENT 1 après 10 s.'); break;
+ case 'ff1': o.h='ENG 1 FIRE — Bouton-poussoir gardé';
+  if(!s.ff1){ ln('fire','Bouton non poussé.'); break; }
+  ln('fu','Ferme la vanne carburant basse pression (LP) dans le mât : plus d\'alimentation du moteur 1.'); ln('hg','Ferme la vanne coupe-feu hydraulique : la pompe verte n\'est plus alimentée.');
+  ln('ah','Ferme la vanne de prélèvement et la vanne de pack côté 1.'); ln('el','Désexcite l\'IDG 1.'); ln('dat','Arme les agents extincteurs (voyant SQUIB) ; ils sont alimentés par les barres HOT, même batteries sur OFF.');
+  if(s.m1) blk('Procédure : ENG 1 MASTER aurait dû être mis sur OFF avant. Le moteur s\'arrête de toute façon faute de carburant.','m1'); break;
+ case 'ag1': o.h='AGENT 1 — Décharge extincteur';
+  if(!s.ff1){ blk('Rien ne se passe : les agents ne sont armés qu\'après avoir poussé le bouton ENG 1 FIRE.','ff1'); break; }
+  ln('el','Un courant de la barre HOT met à feu une cartouche pyrotechnique (squib) qui perce l\'opercule de la bouteille.'); ln('ac','L\'agent (halon) se répand dans la nacelle par une tuyauterie et étouffe le feu ; voyant DISCH.'); ln('fire',s.fire1?'Si le feu persiste 30 s après, décharger l\'AGENT 2.':'Feu éteint : voyants rouges éteints.'); break;
+ case 'ground': o.h='Situation de l\'avion'; ln('me',s.ground?'Au sol : amortisseurs comprimés, certains systèmes sont inhibés ou limités (train verrouillé, antigivrage voilure 30 s, strobes en AUTO éteints).':'En vol : le vent relatif existe (RAT possible), le train peut se rentrer, le GPU est débranché.'); break;
+ }
+ return o; }
+
+const tours={
+ start:{n:'Mise en route complète (avion froid → décollage)',st:[
+  ['bat1',true,'Toujours en premier : les batteries. Regardez la soute avionique s\'éclairer (électricité en bleu clair). Les écrans restent noirs : pas encore de 115 V alternatif.'],
+  ['bat2',true,'Deuxième batterie. Les deux alimentent la barre DC BAT.'],
+  ['ext',true,'Le groupe de parc branché au nez fournit le 115 V : écrans, calculateurs (violet) et pompes carburant s\'allument.'],
+  ['ir1','NAV','Les centrales inertielles commencent leur alignement (clignotent).'],['ir2','NAV',''],['ir3','NAV',''],
+  ['apuMaster',true,'Le volet d\'entrée d\'air de l\'APU s\'ouvre dans la queue.'],
+  ['apuStart',true,'Démarreur électrique, puis combustion. Attendez AVAIL.',s=>s.apuSt===2,'Attendre APU AVAIL'],
+  ['apuBleed',true,'L\'air comprimé de l\'APU (rouge) remplit les conduits jusqu\'aux packs et aux moteurs.'],
+  ['beacon',true,'Feu anticollision : on prévient le sol que les moteurs vont démarrer.'],
+  ['eMode','IGN','Les FADEC sont prêts ; les packs se fermeront pendant le démarrage.'],
+  ['m2',true,'Moteur 2 en premier (il pressurise le circuit jaune : freins de parc et roulette de nez). Suivez l\'air rouge vers le démarreur, l\'allumage, puis le carburant.',s=>s.es[1]===2,'Attendre le ralenti du moteur 2'],
+  ['m1',true,'Moteur 1 : même séquence. Le circuit vert monte en pression.',s=>s.es[0]===2,'Attendre le ralenti du moteur 1'],
+  ['eMode','NORM','Démarrage terminé : sélecteur sur NORM.'],
+  ['ext',false,'Les génératrices moteurs ont pris le relais : on débranche le groupe de parc.'],
+  ['apuBleed',false,'Les moteurs fournissent leur propre air.'],['apuMaster',false,'L\'APU refroidit puis s\'arrête.'],
+  ['flaps',1,'Volets 1 : les becs et volets sortent (vert, jaune, bleu).'],
+  ['strobe','ON','Entrée sur la piste : strobes.'],['land',true,'Phares d\'atterrissage.'],['thr','TOGA','Pleine poussée : le FADEC augmente le carburant, N1 monte.'],
+  ['ground',false,'Rotation et envol.'],['gear','UP','Train rentré par le circuit vert : trappes, jambes, verrous.',s=>s.gp<0.01,'Attendre la fin de la rentrée'],['flaps',0,'Volets rentrés.']]},
+ fire:{n:'Feu moteur 1 au sol',pre:'run',st:[
+  ['fireSim',true,'Le feu est détecté par les boucles autour du moteur 1.'],['thr','IDLE','Manettes au ralenti.'],['m1',false,'ENG 1 MASTER OFF : vannes carburant fermées.'],
+  ['ff1',true,'Bouton ENG 1 FIRE : carburant, hydraulique vert, air et électricité du moteur 1 sont isolés ; agents armés.'],['ag1',true,'Agent 1 déchargé dans la nacelle.',s=>!s.fire1,'Attendre l\'extinction']]},
+ hyd:{n:'Hydraulique : qui alimente quoi',pre:'elec',st:[
+  ['flaps',1,'Volets demandés sans aucune pression : rien ne bouge (cadre ambre).'],['hYE',true,'Pompe électrique jaune : le jaune monte à 3000 psi, les volets bougent à demi-vitesse.'],
+  ['ptu',true,'Le PTU démarre seul et pressurise le vert à partir du jaune.'],['stick','L','Mini-manche à gauche : les ailerons et spoilers bougent grâce au vert.'],['flaps',0,'Volets rentrés.']]}
+};
+function preset(n){ const s=init(); if(n==='cold') return s;
+ Object.assign(s,{bat1:true,bat2:true,ext:true,ir1:'NAV',ir2:'NAV',ir3:'NAV',al:[1,1,1],nav:true}); if(n==='elec') return s;
+ Object.assign(s,{beacon:true,m1:true,m2:true,es:[2,2],n2:[58.5,58.5],eg:[410,410],gP:3000,bP:3000,yP:3000,ext:false}); if(n==='run') return s;
+ Object.assign(s,{ground:false,gear:'UP',gp:0,pbrake:false,thr:'CL',strobe:'AUTO',n2:[93,93],eg:[690,690],cab:6000}); return s; }
+MOD.a320={name:'Airbus A320',sub:'2 turboréacteurs CFM56-5B / LEAP-1A · commandes électriques · 3 circuits hydrauliques',vb:'0 0 400 600',svg:body+parts+labels,names:NM,ctl,init,step,ev,page,ex,tours,preset,
+ pages:['ELEC','APU','BLEED','ENG','HYD','FUEL','F/CTL','WHEEL','PRESS','FEUX'],legend:['el','dat','fu','hg','hb','hy','ah','ac','me','ig','hot','lt','fire'],
+ presets:[['cold','Avion froid'],['elec','Sous tension'],['run','Moteurs en route'],['fly','En vol']],
+ ground:{id:'ground',on:s=>{ if(s.ground){ if(s.es[0]!==2&&s.es[1]!==2) return 'Aucun moteur ne tourne : pas de poussée pour voler.'; s.ground=false; s.ext=false; s.pbrake=false; } else { if(s.gp<0.99) return 'Train rentré : sortez le train avant de vous poser !'; s.ground=true; s.rat=false; } }}};
+})();
+
+/* ================= MOTEUR DE L'ATELIER ================= */
+const $s=q=>document.querySelector('#sysat '+q);
+function dom(){ let a=document.getElementById('sysat'); if(a) return a; a=document.createElement('section'); a.id='sysat'; a.hidden=true; a.setAttribute('aria-label','Atelier des systèmes');
+ a.innerHTML=`<header><div class="tt"><b>⚙ Atelier des systèmes</b><span>Touchez une commande : les pièces qu'elle actionne se colorent sur le schéma, l'écran système réagit.</span></div>
+  <select data-acsel aria-label="Appareil"></select><div class="hrow"><div class="pre"></div><button type="button" data-tour>▶ Démonstration commentée</button></div><button type="button" data-help>?</button><button type="button" data-x aria-label="Fermer">✕</button></header>
+  <div class="main"><div class="top"><div class="sch"><svg class="ac" xmlns="http://www.w3.org/2000/svg"></svg></div><div class="scrw"><div class="tabs"></div><div class="scr"></div></div></div>
+  <div class="mid"><div class="tour" hidden></div><div class="ex"></div><div class="pinfo" hidden></div><div class="leg"></div><div class="sitw"></div></div><div class="ctl"></div></div>`;
+ document.body.appendChild(a);
+ a.addEventListener('click',e=>{ const b=e.target.closest('button,[data-p]'); if(!b) return; const d=b.dataset;
+  if(d.x!=null) return close();
+  if(d.p!=null&&b.closest('svg.ac')) return partInfo(d.p);
+  if(d.c!=null) return act(d.c, d.v!=null?parseV(d.v):undefined);
+  if(d.pg!=null){ PAGE=d.pg; pgPrev=''; paint(true); return; }
+  if(d.pre!=null){ setPreset(d.pre); return; }
+  if(d.tour!=null) return tourPick();
+  if(d.tp!=null) return tourStart(d.tp);
+  if(d.tdo!=null) return tourDo(); if(d.tnx!=null) return tourNext(); if(d.tq!=null){ TOUR=null; renderTour(); return; }
+  if(d.go!=null) return flashCtl(d.go);
+  if(d.hp!=null) return touch([d.hp]);
+  if(d.help!=null) return help();
+  if(d.sit!=null) return act('ground'); });
+ a.querySelector('[data-acsel]').addEventListener('change',e=>load(e.target.value));
+ return a; }
+function parseV(v){ return v==='true'?true:v==='false'?false:(/^-?\d+$/.test(v)?+v:v); }
+function relayout(){ const a=dom(), mob=matchMedia('(max-width:900px)').matches, main=a.querySelector('.main'), top=a.querySelector('.top'), sch=a.querySelector('.sch'), scrw=a.querySelector('.scrw'), mid=a.querySelector('.mid'), ctl=a.querySelector('.ctl');
+ if(mob){ if(sch.parentNode!==top){ top.append(sch,scrw); } top.style.display=''; main.prepend(top); main.append(mid,ctl); }
+ else { top.style.display='none'; main.append(ctl,mid,sch); mid.prepend(scrw); } }
+function load(ac){ M=MOD[ac]; if(!M) return; AC=ac; S=M.preset?M.preset(PRE='cold'):M.init(); LAST=null; TOUR=null; PAGE=M.pages[0]; exPrev=''; pgPrev='';
+ const a=dom(); a.querySelector('[data-acsel]').innerHTML=Object.keys(MOD).map(k=>`<option value="${k}" ${k===ac?'selected':''}>${MOD[k].name}</option>`).join('');
+ a.querySelector('.tt span').textContent=M.sub;
+ const svg=a.querySelector('svg.ac'); svg.setAttribute('viewBox',M.vb); svg.innerHTML=M.svg+'<g class="tags"></g>';
+ svg.querySelectorAll('[data-p]').forEach(el=>{ el._k=''; const t=document.createElementNS('http://www.w3.org/2000/svg','title'); t.textContent=M.names[el.dataset.p]||el.dataset.p; el.appendChild(t); });
+ a.querySelector('.pre').innerHTML=(M.presets||[]).map(p=>`<button type="button" data-pre="${p[0]}" class="${p[0]===PRE?'on':''}">${p[1]}</button>`).join('');
+ a.querySelector('.leg').innerHTML=M.legend.map(c=>`<span><i style="background:${C[c]}"></i>${LEGN[c]}</span>`).join('')+'<span><i style="background:#fff;box-shadow:0 0 5px #fff"></i>Pièce touchée par la commande</span><span><i style="background:none;border:2px solid #ffa21a"></i>Commandé mais bloqué</span>';
+ a.querySelector('.ctl').innerHTML=(M.ground?`<div class="grp"><h4>Situation <small>simulée</small></h4><div class="row"><div class="sel"><span class="l">L'AVION EST</span><div class="seg"><button type="button" data-sit>…</button></div></div></div></div>`:'')+
+  M.ctl.map(g=>`<div class="grp"><h4>${g.g}<small>${g.w||''}</small></h4><div class="row">${g.c.map(cHTML).join('')}</div></div>`).join('');
+ a.querySelector('.tabs').innerHTML=M.pages.map(p=>`<button type="button" data-pg="${p}">${p}</button>`).join('');
+ explainIntro(); renderTour(); relayout(); D=M.ev(S); paint(true); }
+function cHTML(c){ if(c.t==='pb'||c.t==='mom') return `<button type="button" class="pb ${c.t==='mom'?'mom':''} ${c.grd?'grd':''}" data-c="${c.id}" title="${c.l}"><span class="k"><i class="u"></i><i class="d"></i></span><span class="l">${c.l}</span></button>`;
+ if(c.t==='sw') return `<div class="sel" data-cw="${c.id}"><span class="l">${c.l}</span><div class="seg"><button type="button" data-c="${c.id}" data-v="false">OFF</button><button type="button" data-c="${c.id}" data-v="true">ON</button></div></div>`;
+ if(c.t==='sel') return `<div class="sel" data-cw="${c.id}"><span class="l">${c.l}</span><div class="seg">${c.o.map((v,i)=>`<button type="button" data-c="${c.id}" data-v="${v}">${c.ol[i]}</button>`).join('')}</div></div>`;
+ if(c.t==='pad') return `<div class="sel" data-cw="${c.id}"><span class="l">${c.l}</span><div class="seg">${c.o.map(o=>`<button type="button" data-c="${c.id}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div></div>`; return ''; }
+function findC(id){ for(const g of M.ctl) for(const c of g.c) if(c.id===id) return c; return null; }
+function act(id,v){ if(!M) return; let c=findC(id);
+ if(id==='ground'&&M.ground){ const r=M.ground.on(S); LAST='ground'; LASTV=S.ground; if(r){ showBlock('Situation',r); return; } D=M.ev(S); explain(true); paint(true); return; }
+ if(!c) return; const prev=S[id];
+ if(c.t==='pb') S[id]=!S[id]; else if(c.t==='mom'){ v=true; } else if(c.t==='pad'){ S[id]=v; S[id+'T']=1.8; } else S[id]=v;
+ if(M.on){ const r=M.on(S,id,S[id],prev,v); if(r&&r.revert){ S[id]=prev; } }
+ else defaultOn(id,prev,v);
+ LAST=id; LASTV=c.t==='pb'?S[id]:v; if(c.pg){ PAGE=c.pg; pgPrev=''; }
+ touch(c.pt||[]); D=M.ev(S); explain(true); paint(true); tourCheck(id,v); }
+function defaultOn(id,prev,v){ const s=S; /* A320 */
+ if(AC!=='a320') return;
+ if(id==='apuStart'){ if(s.apuMaster&&s.apuSt===0&&(s.bat1||s.bat2||s.ext)) s.apuSt=1; }
+ if((id==='m1'||id==='m2')){ const i=+id[1]-1; if(s[id]&&!prev&&s.eMode==='IGN'&&s.es[i]===0&&s.n2[i]<10){ s.es[i]=1; s.sf[i]=0; } }
+ if(id==='gear'&&s.ground&&v==='UP'){ s.gear='DOWN'; }
+ if(id==='rat'){ s.rat=true; } if(id==='fireSim'){ s.fire1=true; s.ag1=false; s.agT=0; } if(id==='ff1'){ s.ff1=true; } if(id==='ag1'){ if(s.ff1) s.ag1=true; }
+ if(id==='ext'&&!s.ground) s.ext=false; }
+function showBlock(h,t){ const e=$s('.ex'); e.innerHTML=`<h3>${h}</h3><div class="blk">⚠ ${t}</div>`; exPrev=''; }
+function touch(ids){ TCH=ids.slice(); tTch=performance.now()+4500; const svg=$s('svg.ac'), g=svg.querySelector('.tags'); g.innerHTML='';
+ const seen={}; ids.forEach(id=>{ const el=svg.querySelector(`[data-p="${id}"]`); if(!el||seen[id]) return; seen[id]=1; let bb; try{ bb=el.getBBox(); }catch(e){ return; }
+  const nm=(M.names[id]||id).split(/[(:,—]/)[0].trim().slice(0,30), vb=svg.viewBox.baseVal, cx=bb.x+bb.width/2, cy=bb.y+bb.height/2, mid=Math.abs(cx-vb.width/2)<vb.width*0.07, right=mid||cx>vb.width/2, tx=right?Math.min(vb.width-6,(mid?vb.width/2+40:cx+26)):Math.max(6,cx-26), ty=cy-4+(Object.keys(seen).length%3)*8-8;
+g.insertAdjacentHTML('beforeend',`<line x1="${cx}" y1="${cy}" x2="${tx}" y2="${ty}"/><text x="${tx}" y="${ty-2}" text-anchor="${right?'start':'end'}">${nm}</text>`); }); }
+function flashCtl(id){ const el=document.querySelector(`#sysat [data-c="${id}"]`); if(!el) return; const w=el.closest('.sel')||el; w.scrollIntoView({block:'center',behavior:'smooth'}); w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); }
+function partInfo(id){ const el=$s('.pinfo'); const by=[]; M.ctl.forEach(g=>g.c.forEach(c=>{ if((c.pt||[]).includes(id)) by.push(c); }));
+ el.hidden=false; el.innerHTML=`<b>${M.names[id]||id}</b>${by.length?`<div class="chips">Actionnée par : ${by.map(c=>`<button type="button" data-go="${c.id}">${c.l}</button>`).join('')}</div>`:''}`; touch([id]); }
+function explainIntro(){ $s('.ex').innerHTML=`<h3>${M.name} — comment lire l'atelier</h3><div class="w">${M.sub}</div><ol>
+ <li><i style="color:${C.el};background:${C.el}"></i>Touchez une commande (bouton à voyant, sélecteur, levier). Ce panneau explique l'action <b>électrique, électronique, hydraulique, pneumatique ou mécanique</b> qu'elle produit, pièce par pièce.</li>
+ <li><i style="color:#fff;background:#fff"></i>Les pièces touchées s'entourent de blanc avec leur nom ; les couleurs montrent ce qui circule (voir la légende).</li>
+ <li><i style="color:${C.warn};background:${C.warn}"></i>L'ordre compte : si une condition manque, rien ne se passe et un cadre ambre indique quoi faire.</li>
+ <li><i style="color:${C.me};background:${C.me}"></i>Touchez une pièce du schéma pour voir son nom et les commandes qui l'actionnent. « Démonstration commentée » enchaîne une procédure réelle.</li></ol>`; exPrev=''; }
+function explain(force){ if(!LAST) return; const o=LAST==='ground'?M.ex('ground',S,D):M.ex(LAST,S,D); if(!o||!o.h) return; const c=findC(LAST);
+ const html=`<h3>${o.h}</h3><div class="w">${c&&c.w?c.w:(c?(M.ctl.find(g=>g.c.includes(c))||{}).w||'':'')}</div><ol>${o.ln.map(l=>`<li><i style="color:${C[l[0]]};background:${C[l[0]]}"></i><span>${l[1]}</span></li>`).join('')}</ol>
+  ${o.blk?`<div class="blk">⚠ ${o.blk}${o.go?`<br><button type="button" data-go="${o.go}">Montrer la commande à utiliser</button>`:''}</div>`:''}
+  ${c&&c.pt?`<div class="chips">Pièces touchées : ${c.pt.map(p=>`<button type="button" data-hp="${p}">${(M.names[p]||p).split(/[(:,—]/)[0].trim()}</button>`).join('')}</div>`:''}<div class="live">${D.lv.join('\n')}</div>`;
+ if(html!==exPrev){ $s('.ex').innerHTML=html; exPrev=html; } }
+function paint(force){ if(!M||!D) return; const a=dom(), svg=a.querySelector('svg.ac'), now=performance.now(), tch=now<tTch?TCH:[];
+ if(!(now<tTch)&&svg.querySelector('.tags').childNodes.length) svg.querySelector('.tags').innerHTML='';
+ svg.querySelectorAll('[data-p]').forEach(el=>{ const id=el.dataset.p, v=D.p[id], c=v?(Array.isArray(v)?v[0]:v):'', m=v&&Array.isArray(v)?v[1]:'', t=tch.includes(id), key=c+'|'+m+'|'+t+'|'+(D.sp&&D.sp[id]||'');
+  if(el._k===key) return; el._k=key; el.classList.remove('on','flow','rev','blink','dim','st','spin','tch');
+  if(c){ el.classList.add('on'); el.style.setProperty('--c',C[c]||c); if(m) m.split(' ').forEach(x=>el.classList.add(x)); }
+  if(D.sp&&D.sp[id]) el.style.setProperty('--sp',D.sp[id]); if(t) el.classList.add('tch'); });
+ // commandes
+ M.ctl.forEach(g=>g.c.forEach(c=>{ if(c.t==='pb'||c.t==='mom'){ const el=a.querySelector(`[data-c="${c.id}"] .k`); if(!el) return; const l=c.lt?c.lt(S):['',''], h=l.map(x=>{ if(!x) return ''; const [t,col]=x.split('|'); return `<span style="color:${{wh:'#f2f4f6',cy:'#3fd0ff',gn:'#3ddc84',am:'#ffa21a',rd:'#ff3b30'}[col]};text-shadow:0 0 6px currentColor">${t}</span>`; });
+   const html=`<i class="u">${h[0]}</i><i class="d">${h[1]}</i>`; if(el._h!==html){ el.innerHTML=html; el._h=html; } }
+  else { const v=c.t==='pad'?S[c.id]:S[c.id]; a.querySelectorAll(`[data-cw="${c.id}"] [data-v]`).forEach(b=>b.classList.toggle('on',String(parseV(b.dataset.v))===String(v))); } }));
+ const sit=a.querySelector('[data-sit]'); if(sit&&M.ground){ const t=S.ground?'AU SOL → passer EN VOL':'EN VOL → se poser'; if(sit.textContent!==t) sit.textContent=t; }
+ a.querySelectorAll('.tabs [data-pg]').forEach(b=>b.classList.toggle('on',b.dataset.pg===PAGE));
+ const ph=M.page(PAGE,S,D); if(ph!==pgPrev){ a.querySelector('.scr').innerHTML=ph; pgPrev=ph; }
+ if(force||Math.floor(now/600)!==Math.floor(tPrev/600)) explain(); tPrev=now; }
+function loop(){ if(!M||dom().hidden) return; const now=performance.now(), dt=Math.min(1,(now-(loop.t||now))/1000); loop.t=now; M.step(S,dt); D=M.ev(S); paint(); if(TOUR) renderTour(true); }
+function setPreset(n){ PRE=n; S=M.preset(n); LAST=null; exPrev=''; pgPrev=''; dom().querySelectorAll('.pre button').forEach(b=>b.classList.toggle('on',b.dataset.pre===n)); explainIntro(); D=M.ev(S); paint(true); }
+/* démonstrations commentées */
+function tourPick(){ const t=M.tours||{}; const e=$s('.tour'); e.hidden=false; TOUR=null;
+ e.innerHTML=`<b class="t">Démonstrations commentées · ${M.name}</b><p>Chaque étape actionne une vraie commande, dans l'ordre réel. Observez le schéma et l'écran.</p><div class="bt">${Object.keys(t).map(k=>`<button type="button" class="go" data-tp="${k}">${t[k].n}</button>`).join('')}<button type="button" data-tq>Fermer</button></div>`; }
+function tourStart(k){ const t=M.tours[k]; TOUR=t; TI=0; setPreset(t.pre||'cold'); renderTour(); $s('.tour').scrollIntoView({block:'nearest'}); }
+function renderTour(live){ const e=$s('.tour'); if(!TOUR){ if(!live) e.hidden=true; return; } e.hidden=false; const st=TOUR.st[TI]; if(!st){ e.innerHTML=`<b class="t">${TOUR.n}</b><p>✓ Démonstration terminée. Rejouez-la ou essayez vous-même dans un autre ordre pour voir ce qui bloque.</p><div class="bt"><button type="button" data-tour>Autre démonstration</button><button type="button" data-tq>Fermer</button></div>`; return; }
+ const c=findC(st[0]), lab=st[0]==='ground'?'Situation : '+(st[1]?'au sol':'en vol'):(c?c.l:st[0])+(c&&c.t!=='pb'&&c.t!=='mom'?' → '+(c.ol?c.ol[c.o.indexOf(st[1])]:st[1]):(c&&c.t==='pb'?' → '+(st[1]?'ON':'OFF'):'')), done=st.done, wt=st[3]&&done&&!st[3](S);
+ const html=`<b class="t">${TOUR.n} · étape ${TI+1}/${TOUR.st.length}</b><p><b>${lab}</b></p><p>${st[2]}</p>${wt?`<p class="wt">⏳ ${st[4]}…</p>`:''}<div class="bt">${done?'':`<button type="button" class="go" data-tdo>Faire l'action</button>`}<button type="button" data-tnx ${wt?'disabled':''}>Étape suivante ▶</button><button type="button" data-tq>Arrêter</button></div>`;
+ if(e._h!==html){ e.innerHTML=html; e._h=html; } }
+function tourDo(){ const st=TOUR.st[TI]; const c=findC(st[0]); flashCtl(st[0]);
+ if(st[0]==='ground'){ if(S.ground!==st[1]) act('ground'); }
+ else if(c.t==='pb'){ if(!!S[st[0]]!==st[1]) act(st[0]); } else act(st[0],st[1]); st.done=true; renderTour(); }
+function tourNext(){ const st=TOUR.st[TI]; if(!st.done){ tourDo(); if(st[3]&&!st[3](S)) return; } if(st[3]&&!st[3](S)) return; st.done=false; TI++; renderTour(); if(TOUR.st[TI]) flashCtl(TOUR.st[TI][0]); }
+function tourCheck(id,v){ if(!TOUR) return; const st=TOUR.st[TI]; if(st&&st[0]===id){ st.done=true; renderTour(); } }
+function help(){ explainIntro(); }
+function open(ac,tour){ const a=dom(); a.hidden=false; if(!M||(ac&&ac!==AC)) load(ac&&MOD[ac]?ac:(typeof selAC!=='undefined'&&selAC&&MOD[selAC]?selAC:'a320')); else relayout(); clearInterval(timer); loop.t=0; timer=setInterval(loop,100); if(tour&&M.tours&&M.tours[tour]) tourStart(tour); }
+function close(){ dom().hidden=true; clearInterval(timer); }
+addEventListener('resize',()=>{ if(M&&!dom().hidden) relayout(); });
+window.SYSAT={open,close,MOD,C,LEGN,helpers:{mir,P,F,R,Ci,RR,CC,PP,FF,Lb,T,BX,LN,ARC,SCR,OFFSCR,G,AM,W,CY,RD,GY},get S(){return S;},act,load};
+/* entrée dans le menu */
+function inject(){ const box=document.querySelector('#menu .box'); if(!box||box.querySelector('#samenu')) return; const b=document.createElement('button'); b.type='button'; b.id='samenu';
+ b.innerHTML='<span class="e">⚙</span><span><b>Atelier des systèmes</b>Un bouton → la pièce qu\'il actionne : électricité, carburant, hydraulique, air, gouvernes, colorés sur le schéma de l\'appareil.</span>';
+ b.onclick=()=>open(); const ac=box.querySelector('.acad-b'); (ac||box.firstChild).after(b); }
+inject(); const _rm=renderMenu; renderMenu=function(){ const r=_rm.apply(this,arguments); try{ inject(); }catch(e){} return r; };
+})();
+
+</script>
+<script>
+/* ===== ATELIER DES SYSTÈMES (2) : Learjet 60, H125, S-76, R44 + cours aéronautique (Académie, partie 5) ===== */
+(function(){
+if(!window.SYSAT) return;
+const {MOD}=SYSAT, H=SYSAT.helpers, {mir,P,F,R,Ci,RR,CC,PP,FF,Lb,T,BX,LN,ARC,SCR,OFFSCR,G,AM,W,CY,RD,GY}=H;
+const OFF=['','OFF|wh'], NONE=['',''];
+const pbOff=id=>s=>s[id]?NONE:OFF, pbOn=(id,t='ON')=>s=>s[id]?['',t+'|cy']:NONE;
+const near=(a,b,r)=>a+(b-a)*Math.min(1,r);
+
+/* ================= LEARJET 60 ================= */
+(function(){
+const fus='M200 20 C212 20 216 50 216 80 V470 C216 520 208 560 200 586 C192 560 184 520 184 470 V80 C184 50 188 20 200 20 Z', wing='M184 262 L40 306 L36 322 L184 318 Z', stab='M200 546 L132 570 L132 580 L200 566 Z';
+const body=`<path class="bd" d="${fus}"/><path class="bd" d="${wing}"/><path class="bd" d="${mir(wing)}"/><path class="bd" d="${stab}"/><path class="bd" d="${mir(stab)}"/><path class="bdl" d="M200 470 V584"/><path class="bdl" d="M38 306 L32 296 M362 306 L368 296"/>`;
+const parts=R('cabin',187,120,26,300,5)+PP('tL','tR','M182 270 L70 304 L70 316 L182 314 Z')+R('tF',188,428,24,36,3)+
+ PP('flapL','flapR','M182 308 L104 316 L104 322 L182 316 Z')+PP('splL','splR','M178 300 L110 309 L110 313 L178 305 Z')+PP('ailL','ailR','M100 314 L48 318 L46 324 L100 321 Z')+PP('elevL','elevR','M198 560 L136 574 L136 579 L198 565 Z')+R('rud',198,548,4,34,1)+
+ FF('waiL','waiR','M180 268 L46 309')+F('f_cond','M200 470 V122')+
+ F('cab_ail','M196 60 V286 L104 312 M204 286 L296 312')+F('cab_el','M200 60 V548')+F('cab_rud','M203 60 V560')+
+ F('f_gen1','M172 440 L190 432 V92')+F('f_gen2',mir('M172 440 L190 432 V92'))+F('f_gpu','M244 500 H215')+F('f_bat','M196 505 V92')+F('f_dc','M200 92 V48')+
+ FF('f_fu1','f_fu2','M150 300 L182 310 L184 420 L174 432')+F('f_xf','M150 300 L250 300')+F('f_fuF','M196 446 L184 430 M204 446 L216 430')+
+ FF('f_bl1','f_bl2','M178 446 L192 470')+F('f_acm','M192 470 H208')+
+ F('f_h','M196 486 V330 L120 318 M196 330 L280 318 M196 486 V560 M196 330 V120')+FF('f_he1','f_he2','M170 470 L196 486')+
+ P('wshield','M190 34 C196 30 204 30 210 34','sf')+R('scr',190,40,20,6,1)+CC('pitot','pitot',187,56,2)+
+ R('dcbus',189,86,22,6)+R('inv',189,96,10,5)+R('avio',201,96,10,5)+Ci('ngear',200,112,4.5)+
+ CC('sbL','sbR',150,300,3.2)+Ci('xfv',200,300,3)+CC('jpL','jpR',160,306,2.4)+CC('fwL','fwR',182,424,2.6)+
+ RR('e1','e2',160,420,22,62,9)+FF('e1fan','e2fan','M162 428 H180')+RR('e1core','e2core',166,438,10,30,3)+CC('e1ig','e2ig',171,450,2)+RR('e1sg','e2sg',161,462,6,8,1)+RR('e1hp','e2hp',175,462,5,7,1)+RR('e1fadec','e2fadec',175,442,5,6,1)+FF('e1ex','e2ex','M171 482 V498')+R('e1fire',163,434,16,38,4,'sp ring')+R('e2fire',221,434,16,38,4,'sp ring')+
+ R('bat1',189,500,9,8)+R('bat2',202,500,9,8)+R('gpu',244,492,22,16,3)+R('acm',192,470,16,10,2)+R('ofv',212,412,4,7,1)+R('hR',190,486,12,8,2)+Ci('hAux',206,490,3)+
+ R('mgL',184,312,6,10,2)+R('mgR',210,312,6,10,2)+Ci('brk',187,317,1.6)+Ci('brk',213,317,1.6)+
+ Ci('navL',37,318,3)+Ci('navR',363,318,3)+Ci('navT',200,588,2.5)+CC('stb','stb',40,312,2)+Ci('bcn',200,560,2.6)+Ci('bcn',200,300,2.4)+CC('land','land',176,276,2.2)+R('stabh',150,568,40,3,1)+R('stabh',210,568,40,3,1);
+const labels=Lb(200,14,'NEZ')+Lb(70,288,'AILE GAUCHE')+Lb(330,288,'AILE DROITE')+Lb(150,414,'MOTEUR 1','end')+Lb(250,414,'MOTEUR 2','start')+Lb(244,488,'GPU','start')+Lb(226,580,'EMPENNAGE EN T','start');
+const NM={cabin:'Cabine pressurisée',tL:'Réservoir d\'aile gauche (aile « mouillée »)',tR:'Réservoir d\'aile droite',tF:'Réservoir de fuselage (arrière)',flapL:'Volet gauche',flapR:'Volet droit',splL:'Spoilers / spoilerons gauches',splR:'Spoilers / spoilerons droits',ailL:'Aileron gauche (commande par câbles)',ailR:'Aileron droit',elevL:'Gouverne de profondeur gauche',elevR:'Gouverne de profondeur droite',rud:'Gouverne de direction',
+ waiL:'Bord d\'attaque chauffé par air prélevé (aile gauche)',waiR:'Bord d\'attaque chauffé (aile droite)',f_cond:'Gaines d\'air conditionné vers cabine et poste',cab_ail:'Câbles et poulies des ailerons',cab_el:'Câbles de la profondeur',cab_rud:'Câbles de la direction',f_gen1:'Câble génératrice 1 → barres',f_gen2:'Câble génératrice 2 → barres',f_gpu:'Câble du groupe de parc 28 V',f_bat:'Câbles des batteries',f_dc:'Alimentation 28 V DC du poste',
+ f_fu1:'Tuyauterie carburant aile gauche → moteur 1',f_fu2:'Tuyauterie carburant → moteur 2',f_xf:'Intercommunication carburant (crossflow)',f_fuF:'Transfert du réservoir de fuselage',f_bl1:'Air prélevé moteur 1',f_bl2:'Air prélevé moteur 2',f_acm:'Collecteur vers la machine à cycle à air',f_h:'Circuit hydraulique (train, volets, spoilers, freins)',f_he1:'Pompe hydraulique moteur 1 → réservoir',f_he2:'Pompe hydraulique moteur 2 → réservoir',
+ wshield:'Pare-brise (désembuage et antigivrage par air chaud)',scr:'Écrans Collins Pro Line 4 (2 PFD, 2 MFD)',pitot:'Sondes Pitot et statiques réchauffées',dcbus:'Barres 28 V DC',inv:'Convertisseurs statiques (inverseurs) 115 V / 26 V AC',avio:'Avionique : centrales, radios, pilote automatique',ngear:'Atterrisseur avant',
+ sbL:'Pompe de secours (standby) aile gauche, électrique',sbR:'Pompe de secours aile droite',xfv:'Vanne d\'intercommunication (crossflow)',jpL:'Pompe à jet gauche (entraînée par le débit moteur)',jpR:'Pompe à jet droite',fwL:'Vanne coupe-feu carburant moteur 1',fwR:'Vanne coupe-feu moteur 2',
+ e1:'Nacelle moteur 1 (Pratt & Whitney Canada PW305A) fixée au fuselage arrière',e2:'Nacelle moteur 2',e1fan:'Soufflante moteur 1',e2fan:'Soufflante moteur 2',e1core:'Générateur de gaz moteur 1',e2core:'Générateur de gaz moteur 2',e1ig:'Allumeurs moteur 1',e2ig:'Allumeurs moteur 2',e1sg:'Démarreur-génératrice 1 (28 V DC)',e2sg:'Démarreur-génératrice 2',e1hp:'Pompe hydraulique moteur 1',e2hp:'Pompe hydraulique moteur 2',e1fadec:'Régulation électronique moteur 1 (DEEC)',e2fadec:'Régulation électronique moteur 2',e1ex:'Tuyère 1',e2ex:'Tuyère 2',e1fire:'Détection incendie moteur 1',e2fire:'Détection incendie moteur 2',
+ bat1:'Batterie 1 (24 V)',bat2:'Batterie 2 (24 V)',gpu:'Groupe de parc 28 V DC',acm:'Machine à cycle à air (conditionnement)',ofv:'Vanne de décharge (outflow)',hR:'Réservoir hydraulique',hAux:'Pompe hydraulique auxiliaire électrique',mgL:'Atterrisseur principal gauche',mgR:'Atterrisseur principal droit',brk:'Freins (hydrauliques, secours pneumatique)',
+ navL:'Feu de navigation gauche (rouge)',navR:'Feu de navigation droit (vert)',navT:'Feu arrière (blanc)',stb:'Feux à éclats',bcn:'Feux anticollision',land:'Phares d\'atterrissage',stabh:'Réchauffage électrique du stabilisateur'};
+const ctl=[
+ {g:'Électricité (28 V continu)',w:'planche latérale gauche',c:[
+  {id:'bat1',l:'BAT 1',t:'pb',pg:'ÉLEC',pt:['bat1','f_bat','dcbus'],lt:pbOn('bat1')},{id:'bat2',l:'BAT 2',t:'pb',pg:'ÉLEC',pt:['bat2','f_bat','dcbus'],lt:pbOn('bat2')},
+  {id:'gpu',l:'GPU',t:'pb',pg:'ÉLEC',pt:['gpu','f_gpu','dcbus'],lt:s=>s.gpu&&s.ground?['','ON|cy']:(s.ground?['AVAIL|gn','']:NONE)},
+  {id:'gen1',l:'GEN 1',t:'pb',pg:'ÉLEC',pt:['e1sg','f_gen1'],lt:pbOn('gen1')},{id:'gen2',l:'GEN 2',t:'pb',pg:'ÉLEC',pt:['e2sg','f_gen2'],lt:pbOn('gen2')},
+  {id:'inv',l:'INVERTERS',t:'pb',pg:'ÉLEC',pt:['inv','avio','scr'],lt:pbOn('inv')}]},
+ {g:'Carburant',w:'panneau FUEL',c:[
+  {id:'sb1',l:'STBY PUMP L',t:'pb',pg:'CARBURANT',pt:['sbL','tL'],lt:pbOn('sb1')},{id:'sb2',l:'STBY PUMP R',t:'pb',pg:'CARBURANT',pt:['sbR','tR'],lt:pbOn('sb2')},
+  {id:'xflow',l:'CROSSFLOW',t:'pb',pg:'CARBURANT',pt:['xfv','f_xf'],lt:pbOn('xflow','OPEN')}]},
+ {g:'Démarrage moteurs',w:'planche centrale et pylône',c:[
+  {id:'st1',l:'START 1',t:'mom',pg:'MOTEURS',pt:['e1sg','e1core','bat1','bat2'],lt:s=>s.es[0]===1?['','ON|cy']:NONE},{id:'st2',l:'START 2',t:'mom',pg:'MOTEURS',pt:['e2sg','e2core','bat1','bat2'],lt:s=>s.es[1]===1?['','ON|cy']:NONE},
+  {id:'tl1',l:'MANETTE 1',t:'sel',o:['CUT','IDLE','MAX'],ol:['CUTOFF','IDLE','MAX'],pg:'MOTEURS',pt:['fwL','e1core','e1ig','e1fadec']},{id:'tl2',l:'MANETTE 2',t:'sel',o:['CUT','IDLE','MAX'],ol:['CUTOFF','IDLE','MAX'],pg:'MOTEURS',pt:['fwR','e2core','e2ig','e2fadec']}]},
+ {g:'Hydraulique',w:'panneau HYD',c:[{id:'hAux',l:'AUX HYD PUMP',t:'pb',pg:'HYDRAU',pt:['hAux','hR','f_h'],lt:pbOn('hAux')}]},
+ {g:'Air · antigivrage',w:'panneau AIR / ANTI-ICE',c:[
+  {id:'bl1',l:'BLEED 1',t:'pb',pg:'AIR',pt:['f_bl1','acm'],lt:pbOff('bl1')},{id:'bl2',l:'BLEED 2',t:'pb',pg:'AIR',pt:['f_bl2','acm'],lt:pbOff('bl2')},
+  {id:'wai',l:'WING HEAT',t:'pb',pg:'AIR',pt:['waiL','waiR'],lt:pbOn('wai')},{id:'stab',l:'STAB HEAT',t:'pb',pg:'AIR',pt:['stabh'],lt:pbOn('stab')},{id:'pitotH',l:'PITOT HEAT',t:'pb',pg:'ÉLEC',pt:['pitot','wshield'],lt:pbOn('pitotH')}]},
+ {g:'Feux extérieurs',w:'planche',c:[{id:'beacon',l:'BEACON',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'ÉLEC',pt:['bcn']},{id:'strobe',l:'STROBE',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'ÉLEC',pt:['stb']},{id:'nav',l:'NAV',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'ÉLEC',pt:['navL','navR','navT']},{id:'land',l:'LANDING',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'ÉLEC',pt:['land']}]},
+ {g:'Commandes de vol · train',w:'volant (yoke), palonnier, pylône',c:[
+  {id:'yoke',l:'VOLANT',t:'pad',o:[['L','◀ gauche'],['R','droite ▶'],['F','▲ pousser'],['A','▼ tirer']],pg:'COMMANDES',pt:['cab_ail','cab_el','ailL','ailR','elevL','elevR']},
+  {id:'ped',l:'PALONNIER',t:'pad',o:[['L','◀ gauche'],['R','droit ▶']],pg:'COMMANDES',pt:['cab_rud','rud']},
+  {id:'flaps',l:'VOLETS',t:'sel',o:[0,8,20,40],ol:['0°','8°','20°','40°'],pg:'COMMANDES',pt:['flapL','flapR','f_h']},
+  {id:'spd',l:'SPOILERS',t:'sel',o:[0,1],ol:['RET','EXT'],pg:'COMMANDES',pt:['splL','splR','f_h']},
+  {id:'gear',l:'TRAIN',t:'sel',o:['UP','DOWN'],ol:['UP','DOWN'],pg:'COMMANDES',pt:['ngear','mgL','mgR','f_h']}]}];
+function init(){ return {ground:true,bat1:false,bat2:false,gpu:false,gen1:false,gen2:false,inv:false,sb1:false,sb2:false,xflow:false,es:[0,0],n2:[0,0],itt:[15,15],hot:[0,0],tl1:'CUT',tl2:'CUT',hAux:false,hP:0,bl1:true,bl2:true,wai:false,stab:false,pitotH:false,beacon:false,strobe:false,nav:false,land:false,yoke:'N',yokeT:0,ped:'N',pedT:0,flaps:0,fp:0,spd:0,gear:'DOWN',gp:1,fuel:{l:1600,f:900,r:1600},t:0}; }
+function kk(s){ const k={}; k.g=[0,1].map(i=>s.es[i]===2&&s['gen'+(i+1)]&&s.n2[i]>45); k.gpu=s.gpu&&s.ground; k.dc=s.bat1||s.bat2||k.gpu||k.g[0]||k.g[1]; k.ac=k.dc&&s.inv;
+ k.charge=k.g[0]||k.g[1]||k.gpu; k.sb=[s.sb1&&k.dc,s.sb2&&k.dc]; k.jet=[s.es[0]===2,s.es[1]===2]; k.press=[0,1].map(i=>k.sb[i]||k.jet[i]||(s.xflow&&(k.sb[1-i]||k.jet[1-i])));
+ k.fuelOn=[s.tl1!=='CUT',s.tl2!=='CUT']; k.burn=[0,1].map(i=>k.fuelOn[i]&&k.press[i]&&s.es[i]>=1&&s.n2[i]>=10);
+ k.ign=[0,1].map(i=>s.es[i]===1&&s.n2[i]>=8&&k.fuelOn[i]); k.motor=[0,1].map(i=>s.es[i]===1&&s.n2[i]<45&&k.dc);
+ k.tH=(s.es[0]===2||s.es[1]===2||(s.hAux&&k.dc))?1500:0; k.H=s.hP>800; k.bl=[s.es[0]===2&&s.bl1,s.es[1]===2&&s.bl2]; k.air=k.bl[0]||k.bl[1]; k.scr=k.dc&&s.inv; return k; }
+function step(s,dt){ const k=kk(s); s.t+=dt;
+ for(let i=0;i<2;i++){ if(s.es[i]===1){ if(!k.dc){ s.es[i]=0; continue; } if(s.n2[i]<45){ s.n2[i]+=dt*(k.burn[i]?5:4); if(s.n2[i]>=12&&!k.fuelOn[i]&&s.t%1<dt){} } else { if(k.burn[i]){ s.n2[i]+=dt*2.5; if(s.n2[i]>=56){ s.es[i]=2; } } else s.n2[i]=Math.max(0,s.n2[i]-dt*4); } if(!k.fuelOn[i]&&s.n2[i]>=40&&s.n2[i]<45) s.n2[i]=40; }
+  else if(s.es[i]===2){ if(!k.fuelOn[i]||!k.press[i]&&!k.jet[i]) s.es[i]=0; else s.n2[i]=near(s.n2[i],s['tl'+(i+1)]==='MAX'?97:56,dt*0.8); } else s.n2[i]=Math.max(0,s.n2[i]-dt*5);
+  const t=k.burn[i]?(s.es[i]===1?(s.hot[i]?960:690):(s['tl'+(i+1)]==='MAX'?800:520)):15+s.n2[i]*.4; s.itt[i]=near(s.itt[i],t,dt*(t>s.itt[i]?1:0.35)); }
+ s.hP=near(s.hP,k.tH,dt*2.5); const fs=k.H?0.22:0; if(s.fp!==s.flaps&&fs){ const d=s.flaps-s.fp; s.fp+=Math.sign(d)*Math.min(Math.abs(d),dt*fs*40); }
+ const gt=s.gear==='DOWN'?1:0; if(s.gp!==gt&&k.H&&!s.ground) s.gp+=Math.sign(gt-s.gp)*Math.min(Math.abs(gt-s.gp),dt/5);
+ s.yokeT=Math.max(0,s.yokeT-dt); if(!s.yokeT) s.yoke='N'; s.pedT=Math.max(0,s.pedT-dt); if(!s.pedT) s.ped='N';
+ const use=[0,1].reduce((a,i)=>a+(k.burn[i]?(s.es[i]===2?(s['tl'+(i+1)]==='MAX'?700:180):90):0),0)*dt/3600; if(s.fuel.f>0) s.fuel.f=Math.max(0,s.fuel.f-use); else { s.fuel.l-=use/2; s.fuel.r-=use/2; } }
+function ev(s){ const k=kk(s), p={}, A=(id,c,m)=>{ p[id]=m?[c,m]:c; };
+ if(s.bat1) A('bat1','el',k.charge?null:'blink'); if(s.bat2) A('bat2','el',k.charge?null:'blink'); if(s.bat1||s.bat2) A('f_bat','el',k.charge?'rev':'flow');
+ if(k.gpu){ A('gpu','el'); A('f_gpu','el','flow'); } if(k.dc){ A('dcbus','el'); A('f_dc','el','flow'); } if(k.ac){ A('inv','el'); A('avio','dat'); A('scr','el'); }
+ [0,1].forEach(i=>{ const n=i+1; if(k.g[i]){ A('e'+n+'sg','el'); A('f_gen'+n,'el','flow'); } if(k.motor[i]){ A('e'+n+'sg','el','blink'); A('f_gen'+n,'el','rev'); }
+  if(k.ign[i]) A('e'+n+'ig','ig','blink'); if(k.burn[i]) A('e'+n+'core','hot',s.es[i]===1?'blink':null); else if(s.n2[i]>2) A('e'+n+'core','me','dim'); if(s.n2[i]>8) A('e'+n+'fan','me','flow'); if(s.es[i]===2) A('e'+n+'ex','hot','flow');
+  if(k.dc&&(s.es[i]||k.fuelOn[i])) A('e'+n+'fadec','dat'); if(k.fuelOn[i]&&k.dc) A(n===1?'fwL':'fwR','fu'); if(k.burn[i]) A('f_fu'+n,'fu','flow'); else if(k.press[i]) A('f_fu'+n,'fu','st');
+  if(s.es[i]===2){ A('e'+n+'hp','hg'); A('f_he'+n,'hg','flow'); A(n===1?'jpL':'jpR','fu'); } if(k.bl[i]) A('f_bl'+n,'ah','flow'); if(s.hot[i]&&s.itt[i]>850) A('e'+n+'fire','fire','blink'); });
+ ['tL','tR','tF'].forEach(t=>A(t,'fu','dim')); if(k.sb[0]) A('sbL','fu'); if(k.sb[1]) A('sbR','fu'); if(s.xflow&&k.dc){ A('xfv','fu'); A('f_xf','fu','st'); } if(k.burn[0]||k.burn[1]) A('f_fuF','fu','flow');
+ if(s.hAux&&k.dc) A('hAux','hg'); if(s.hP>200){ A('hR','hg'); A('f_h','hg','st'); }
+ if(k.air){ A('f_acm','ah','flow'); A('acm','ac'); A('f_cond','ac','flow'); A('cabin','ac','dim'); if(!s.ground) A('ofv','ac'); }
+ if(s.wai&&k.air){ A('waiL','ah','flow'); A('waiR','ah','flow'); A('wshield','ah'); } if(s.stab&&k.dc&&(k.g[0]||k.g[1])) A('stabh','el'); if(s.pitotH&&k.dc) A('pitot','el');
+ if(s.yoke==='L'||s.yoke==='R'){ A('cab_ail','me','flow'); A('ailL','me','blink'); A('ailR','me','blink'); if(k.H){ A('splL','me'); A('splR','me'); } }
+ if(s.yoke==='F'||s.yoke==='A'){ A('cab_el','me','flow'); A('elevL','me','blink'); A('elevR','me','blink'); } if(s.ped!=='N'){ A('cab_rud','me','flow'); A('rud','me','blink'); }
+ if(s.spd) ['splL','splR'].forEach(x=>A(x,k.H?'me':'warn',k.H?null:'blink'));
+ if(s.fp>0.5||s.flaps>0){ const mv=Math.abs(s.fp-s.flaps)>0.5; ['flapL','flapR'].forEach(x=>A(x,mv&&!k.H?'warn':'me',mv?'blink':null)); }
+ const gm=s.gp>0.99?['grn',null]:(s.gp<0.01?null:['me','blink']); if(gm) ['ngear','mgL','mgR'].forEach(x=>A(x,gm[0],gm[1])); if(k.H) A('brk','hg');
+ if(k.dc){ if(s.nav){ A('navL','lr'); A('navR','lg'); A('navT','lt'); } if(s.beacon) A('bcn','lr','blink'); if(s.strobe) A('stb','lt','blink'); if(s.land) A('land','lt'); }
+ const lv=[]; [0,1].forEach(i=>{ if(s.es[i]===1) lv.push(`MOTEUR ${i+1} : N2 ${s.n2[i].toFixed(0)} %${k.motor[i]?' · démarreur-génératrice en moteur':''}${k.ign[i]?' · ALLUMAGE':''}${k.burn[i]?' · carburant · ITT '+Math.round(s.itt[i])+' °C':(s.n2[i]>=10&&!k.fuelOn[i]?' · prêt : manette sur IDLE':'')}`); if(s.hot[i]&&s.es[i]) lv.push(`MOTEUR ${i+1} : DÉMARRAGE CHAUD — carburant introduit trop tôt`); });
+ const memo=[]; if(k.dc&&!k.charge) memo.push([AM,'BATTERIES SEULES']); [0,1].forEach(i=>{ if(s.hot[i]&&s.es[i]) memo.push([RD,'ITT '+(i+1)+' HOT START']); }); if(k.H) memo.push([G,'HYD PRESS']);
+ return {p,k,lv,memo}; }
+function page(pg,s,d){ const k=d.k; if(!k.dc) return OFFSCR('Aucune source 28 V : batteries, GPU ou génératrices'); if(!k.scr) return OFFSCR('Écrans alimentés par les convertisseurs : INVERTERS sur ON'); let b='';
+ if(pg==='ÉLEC'){ b+=T(160,14,'ÉLECTRICITÉ 28 V DC',W,12,'middle'); const v=k.charge?'28.5':((s.bat1||s.bat2)?'24.2':'0'); b+=T(160,50,v+' V',k.charge?G:AM,22,'middle')+T(160,70,'BARRES DC',CY,10,'middle');
+  [['BAT 1',s.bat1],['BAT 2',s.bat2],['GPU',k.gpu],['GEN 1',k.g[0]],['GEN 2',k.g[1]],['INV AC',k.ac]].forEach((r,i)=>{ const x=20+(i%3)*100, y=96+Math.floor(i/3)*48; b+=BX(x,y,84,36,r[1]?G:GY)+T(x+42,y+15,r[0],r[1]?W:GY,11,'middle')+T(x+42,y+29,r[1]?(r[0].startsWith('GEN')?'+ '+Math.round(120+s.n2[i-3]*1.5)+' A':'EN LIGNE'):'—',r[1]?G:GY,9.5,'middle'); }); }
+ else if(pg==='MOTEURS'){ b+=T(160,14,'MOTEURS PW305A',W,12,'middle'); [0,1].forEach(i=>{ const x=i?240:80; b+=ARC(x,62,32,s.n2[i],110,'N2','%',G,0.95)+ARC(x,140,30,s.itt[i],1000,'ITT','°C',s.itt[i]>850?RD:G,0.85)+T(x,186,s['tl'+(i+1)],CY,11,'middle'); }); }
+ else if(pg==='CARBURANT'){ b+=T(160,14,'CARBURANT',W,12,'middle')+T(160,34,'TOTAL '+Math.round(s.fuel.l+s.fuel.f+s.fuel.r)+' LB',G,11,'middle'); [['AILE G',s.fuel.l,20],['FUSELAGE',s.fuel.f,120],['AILE D',s.fuel.r,220]].forEach(r=>{ b+=BX(r[2],60,80,46,W)+T(r[2]+40,86,Math.round(r[1]),G,13,'middle')+T(r[2]+40,120,r[0],W,9.5,'middle'); });
+  b+=T(60,150,'PRESS G '+(k.press[0]?'OK':'BASSE'),k.press[0]?G:AM,10.5,'middle')+T(260,150,'PRESS D '+(k.press[1]?'OK':'BASSE'),k.press[1]?G:AM,10.5,'middle')+T(160,170,'CROSSFLOW '+(s.xflow?'OUVERT':'FERMÉ'),s.xflow?G:W,10,'middle'); }
+ else if(pg==='HYDRAU'){ b+=T(160,14,'HYDRAULIQUE',W,12,'middle')+T(160,70,Math.round(s.hP/50)*50+' PSI',k.H?G:AM,24,'middle')+T(160,100,'POMPES MOTEUR '+(s.es[0]===2?'1 ':'')+(s.es[1]===2?'2':'')+(s.es[0]!==2&&s.es[1]!==2?'—':''),W,10.5,'middle')+T(160,120,'POMPE AUX '+(s.hAux&&k.dc?'ON':'OFF'),s.hAux?G:W,10.5,'middle')+T(160,150,'Train · volets · spoilers · freins',CY,10,'middle'); }
+ else if(pg==='COMMANDES'){ b+=T(160,14,'COMMANDES DE VOL',W,12,'middle')+T(160,40,'Ailerons, profondeur, direction : CÂBLES (sans hydraulique)',CY,9.5,'middle')+T(160,80,'VOLETS '+Math.round(s.fp)+'°',Math.abs(s.fp-s.flaps)>0.5?CY:G,14,'middle')+T(160,110,'SPOILERS '+(s.spd?'SORTIS':'RENTRÉS'),s.spd?(k.H?G:AM):W,11,'middle')+T(160,140,'TRAIN '+(s.gp>0.99?'SORTI VERROUILLÉ':s.gp<0.01?'RENTRÉ':'EN TRANSIT'),s.gp>0.99?G:s.gp<0.01?W:RD,11,'middle'); }
+ else if(pg==='AIR'){ b+=T(160,14,'AIR · PRESSURISATION',W,12,'middle')+T(160,60,'BLEED 1 '+(k.bl[0]?'ON':'OFF')+'   BLEED 2 '+(k.bl[1]?'ON':'OFF'),k.air?G:AM,11,'middle')+T(160,90,'MACHINE À CYCLE À AIR '+(k.air?'EN MARCHE':'ARRÊTÉE'),k.air?G:W,10.5,'middle')+T(160,120,'BORDS D\'ATTAQUE '+(s.wai&&k.air?'CHAUDS':'—'),s.wai&&k.air?G:W,10.5,'middle')+T(160,150,'STABILISATEUR '+(s.stab&&(k.g[0]||k.g[1])?'CHAUFFÉ':'—'),W,10.5,'middle'); }
+ return SCR(b,d.memo); }
+function on(s,id,v,prev,raw){ const k=kk(s);
+ if(id==='st1'||id==='st2'){ const i=+id[2]-1; if(s.es[i]===0&&k.dc){ s.es[i]=1; s.hot[i]=s['tl'+(i+1)]!=='CUT'?1:0; } }
+ if((id==='tl1'||id==='tl2')){ const i=+id[2]-1; if(s.es[i]===1&&v!=='CUT'&&prev==='CUT'&&s.n2[i]<10) s.hot[i]=1; }
+ if(id==='gear'&&s.ground&&v==='UP') s.gear='DOWN'; if(id==='gpu'&&!s.ground) s.gpu=false; if(id==='yoke'||id==='ped'){} }
+function ex(id,s,d){ const k=d.k, o={ln:[]}, ln=(c,t)=>o.ln.push([c,t]), blk=(t,go)=>{ o.blk=t; o.go=go; };
+ switch(id){
+ case 'bat1': case 'bat2': o.h='BAT '+id[3]+' — Batterie'; ln('el','Le relais de batterie se ferme : la batterie (24 V, dans le cône arrière) alimente les barres 28 V continu par de gros câbles qui remontent le fuselage.'); ln('el',k.charge?'Une génératrice ou le GPU recharge la batterie.':'Sur batteries seules, l\'autonomie est courte : démarrer vite ou brancher le GPU.'); break;
+ case 'gpu': o.h='GPU — Groupe de parc 28 V'; if(!s.ground){ blk('En vol, pas de groupe de parc.'); break; } ln('el','Le groupe de parc fournit du 28 V continu par la prise arrière droite : il soulage les batteries, surtout pendant le démarrage (le démarreur consomme des centaines d\'ampères).'); break;
+ case 'gen1': case 'gen2': { const i=+id[3]-1; o.h='GEN '+(i+1)+' — Démarreur-génératrice'; ln('me','Sur chaque moteur, une seule machine électrique sert de démarreur (elle fait tourner le moteur) puis de génératrice 28 V continu (environ 400 A) quand le moteur tourne.');
+  if(s.es[i]!==2) blk('Moteur arrêté : la génératrice ne produit rien.','st'+(i+1)); else if(s[id]) ln('el','Le régulateur de tension (GCU) connecte la génératrice aux barres : elle recharge les batteries.'); break; }
+ case 'inv': o.h='INVERTERS — Convertisseurs'; ln('el','Des convertisseurs statiques transforment le 28 V continu en 115 V et 26 V alternatif pour les écrans, les centrales et les instruments.'); if(!k.dc) blk('Pas de 28 V.','bat1'); break;
+ case 'sb1': case 'sb2': o.h='STBY PUMP — Pompe de secours'; ln('fu','Pompe électrique immergée dans l\'aile : elle fournit la pression carburant au démarrage. Moteur tournant, ce sont les pompes à jet (entraînées par le carburant de retour du moteur) qui prennent le relais.'); if(!k.dc) blk('Pas de 28 V.','bat1'); break;
+ case 'xflow': o.h='CROSSFLOW — Intercommunication'; ln('fu','La vanne relie les deux ailes : on rééquilibre le carburant ou on alimente un moteur depuis l\'autre aile.'); break;
+ case 'st1': case 'st2': { const i=+id[2]-1; o.h='START '+(i+1)+' — Démarrage moteur '+(i+1); if(!k.dc){ blk('Aucune source 28 V : le démarreur ne tourne pas.','bat1'); break; }
+  ln('el','1. Le démarreur-génératrice passe en moteur électrique : il fait tourner l\'attelage haute pression (N2). Forte consommation : la tension des batteries baisse.');
+  ln('fu','2. Vers 10 % de N2, le pilote pousse la manette de CUTOFF à IDLE : la régulation électronique ouvre le carburant.'); ln('ig','3. L\'allumage est automatique pendant le démarrage : combustion, l\'ITT monte (surveiller la limite).');
+  ln('el','4. Vers 45 %, le démarreur se coupe automatiquement ; le moteur accélère seul jusqu\'au ralenti. Ensuite GEN ON : la même machine devient génératrice.');
+  if(!k.press[i]) blk('Pression carburant basse : mettez la pompe de secours (STBY PUMP) de ce côté sur ON avant d\'introduire le carburant.','sb'+(i+1));
+  if(s.hot[i]) blk('Manette déjà sur IDLE au moment du démarrage : le carburant arrive avant que l\'air soit suffisant → démarrage chaud (ITT trop élevée). Manette sur CUTOFF immédiatement.','tl'+(i+1)); break; }
+ case 'tl1': case 'tl2': { const i=+id[2]-1; o.h='Manette de poussée '+(i+1); ln('me','La manette est reliée par câble à la régulation du moteur ; le cran CUTOFF coupe le carburant (vanne d\'arrêt).'); ln('dat','La régulation électronique (DEEC) dose le carburant : IDLE ≈ 56 % de N2, MAX ≈ 97 %.');
+  if(s[id]!=='CUT'&&s.es[i]===1&&s.n2[i]<10) blk('Trop tôt : N2 inférieur à 10 %. Le carburant arrive sans assez d\'air → démarrage chaud.','tl'+(i+1)); if(s[id]==='CUT') ln('fu','CUTOFF : carburant coupé, le moteur s\'arrête.'); break; }
+ case 'hAux': o.h='AUX HYD PUMP — Pompe auxiliaire'; ln('hg','Pompe électrique 28 V : pression hydraulique moteurs arrêtés (freins, volets) ou en secours. Les deux pompes principales sont entraînées par les moteurs.'); if(!k.dc) blk('Pas de 28 V.','bat1'); break;
+ case 'bl1': case 'bl2': o.h='BLEED '+id[2]+' — Prélèvement d\'air'; ln('ah','Air chaud pris au compresseur, régulé, envoyé à la machine à cycle à air (dans le cône arrière) qui le refroidit pour la cabine et la pressurisation.'); if(s.es[+id[2]-1]!==2) blk('Moteur arrêté : pas d\'air.','st'+id[2]); break;
+ case 'wai': o.h='WING HEAT — Antigivrage voilure'; ln('ah','Air chaud prélevé envoyé dans les bords d\'attaque et le pare-brise.'); if(!k.air) blk('Aucun moteur ne fournit d\'air.','st1'); break;
+ case 'stab': o.h='STAB HEAT — Réchauffage du stabilisateur'; ln('el','Des résistances électriques chauffent le bord d\'attaque du stabilisateur horizontal (empennage en T, trop loin pour l\'air chaud).'); if(!(k.g[0]||k.g[1])) blk('Consommation trop forte pour les batteries : il faut une génératrice en ligne.','gen1'); break;
+ case 'pitotH': o.h='PITOT HEAT'; ln('el','Résistances dans les sondes Pitot et statiques : pas de givre, vitesse et altitude justes.'); break;
+ case 'beacon': case 'strobe': case 'nav': case 'land': o.h={beacon:'BEACON — Anticollision',strobe:'STROBE — Feux à éclats',nav:'NAV — Navigation',land:'LANDING — Phares'}[id]; ln('lt',{beacon:'Feux rouges à éclats : moteurs en marche.',strobe:'Éclats blancs aux saumons : être vu.',nav:'Rouge à gauche, vert à droite, blanc à l\'arrière.',land:'Phares d\'atterrissage.'}[id]); if(!k.dc) blk('Pas de 28 V.','bat1'); break;
+ case 'yoke': o.h='Volant (yoke)'; ln('me','Le Learjet 60 a des commandes de vol MÉCANIQUES : le volant tire des câbles qui passent sur des poulies jusqu\'aux ailerons et à la profondeur. Aucun calculateur, aucun hydraulique : ça marche même avion éteint.'); ln('hg','Seuls les spoilerons (aide au roulis) sont hydrauliques.'); break;
+ case 'ped': o.h='Palonnier'; ln('me','Câbles vers la gouverne de direction ; un amortisseur de lacet électrique agit en plus en vol.'); break;
+ case 'flaps': o.h='Levier des volets'; ln('hg','Une vanne de sélection envoie la pression hydraulique aux vérins des volets.'); if(!k.H) blk('Pas de pression hydraulique : démarrez un moteur ou mettez AUX HYD PUMP.','hAux'); break;
+ case 'spd': o.h='Spoilers'; ln('hg','Vérins hydrauliques des spoilers sur l\'extrados.'); if(!k.H) blk('Pas de pression hydraulique.','hAux'); break;
+ case 'gear': o.h='Levier de train'; if(s.ground){ ln('me','Au sol, un contacteur sur l\'amortisseur interdit la rentrée.'); } ln('hg','Vérins hydrauliques du train ; secours : bouteille d\'azote (sortie pneumatique).'); if(!k.H&&!s.ground) blk('Pas de pression hydraulique.','hAux'); break;
+ case 'ground': o.h='Situation'; ln('me',s.ground?'Au sol.':'En vol.'); break; }
+ return o; }
+const tours={start:{n:'Démarrage des deux moteurs',st:[['bat1',true,'Batteries : les barres 28 V s\'allument.'],['bat2',true,''],['gpu',true,'Groupe de parc : il fournira le fort courant du démarreur.'],['inv',true,'Convertisseurs : les écrans s\'allument.'],['beacon',true,'Anticollision.'],['sb2',true,'Pompe de secours droite : pression carburant.'],
+ ['st2',true,'START 2 : le démarreur-génératrice fait tourner le moteur 2 (électricité en bleu clair vers le moteur).',s=>s.n2[1]>=10,'Attendre N2 > 10 %'],['tl2','IDLE','Manette 2 sur IDLE : carburant et allumage, l\'ITT monte.',s=>s.es[1]===2,'Attendre le ralenti'],['gen2',true,'La même machine devient génératrice : elle recharge les batteries (le courant change de sens).'],
+ ['sb1',true,''],['st1',true,'START 1.',s=>s.n2[0]>=10,'Attendre N2 > 10 %'],['tl1','IDLE','',s=>s.es[0]===2,'Attendre le ralenti'],['gen1',true,''],['gpu',false,'GPU débranché.'],['yoke','L','Volant à gauche : les câbles (magenta) bougent les ailerons, sans calculateur.'],['flaps',8,'Volets 8° : hydraulique.']]}};
+function preset(n){ const s=init(); if(n==='cold') return s; Object.assign(s,{bat1:true,bat2:true,gpu:true,inv:true,nav:true}); if(n==='elec') return s; Object.assign(s,{gpu:false,sb1:true,sb2:true,gen1:true,gen2:true,es:[2,2],n2:[56,56],itt:[520,520],tl1:'IDLE',tl2:'IDLE',hP:1500,beacon:true}); return s; }
+MOD.lj60={name:'Learjet 60',sub:'2 réacteurs PW305A à l\'arrière · électricité 28 V continu · commandes de vol par câbles',vb:'0 0 400 600',svg:body+parts+labels,names:NM,ctl,init,step,ev,page,ex,on,tours,preset,
+ pages:['ÉLEC','MOTEURS','CARBURANT','HYDRAU','COMMANDES','AIR'],legend:['el','dat','fu','hg','ah','ac','me','ig','hot','lt','fire'],presets:[['cold','Avion froid'],['elec','Sous tension'],['run','Moteurs en route']],
+ ground:{on:s=>{ if(s.ground){ if(s.es[0]!==2&&s.es[1]!==2) return 'Aucun moteur ne tourne.'; s.ground=false; s.gpu=false; } else { if(s.gp<0.99) return 'Train rentré !'; s.ground=true; } }}};
+})();
+
+/* ================= HÉLICOPTÈRES À TURBINE (H125, S-76) ================= */
+function heli(o){
+ const n=o.n, ids=[...Array(n).keys()];
+ const ctl=[
+  {g:'Électricité',w:o.wElec,c:[{id:'bat',l:'BAT',t:'pb',pg:o.pE,pt:['bat','dcbus','f_bat'],lt:pbOn('bat')},...ids.map(i=>({id:'gen'+i,l:n>1?'GEN '+(i+1):'GEN',t:'pb',pg:o.pE,pt:['sg'+i,'f_gen'+i],lt:pbOn('gen'+i)}))]},
+  {g:'Carburant',w:o.wFuel,c:[...ids.map(i=>({id:'bp'+i,l:n>1?'BOOST '+(i+1):'POMPE GAVAGE',t:'pb',pg:o.pF,pt:['bp'+i,'tank'],lt:pbOn('bp'+i)})),...ids.map(i=>({id:'fso'+i,l:n>1?'ROBINET '+(i+1):'ROBINET CARBURANT',t:'sel',o:[false,true],ol:['FERMÉ','OUVERT'],pg:o.pF,pt:['fsv'+i,'f_fu'+i]})),...(n>1?[{id:'xfeed',l:'X FEED',t:'pb',pg:o.pF,pt:['xfv'],lt:pbOn('xfeed','OPEN')}]:[])]},
+  {g:'Moteur · rotor',w:o.wEng,c:[{id:'rbrake',l:'FREIN ROTOR',t:'sel',o:[true,false],ol:['SERRÉ','DESSERRÉ'],pg:o.pM,pt:['rbrk','mgb']},...ids.map(i=>({id:'eng'+i,l:n>1?'MOTEUR '+(i+1):'SÉLECTEUR MOTEUR',t:'sel',o:['OFF','IDLE','FLIGHT'],ol:['OFF','IDLE','FLIGHT'],pg:o.pM,pt:['sg'+i,'e'+i+'c','e'+i+'b','e'+i+'ig','fadec'+i]}))]},
+  {g:'Hydraulique',w:o.wHyd,c:ids.slice(0,o.hyd).map(i=>({id:'hyd'+i,l:o.hyd>1?'HYD '+(i+1):'HYD (coupure)',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'HYD',pt:['hp'+i,'srv','srvT']}))},
+  {g:'Sondes · feux',w:'console',c:[{id:'pitot',l:'PITOT',t:'sel',o:[false,true],ol:['OFF','ON'],pg:o.pE,pt:['pitot']},{id:'nav',l:'NAV',t:'sel',o:[false,true],ol:['OFF','ON'],pg:o.pE,pt:['navL','navR','navT']},{id:'acol',l:'ANTICOL',t:'sel',o:[false,true],ol:['OFF','ON'],pg:o.pE,pt:['acol']},{id:'land',l:'PHARE',t:'sel',o:[false,true],ol:['OFF','ON'],pg:o.pE,pt:['land']}]},
+  {g:'Commandes de vol',w:'cyclique, collectif, palonnier',c:[
+   {id:'coll',l:'COLLECTIF',t:'sel',o:[0,1,2],ol:['BAS','DÉCOLLER','MONTER'],pg:o.pM,pt:['srv','head','rotor']},
+   {id:'cyc',l:'CYCLIQUE',t:'pad',o:[['F','▲ avant'],['A','▼ arrière'],['L','◀ gauche'],['R','droite ▶']],pg:'HYD',pt:['srv','head','rotor']},
+   {id:'ped',l:'PALONNIER',t:'pad',o:[['L','◀ gauche'],['R','droit ▶']],pg:'HYD',pt:['srvT','tr','tds']},
+   ...(o.gear?[{id:'gear',l:'TRAIN',t:'sel',o:['UP','DOWN'],ol:['UP','DOWN'],pg:'HYD',pt:['gearN','gearL','gearR']}]:[])]}];
+ function init(){ const s={ground:true,bat:false,rbrake:true,pitot:false,nav:false,acol:false,land:false,coll:0,cyc:'N',cycT:0,ped:'N',pedT:0,nr:0,xfeed:false,gear:'DOWN',gp:1,fuel:o.fuel,t:0};
+  ids.forEach(i=>{ Object.assign(s,{['gen'+i]:false,['bp'+i]:false,['fso'+i]:false,['eng'+i]:'OFF',['hyd'+i]:true}); }); s.es=ids.map(()=>0); s.ng=ids.map(()=>0); s.t4=ids.map(()=>15); s.hp=[0,0]; s.acc=1; return s; }
+ function kk(s){ const k={}; k.g=ids.map(i=>s.es[i]===2&&s['gen'+i]&&s.ng[i]>50); k.dc=s.bat||k.g.some(x=>x); k.fuelP=ids.map(i=>(s['bp'+i]&&k.dc)||(n>1&&s.xfeed&&s['bp'+(1-i)]&&k.dc));
+  k.burn=ids.map(i=>s['fso'+i]&&(s.es[i]===2||(s.es[i]===1&&s.ng[i]>=12)));
+  k.motor=ids.map(i=>s.es[i]===1&&s.ng[i]<45); k.ign=ids.map(i=>s.es[i]===1&&s.ng[i]>=8&&s.ng[i]<45);
+  k.run=ids.some(i=>s.es[i]===2); k.fl=ids.every(i=>s['eng'+i]==='FLIGHT'&&s.es[i]===2);
+  k.hy=ids.slice(0,o.hyd).map(i=>s.hp[i]>0.6); k.H=k.hy.some(x=>x); k.scr=k.dc; return k; }
+ function step(s,dt){ const k=kk(s); s.t+=dt;
+  ids.forEach(i=>{ const sel=s['eng'+i];
+   if(s.es[i]===1){ if(sel==='OFF'||!k.dc&&s.ng[i]<45||!s['fso'+i]&&s.ng[i]>=12){ s.es[i]=0; } else { s.ng[i]+=dt*(s.ng[i]<15?5:s.ng[i]<45?5.5:3); if(s.ng[i]>=o.ngIdle){ s.es[i]=2; } } }
+   else if(s.es[i]===2){ if(sel==='OFF'||!s['fso'+i]) s.es[i]=0; else s.ng[i]=near(s.ng[i],sel==='FLIGHT'?o.ngFl+s.coll*4:o.ngIdle,dt*0.7); }
+   else { s.ng[i]=Math.max(0,s.ng[i]-dt*6); if(sel!=='OFF'&&s.ng[i]<10&&k.dc&&s['fso'+i]&&k.fuelP[i]&&!s.rbrake) s.es[i]=1; }
+   const tt=k.burn[i]?(s.es[i]===1?720:(sel==='FLIGHT'?560+s.coll*90:470)):15+s.ng[i]*.3; s.t4[i]=near(s.t4[i],tt,dt*(tt>s.t4[i]?1:0.3)); });
+  const nrT=s.rbrake?0:(k.run?(k.fl?o.nrNom:o.nrIdle):0); s.nr=k.run&&!s.rbrake?near(s.nr,nrT,dt*0.35):Math.max(0,s.nr-dt*o.nrNom*0.035);
+  ids.slice(0,o.hyd).forEach(i=>{ const t=(s['hyd'+i]&&s.nr>o.nrNom*0.3)?1:0; s.hp[i]=near(s.hp[i],t,dt*(t?1.5:0.5)); });
+  if(s.coll===0&&!s.ground) s.ground=true; if(s.coll>0&&s.ground&&k.fl&&s.nr>o.nrNom*0.95) s.ground=false; if(!s.ground&&(!k.run||s.nr<o.nrNom*0.85)) s.ground=true;
+  if(o.gear){ const gt=s.gear==='DOWN'?1:0; if(s.gp!==gt&&k.H&&!s.ground) s.gp+=Math.sign(gt-s.gp)*Math.min(Math.abs(gt-s.gp),dt/5); }
+  s.cycT=Math.max(0,s.cycT-dt); if(!s.cycT) s.cyc='N'; s.pedT=Math.max(0,s.pedT-dt); if(!s.pedT) s.ped='N';
+  s.fuel=Math.max(0,s.fuel-ids.reduce((a,i)=>a+(k.burn[i]?(s.es[i]===2?o.ff:40):0),0)*dt/3600); }
+ function ev(s){ const k=kk(s), p={}, sp={}, A=(id,c,m)=>{ p[id]=m?[c,m]:c; };
+  if(s.bat) A('bat','el',k.g.some(x=>x)?null:'blink'); if(s.bat) A('f_bat','el',k.g.some(x=>x)?'rev':'flow'); if(k.dc){ A('dcbus','el'); A('scr','el'); A('f_dc','el','flow'); }
+  A('tank','fu','dim');
+  ids.forEach(i=>{ if(k.g[i]){ A('sg'+i,'el'); A('f_gen'+i,'el','flow'); } if(k.motor[i]&&s.es[i]===1){ A('sg'+i,'el','blink'); A('f_gen'+i,'el','rev'); }
+   if(s['bp'+i]&&k.dc) A('bp'+i,'fu'); if(s['fso'+i]) A('fsv'+i,'fu'); if(k.burn[i]) A('f_fu'+i,'fu','flow'); else if(k.fuelP[i]&&s['fso'+i]) A('f_fu'+i,'fu','st');
+   if(k.dc&&(s.es[i]||s['eng'+i]!=='OFF')) A('fadec'+i,'dat'); if(k.ign[i]) A('e'+i+'ig','ig','blink');
+   if(s.ng[i]>2) A('e'+i+'c','me',s.ng[i]>20?'flow':'dim'); if(k.burn[i]){ A('e'+i+'b','hot',s.es[i]===1?'blink':null); A('e'+i+'x','hot','flow'); } if(s.nr>5&&k.burn[i]) A('e'+i+'n','me');
+   if(s.t4[i]>o.t4lim) A('e'+i+'b','fire','blink'); });
+  if(n>1&&s.xfeed&&k.dc) A('xfv','fu');
+  if(s.nr>1){ const sp1=Math.max(0.12,1.6-s.nr/o.nrNom*1.45).toFixed(2)+'s'; ['shaft','mgb','head','tds','tgb'].forEach(x=>A(x,'me',x==='shaft'||x==='tds'?'flow':null)); A('rotor','me','spin'); sp.rotor=sp1; A('tr','me','blink'); A('oil','oil'); ids.forEach(i=>A('fw'+i,'me')); }
+  if(s.rbrake) A('rbrk',s.nr>o.nrNom*0.45?'warn':'me',s.nr>o.nrNom*0.45?'blink':null);
+  ids.slice(0,o.hyd).forEach(i=>{ if(s.hp[i]>0.2) A('hp'+i,i?'hb':'hg'); }); const hc=k.hy[0]?'hg':(k.hy[1]?'hb':null);
+  if(hc){ A('srv',hc); A('srvT',hc); A('f_hyd',hc,'st'); if(o.hyd===1) A('acc',hc); }
+  if(s.cyc!=='N'){ A('srv',hc||'warn','blink'); A('head','me','blink'); } if(s.ped!=='N'){ A('srvT',hc||'warn','blink'); A('tr','me','blink'); }
+  if(s.coll>0&&s.nr>1) A('disc',s.ground?'me':'ac',s.ground?'dim':null);
+  if(o.gear){ const gm=s.gp>0.99?['grn',null]:(s.gp<0.01?null:['me','blink']); if(gm) ['gearN','gearL','gearR'].forEach(x=>A(x,gm[0],gm[1])); }
+  if(k.dc){ if(s.nav){ A('navL','lr'); A('navR','lg'); A('navT','lt'); } if(s.acol) A('acol','lr','blink'); if(s.land) A('land','lt'); if(s.pitot) A('pitot','el'); }
+  const lv=[]; ids.forEach(i=>{ if(s.es[i]===1) lv.push(`${n>1?'MOTEUR '+(i+1):'MOTEUR'} : Ng ${s.ng[i].toFixed(0)} %${k.motor[i]?' · démarreur':''}${k.ign[i]?' · allumage':''}${k.burn[i]?' · carburant · T4 '+Math.round(s.t4[i])+' °C':''}`); });
+  if(s.nr>1&&s.nr<o.nrNom*0.97&&k.run) lv.push(`ROTOR : NR ${Math.round(s.nr)} ${o.nrU} (nominal ${o.nrNom})`); if(!s.ground) lv.push('EN VOL STATIONNAIRE'); if(s.coll>0&&s.ground&&k.run&&!k.fl) lv.push('Collectif levé mais moteur(s) pas sur FLIGHT : pas de décollage');
+  const memo=[]; if(s.rbrake&&s.nr>o.nrNom*0.45) memo.push([RD,'FREIN ROTOR !']); if(!k.H&&s.nr>o.nrNom*0.5) memo.push([AM,'HYD : COMMANDES DURES']); ids.forEach(i=>{ if(s.t4[i]>o.t4lim) memo.push([RD,'T4 '+(n>1?i+1:'')+' DÉPASSÉE']); if(!k.g[i]&&s.es[i]===2) memo.push([AM,'GEN '+(n>1?i+1:'')+' OFF']); });
+  return {p,sp,k,lv,memo}; }
+ function page(pg,s,d){ const k=d.k; if(!k.dc) return OFFSCR('Batterie et génératrice(s) sur OFF'); let b='';
+  if(pg===o.pM){ b+=T(160,14,o.pM+' — PARAMÈTRES MOTEUR',W,11,'middle'); ids.forEach(i=>{ const x=n>1?(i?240:80):100; b+=ARC(x,62,30,s.ng[i],110,'Ng','%',G,0.95)+ARC(x,140,28,s.t4[i],1000,'T4','°C',s.t4[i]>o.t4lim?RD:G,o.t4lim/1000); });
+   b+=ARC(n>1?160:230,100,34,s.nr,o.nrNom*1.2,'NR',o.nrU==='%'?'%':'',s.nr>o.nrNom*1.05?RD:G,0.9); b+=T(160,188,ids.map(i=>s['eng'+i]).join(' · '),CY,10,'middle'); }
+  else if(pg===o.pE){ b+=T(160,14,'ÉLECTRICITÉ',W,12,'middle')+T(160,56,(k.g.some(x=>x)?'28.5':'24.0')+' V',k.g.some(x=>x)?G:AM,22,'middle')+T(160,80,s.bat?'BATTERIE CONNECTÉE':'BATTERIE OFF',s.bat?G:W,10.5,'middle')+ids.map(i=>T(160,104+i*20,(n>1?'GEN '+(i+1):'GÉNÉRATRICE')+' : '+(k.g[i]?'EN LIGNE':(s.es[i]===2?'OFF':'MOTEUR ARRÊTÉ')),k.g[i]?G:AM,10.5,'middle')).join(''); }
+  else if(pg===o.pF){ b+=T(160,14,'CARBURANT',W,12,'middle')+T(160,60,Math.round(s.fuel)+' kg',G,22,'middle')+ids.map(i=>T(160,96+i*18,(n>1?'MOT. '+(i+1)+' ':'')+'PRESSION '+(k.fuelP[i]?'OK':'BASSE')+' · ROBINET '+(s['fso'+i]?'OUVERT':'FERMÉ'),k.fuelP[i]?G:AM,10.5,'middle')).join(''); }
+  else if(pg==='HYD'){ b+=T(160,14,'HYDRAULIQUE · SERVOCOMMANDES',W,11,'middle')+ids.slice(0,o.hyd).map(i=>T(160,56+i*28,(o.hyd>1?'CIRCUIT '+(i+1)+' ':'')+(k.hy[i]?'PRESSION OK':'PAS DE PRESSION'),k.hy[i]?G:AM,13,'middle')).join('')+T(160,120,'Pompe(s) entraînée(s) par la BTP',CY,9,'middle')+(o.gear?T(160,150,'TRAIN '+(s.gp>0.99?'SORTI':s.gp<0.01?'RENTRÉ':'EN TRANSIT'),s.gp>0.99?G:W,11,'middle'):''); }
+  return SCR(b,d.memo); }
+ function on(s,id,v,prev){ const k=kk(s);
+  if(/^eng\d$/.test(id)){ const i=+id[3]; if(prev==='OFF'&&v!=='OFF'&&s.es[i]===0&&s.ng[i]<10){ if(k.dc&&s['fso'+i]&&k.fuelP[i]&&!s.rbrake) s.es[i]=1; } }
+  if(id==='rbrake'&&v===true&&s.nr>o.nrNom*0.45){ s.rbrake=false; s._rbBlk=1; } else if(id==='rbrake') s._rbBlk=0;
+  if(id==='gear'&&s.ground&&v==='UP') s.gear='DOWN'; }
+ function ex(id,s,d){ const k=d.k, O={ln:[]}, ln=(c,t)=>O.ln.push([c,t]), blk=(t,go)=>{ O.blk=t; O.go=go; }; const m=id.match(/^(\w+?)(\d)$/), i=m?+m[2]:0, base=m?m[1]:id, nn=n>1?' '+(i+1):'';
+  switch(base){
+  case 'bat': O.h='BAT — Batterie'; ln('el',o.tBat); ln('el',k.g.some(x=>x)?'La génératrice recharge la batterie.':'Batterie seule : elle doit fournir le démarrage, très gourmand.'); break;
+  case 'gen': O.h='GEN'+nn+' — Démarreur-génératrice'; ln('me','Monté sur la boîte d\'accessoires du moteur : moteur électrique au démarrage, génératrice 28 V continu ensuite.'); if(s.es[i]!==2) blk('Moteur arrêté : pas de courant produit.','eng'+i); break;
+  case 'bp': O.h='POMPE DE GAVAGE'+nn; ln('fu','Pompe électrique immergée dans le réservoir : elle pousse le carburant vers la pompe haute pression du moteur. Indispensable au démarrage.'); if(!k.dc) blk('Pas de courant.','bat'); break;
+  case 'fso': O.h='ROBINET CARBURANT'+nn; ln('me','Levier relié par câble à la vanne d\'arrêt carburant (sur le moteur).'); ln('fu',s[id]?'Ouvert : le carburant arrive jusqu\'au régulateur du moteur.':'Fermé : le moteur s\'arrête (c\'est aussi l\'arrêt d\'urgence en cas de feu).'); break;
+  case 'xfeed': O.h='X FEED'; ln('fu','Intercommunication : un réservoir alimente les deux moteurs.'); break;
+  case 'rbrake': O.h='FREIN ROTOR'; ln('me','Un étrier hydraulique ou mécanique serre un disque sur la sortie de la boîte de transmission principale : il immobilise le rotor.');
+   if(s._rbBlk) blk(`Interdit : NR trop élevé (${Math.round(s.nr)} ${o.nrU}). Le frein rotor ne s\'utilise qu\'à faible régime (${o.rbMax}), après l\'arrêt du moteur, sinon le disque surchauffe.`);
+   else if(s.rbrake) ln('me','Serré : le démarrage moteur est inhibé (on ne lance pas une turbine rotor bloqué).'); else ln('me','Desserré : le rotor peut tourner.'); break;
+  case 'eng': O.h=(n>1?'MOTEUR'+nn:'SÉLECTEUR MOTEUR')+' — '+o.engName;
+   if(s[id]==='OFF'){ ln('fu','OFF : la régulation coupe le carburant, la turbine ralentit ; le rotor continue sur son inertie grâce à la roue libre.'); break; }
+   if(s.es[i]===0&&s.ng[i]<10){ if(!k.dc){ blk('Aucun courant : le démarreur et la régulation ne fonctionnent pas.','bat'); break; } if(s.rbrake){ blk('Frein rotor serré : démarrage inhibé. Desserrez-le d\'abord.','rbrake'); break; } if(!s['fso'+i]){ blk('Robinet carburant fermé.','fso'+i); break; } if(!k.fuelP[i]){ blk('Pas de pression carburant : pompe de gavage sur ON.','bp'+i); break; } }
+   ln('el','1. Le démarreur-génératrice fait tourner le générateur de gaz (compresseur axial + centrifuge) : Ng monte.'); ln('ig','2. Vers 8-10 % de Ng : les bougies s\'allument.');
+   ln('fu','3. Vers 12 % : la régulation (FADEC) injecte le carburant dans la chambre annulaire ; T4 (température entre turbines) monte : surveiller la limite de démarrage.');
+   ln('hot','4. Les gaz font tourner la turbine du générateur de gaz, puis la TURBINE LIBRE, qui n\'est reliée qu\'à la transmission : c\'est elle qui entraîne la boîte principale, le rotor et le rotor anticouple, à travers la roue libre.');
+   ln('el','5. Vers 45 % de Ng le démarreur se coupe ; ralenti stabilisé. FLIGHT : la régulation maintient le régime rotor nominal ('+o.nrNom+' '+o.nrU+').'); break;
+  case 'hyd': O.h='HYD'+nn+' — Servocommandes'; ln(i?'hb':'hg','La pompe hydraulique est entraînée par la boîte de transmission principale : pas de pression tant que le rotor ne tourne pas.'); ln('me','Les servocommandes (vérins) déplacent le plateau cyclique et le pas du rotor anticouple : le pilote ne sent presque aucun effort.');
+   if(!s[id]) blk(o.hyd>1?'Ce circuit est coupé : l\'autre circuit reste disponible.':'Coupé : les accumulateurs gardent la pression quelques secondes, puis les commandes deviennent très dures (exercice de panne hydraulique).'); break;
+  case 'coll': O.h='Levier de pas collectif'; ln('me','Il change le pas de TOUTES les pales en même temps : plus de pas, plus de portance. La régulation ajoute du carburant pour garder le régime rotor.'); ln('hg','Il agit sur le plateau cyclique par les servocommandes hydrauliques.');
+   if(s.coll>0&&!k.fl) blk('Moteur(s) pas sur FLIGHT ou rotor pas au régime : décollage impossible.','eng0'); else if(s.coll>0&&!k.H) blk('Sans hydraulique, les efforts sont très importants.','hyd0'); break;
+  case 'cyc': O.h='Manche cyclique'; ln('me','Il incline le plateau cyclique : le pas de chaque pale varie pendant son tour, le disque rotor s\'incline et l\'hélicoptère part dans cette direction.'); if(!k.H&&s.nr>1) blk('Pas de pression hydraulique : efforts très importants.','hyd0'); if(s.nr<1) ln('me','Rotor arrêté : on voit seulement le plateau bouger.'); break;
+  case 'ped': O.h='Palonnier'; ln('me','Il change le pas du rotor anticouple (arrière) : il contre le couple du rotor principal et oriente le nez.'); break;
+  case 'gear': O.h='Train d\'atterrissage'; ln('hg','Vérins hydrauliques ; au sol la rentrée est interdite.'); break;
+  case 'pitot': O.h='PITOT'; ln('el','Réchauffage électrique de la sonde Pitot.'); break;
+  case 'nav': case 'acol': case 'land': O.h={nav:'Feux de navigation',acol:'Feu anticollision',land:'Phare'}[base]; ln('lt',{nav:'Rouge à gauche, vert à droite, blanc à l\'arrière.',acol:'Feu rouge à éclats : rotor/moteur en marche.',land:'Phare orientable.'}[base]); break;
+  case 'ground': O.h='Situation'; ln('me',s.ground?'Au sol.':'En vol.'); break; }
+  return O; }
+ const tours={start:{n:'Mise en route jusqu\'au stationnaire',st:[['bat',true,'Batterie : la console s\'allume.'],['nav',true,''],['acol',true,'Anticollision : le rotor va tourner.'],
+  ...ids.map(i=>['bp'+i,true,'Pompe de gavage : pression carburant.']),...ids.map(i=>['fso'+i,true,'Robinet carburant ouvert.']),['rbrake',false,'Frein rotor desserré.'],
+  ...ids.flatMap(i=>[['eng'+i,'IDLE','Démarrage : démarreur (bleu clair), allumage (jaune), carburant (orange), puis le rotor se met à tourner.',s=>s.es[i]===2,'Attendre le ralenti'],['gen'+i,true,'Génératrice en ligne.']]),
+  ...ids.map(i=>['eng'+i,'FLIGHT','Régime de vol : le rotor accélère au régime nominal.']),['coll',1,'Collectif : le pas augmente, décollage en stationnaire.',s=>!s.ground,'Attendre le décollage'],['cyc','F','Cyclique en avant : le disque s\'incline.']]}};
+ function preset(nm){ const s=init(); if(nm==='cold') return s; s.bat=true; s.nav=true; if(nm==='elec') return s; ids.forEach(i=>{ s['bp'+i]=true; s['fso'+i]=true; s['eng'+i]='FLIGHT'; s['gen'+i]=true; s.es[i]=2; s.ng[i]=o.ngFl; s.t4[i]=560; }); s.rbrake=false; s.nr=o.nrNom; s.hp=[1,1]; s.acol=true; return s; }
+ return {ctl,init,step,ev,page,ex,on,tours,preset,presets:[['cold','Appareil froid'],['elec','Sous tension'],['run','Moteur(s) en route']],legend:o.legend,pages:[o.pM,o.pE,o.pF,'HYD'],
+  ground:{on:s=>{ const k=kk(s); if(s.ground){ if(!k.fl||s.nr<o.nrNom*0.95) return 'Régime rotor de vol nécessaire (moteurs sur FLIGHT).'; s.coll=Math.max(1,s.coll); s.ground=false; } else { s.coll=0; s.ground=true; } }}}; }
+
+/* --- H125 --- */
+(function(){
+const cab='M200 140 C232 140 244 190 244 236 C244 290 228 318 200 318 C172 318 156 290 156 236 C156 190 168 140 200 140 Z', boom='M192 316 L196 560 L204 560 L208 316 Z', stab='M197 470 L150 474 L150 482 L197 482 Z';
+const body=`<path class="bd" d="${cab}"/><path class="bd" d="${boom}"/><path class="bd" d="${stab}"/><path class="bd" d="${mir(stab)}"/><path class="bdl" d="M164 176 V300 M236 176 V300 M156 190 H172 M156 290 H172 M228 190 H244 M228 290 H244"/>`;
+const parts=R('tank',178,200,44,62,6)+P('disc','M200 50 A180 180 0 1 1 199.9 50 Z','sp ring')+
+ F('f_bat','M200 344 V300 L214 300')+F('f_gen0','M216 318 L214 300 L222 180')+F('f_dc','M222 180 L206 160')+F('f_fu0','M190 258 L190 296')+F('f_hyd','M214 248 L186 222 M214 248 L214 222 M214 248 L200 470')+
+ F('shaft','M200 286 V262')+F('tds','M200 336 V552')+R('mgb',188,222,24,36,4)+Ci('head',200,236,6)+R('rbrk',196,258,8,4,1)+Ci('fw0',200,268,3)+
+ R('e0g',190,276,20,8,2)+R('e0c',189,284,22,12,3)+R('e0b',189,296,22,10,3)+R('e0n',190,306,20,10,2)+Ci('e0ig',186,301,2)+F('e0x','M200 316 V330')+R('fadec0',218,286,8,8,1)+R('sg0',212,312,8,8,1)+R('oil',180,312,8,8,1)+
+ Ci('bp0',192,250,3)+Ci('fsv0',190,268,2.8)+R('hp0',212,244,6,8,1)+R('srv',184,216,6,6,1)+R('srv',210,216,6,6,1)+R('srv',197,212,6,6,1)+R('acc',220,226,5,8,1)+R('srvT',197,466,6,8,1)+
+ R('tgb',195,552,10,10,2)+P('tr','M186 544 V576','sf')+R('bat',194,340,12,8,2)+R('dcbus',214,176,14,6,1)+R('scr',190,152,20,8,1)+Ci('pitot',200,140,2.2)+Ci('land',200,162,2.4)+
+ Ci('navL',150,478,2.6)+Ci('navR',250,478,2.6)+Ci('navT',200,566,2.4)+Ci('acol',206,540,2.4)+
+ `<g data-p="rotor" class="sp" style="transform-origin:200px 236px"><path d="M196 236 L200 58 L204 236 Z M198 233 L46 323 L49 328 L202 239 Z M202 233 L354 323 L351 328 L198 239 Z"/></g>`;
+const labels=Lb(200,132,'NEZ')+Lb(250,262,'BTP','start')+Lb(232,300,'MOTEUR ARRIEL 2D','start')+Lb(214,560,'ROTOR ANTICOUPLE','start')+Lb(150,206,'PATINS','end');
+const NM={tank:'Réservoir carburant (sous la boîte de transmission)',disc:'Disque rotor : la portance',f_bat:'Câble batterie',f_gen0:'Câble démarreur-génératrice → barres',f_dc:'Alimentation 28 V console',f_fu0:'Tuyauterie carburant vers le moteur',f_hyd:'Circuit hydraulique vers les servocommandes',shaft:'Arbre de transmission moteur → BTP',tds:'Arbre de transmission arrière (vers le rotor anticouple)',mgb:'BTP : boîte de transmission principale (réduction, renvoi d\'angle)',head:'Moyeu rotor Starflex et plateau cyclique',rbrk:'Frein rotor',fw0:'Roue libre (le rotor peut tourner plus vite que le moteur : autorotation)',
+ e0g:'Réducteur et prise de mouvement du moteur',e0c:'Compresseur axial + centrifuge (générateur de gaz, Ng)',e0b:'Chambre de combustion annulaire',e0n:'Turbine libre (entraîne la transmission)',e0ig:'Bougies d\'allumage',e0x:'Tuyère d\'échappement',fadec0:'FADEC (régulation numérique)',sg0:'Démarreur-génératrice 28 V',oil:'Radiateurs d\'huile moteur et BTP',bp0:'Pompe de gavage électrique',fsv0:'Robinet d\'arrêt carburant',hp0:'Pompe hydraulique (entraînée par la BTP)',srv:'Servocommandes du rotor principal (3)',acc:'Accumulateurs hydrauliques',srvT:'Servocommande du rotor anticouple',tgb:'Boîte de transmission arrière (BTA)',tr:'Rotor anticouple (2 pales)',bat:'Batterie 24 V',dcbus:'Barres 28 V DC',scr:'VEMD : écran moteur et véhicule',pitot:'Sonde Pitot',land:'Phare d\'atterrissage',navL:'Feu de navigation gauche',navR:'Feu de navigation droit',navT:'Feu arrière',acol:'Feu anticollision',rotor:'Pales du rotor principal (3, composite)'};
+const h=heli({n:1,hyd:1,gear:false,ngIdle:67,ngFl:84,nrNom:390,nrIdle:300,nrU:'tr/min',rbMax:'moins de 170 tr/min',t4lim:865,ff:160,fuel:420,engName:'turbomoteur Safran Arriel 2D',pM:'VEMD',pE:'ÉLEC',pF:'CARBU',wElec:'console centrale',wFuel:'levier au plancher, console',wEng:'levier frein rotor (plafond), sélecteur moteur',wHyd:'interrupteur sur le collectif',
+ tBat:'La batterie 24 V (dans la poutre avant) se connecte aux barres 28 V continu : console, VEMD, régulation moteur.',legend:['el','dat','fu','hg','me','ig','hot','oil','ac','lt','fire']});
+MOD.h125=Object.assign(h,{name:'Airbus H125 (Écureuil)',sub:'1 turbomoteur Arriel 2D à turbine libre · rotor 3 pales · 1 circuit hydraulique',vb:'0 0 400 600',svg:body+parts+labels,names:NM});
+})();
+/* --- S-76 --- */
+(function(){
+const cab='M200 120 C230 120 240 170 240 230 V330 C240 350 222 360 200 360 C178 360 160 350 160 330 V230 C160 170 170 120 200 120 Z', boom='M190 356 L196 570 L204 570 L210 356 Z', stab='M197 520 L146 524 L146 532 L197 532 Z';
+const body=`<path class="bd" d="${cab}"/><path class="bd" d="${boom}"/><path class="bd" d="${stab}"/><path class="bd" d="${mir(stab)}"/>`;
+const parts=R('tank',178,300,44,46,6)+P('disc','M200 70 A168 168 0 1 1 199.9 70 Z','sp ring')+
+ F('f_bat','M200 380 V340 L184 330')+F('f_gen0','M176 316 L182 200')+F('f_gen1','M224 316 L218 200')+F('f_dc','M200 200 V156')+F('f_fu0','M190 330 L180 300')+F('f_fu1','M210 330 L220 300')+F('f_hyd','M186 236 L184 222 M214 236 L216 222 M200 250 V520')+
+ F('shaft','M180 280 L196 256 M220 280 L204 256')+F('tds','M200 262 V560')+R('mgb',186,216,28,40,5)+Ci('head',200,236,7)+R('rbrk',196,256,8,4,1)+Ci('fw0',184,270,2.6)+Ci('fw1',216,270,2.6)+
+ RR('e0c','e1c',170,280,18,14,3)+RR('e0b','e1b',170,294,18,10,3)+RR('e0n','e1n',170,304,18,10,2)+CC('e0ig','e1ig',166,299,2)+FF('e0x','e1x','M179 314 V330')+RR('sg0','sg1',164,312,6,7,1)+RR('fadec0','fadec1',190,284,5,6,1)+R('oil',196,270,8,6,1)+
+ CC('bp0','bp1',190,334,3)+CC('fsv0','fsv1',184,318,2.6)+Ci('xfv',200,336,2.6)+R('hp0',184,240,6,7,1)+R('hp1',210,240,6,7,1)+R('srv',182,214,6,6,1)+R('srv',212,214,6,6,1)+R('srv',197,208,6,6,1)+R('srvT',197,516,6,8,1)+
+ R('tgb',195,560,10,10,2)+P('tr','M186 552 V588','sf')+R('bat',194,376,12,8,2)+R('dcbus',190,196,20,6,1)+R('scr',186,138,28,8,1)+Ci('pitot',200,120,2.2)+Ci('land',200,150,2.4)+
+ Ci('gearN',200,170,4)+R('gearL',162,300,6,12,2)+R('gearR',232,300,6,12,2)+Ci('navL',146,528,2.6)+Ci('navR',254,528,2.6)+Ci('navT',200,576,2.4)+Ci('acol',206,548,2.4)+
+ `<g data-p="rotor" class="sp" style="transform-origin:200px 236px"><path d="M197 236 L200 70 L203 236 Z M200 233 L366 236 L366 239 Z M203 236 L200 402 L197 236 Z M200 239 L34 236 L34 233 Z"/></g>`;
+const labels=Lb(200,112,'NEZ')+Lb(150,290,'MOTEUR 1','end')+Lb(250,290,'MOTEUR 2','start')+Lb(214,580,'ROTOR ANTICOUPLE','start');
+const NM={tank:'Réservoirs carburant (sous le plancher arrière)',disc:'Disque rotor',f_bat:'Câble batterie',f_gen0:'Câble génératrice 1',f_gen1:'Câble génératrice 2',f_dc:'Alimentation du poste',f_fu0:'Carburant moteur 1',f_fu1:'Carburant moteur 2',f_hyd:'Circuits hydrauliques 1 et 2',shaft:'Arbres moteurs → BTP',tds:'Arbre de transmission arrière',mgb:'BTP (boîte de transmission principale)',head:'Moyeu rotor 4 pales et plateau cyclique',rbrk:'Frein rotor',fw0:'Roue libre moteur 1',fw1:'Roue libre moteur 2',
+ e0c:'Compresseur moteur 1 (générateur de gaz)',e1c:'Compresseur moteur 2',e0b:'Chambre de combustion moteur 1',e1b:'Chambre de combustion moteur 2',e0n:'Turbine libre moteur 1',e1n:'Turbine libre moteur 2',e0ig:'Allumeurs 1',e1ig:'Allumeurs 2',e0x:'Échappement 1',e1x:'Échappement 2',sg0:'Démarreur-génératrice 1',sg1:'Démarreur-génératrice 2',fadec0:'FADEC moteur 1',fadec1:'FADEC moteur 2',oil:'Refroidisseur d\'huile BTP',
+ bp0:'Pompe de gavage 1',bp1:'Pompe de gavage 2',fsv0:'Robinet carburant 1',fsv1:'Robinet carburant 2',xfv:'Vanne d\'intercommunication',hp0:'Pompe hydraulique 1 (sur la BTP)',hp1:'Pompe hydraulique 2 (sur la BTP)',srv:'Servocommandes principales (double corps)',srvT:'Servocommande anticouple',tgb:'Boîte arrière',tr:'Rotor anticouple 4 pales',bat:'Batterie',dcbus:'Barres DC',scr:'Écrans du poste (EFIS, paramètres moteur)',pitot:'Sondes Pitot',land:'Phare',gearN:'Train avant (escamotable)',gearL:'Train principal gauche',gearR:'Train principal droit',navL:'Feu de navigation gauche',navR:'Feu de navigation droit',navT:'Feu arrière',acol:'Anticollision',rotor:'Pales du rotor principal (4)'};
+const h=heli({n:2,hyd:2,gear:true,ngIdle:66,ngFl:86,nrNom:107,nrIdle:80,nrU:'%',rbMax:'NR faible, moteurs arrêtés',t4lim:900,ff:150,fuel:800,engName:'turbomoteur Safran Arriel 2S2',pM:'MOTEURS',pE:'ÉLEC',pF:'CARBU',wElec:'panneau supérieur',wFuel:'panneau supérieur',wEng:'leviers moteurs (plafond)',wHyd:'panneau supérieur',
+ tBat:'La batterie se connecte aux barres continues : poste, régulations moteurs (FADEC), démarreurs.',legend:['el','dat','fu','hg','hb','me','ig','hot','oil','ac','lt','fire']});
+MOD.s76=Object.assign(h,{name:'Sikorsky S-76',sub:'2 turbomoteurs Arriel 2S2 · rotor 4 pales · 2 circuits hydrauliques · train escamotable',vb:'0 0 400 600',svg:body+parts+labels,names:NM});
+})();
+
+/* ================= ROBINSON R44 (piston) ================= */
+(function(){
+const cab='M200 140 C228 140 240 180 240 220 C240 258 226 280 200 280 C174 280 160 258 160 220 C160 180 172 140 200 140 Z', boom='M194 330 L197 560 L203 560 L206 330 Z';
+const body=`<path class="bd" d="${cab}"/><path class="bd" d="M178 278 L222 278 L218 350 L182 350 Z"/><path class="bd" d="${boom}"/><path class="bdl" d="M166 172 V300 M234 172 V300 M200 548 L190 538 M200 548 L212 538"/>`;
+const parts=RR('tkM','tkA',164,236,16,40,4)+P('disc','M200 70 A160 160 0 1 1 199.9 70 Z','sp ring')+
+ F('f_bat','M188 270 V160 L200 154')+F('f_alt','M218 302 L222 170')+F('f_fu','M172 276 L184 330 M228 276 L216 330 M200 330 V342')+F('f_ch','M212 338 L204 344')+F('f_ign','M190 344 L184 312 M210 344 L216 312')+
+ F('belt','M196 290 V256 M204 290 V256')+Ci('shv1',200,292,6)+Ci('shv2',200,252,6)+R('clu',212,262,8,8,1)+Ci('sprag',200,252,2.4)+R('mgb',190,226,20,20,3)+Ci('head',200,226,5)+R('rbrk',188,246,6,4,1)+F('tds','M200 300 V552')+R('tgb',195,552,10,10,2)+P('tr','M188 544 V572','sf')+
+ RR('cylL','cylR',176,300,10,8,1)+RR('cylL','cylR',176,312,10,8,1)+RR('cylL','cylR',176,324,10,8,1)+R('crank',190,298,20,36,3)+Ci('st',200,292,2.6)+R('alt',214,296,6,8,1)+RR('magL','magR',190,338,6,6,1)+R('carb',196,340,8,8,1)+Ci('spk',181,316,1.8)+Ci('spk',219,316,1.8)+F('ex','M200 334 V346')+R('oil',182,288,8,6,1)+
+ Ci('fv',200,286,2.6)+R('bat',182,262,10,8,1)+R('scr',186,152,28,8,1)+Ci('pitot',200,140,2.2)+Ci('land',200,160,2.4)+Ci('navL',176,288,2.4)+Ci('navR',224,288,2.4)+Ci('navT',200,562,2.4)+Ci('acol',206,540,2.4)+
+ `<g data-p="rotor" class="sp" style="transform-origin:200px 226px"><path d="M197 226 L200 66 L203 226 Z M203 226 L200 386 L197 226 Z"/></g>`;
+const labels=Lb(200,132,'NEZ')+Lb(156,318,'MOTEUR LYCOMING O-540','end')+Lb(230,262,'EMBRAYAGE','start')+Lb(214,566,'ROTOR ANTICOUPLE','start');
+const NM={tkM:'Réservoir principal (gauche)',tkA:'Réservoir auxiliaire (droit)',disc:'Disque rotor',f_bat:'Câble batterie',f_alt:'Câble alternateur → barre',f_fu:'Tuyauteries carburant (par gravité)',f_ch:'Air chaud de réchauffage carburateur',f_ign:'Fils des magnétos aux bougies',belt:'Courroies trapézoïdales (transmission moteur → rotor)',shv1:'Poulie inférieure (moteur)',shv2:'Poulie supérieure (transmission)',clu:'Actionneur d\'embrayage électrique (tend les courroies)',sprag:'Roue libre (sprag clutch)',mgb:'Boîte de transmission principale',head:'Moyeu rotor (2 pales, battement libre)',rbrk:'Frein rotor',tds:'Arbre arrière',tgb:'Boîte arrière',tr:'Rotor anticouple 2 pales',
+ cylL:'Cylindres gauches (moteur 6 cylindres à plat)',cylR:'Cylindres droits',crank:'Carter et vilebrequin',st:'Démarreur électrique',alt:'Alternateur 14 V / 28 V',magL:'Magnéto gauche',magR:'Magnéto droite',carb:'Carburateur',spk:'Bougies d\'allumage (2 par cylindre)',ex:'Échappement',oil:'Radiateur d\'huile',fv:'Robinet carburant',bat:'Batterie',scr:'Instruments (compte-tours double, pression d\'admission)',pitot:'Sonde Pitot',land:'Phares',navL:'Feu de navigation gauche',navR:'Feu de navigation droit',navT:'Feu arrière',acol:'Anticollision',rotor:'Pales du rotor principal (2, métal)'};
+const ctl=[
+ {g:'Électricité',w:'console',c:[{id:'master',l:'BATTERIE',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'MOTEUR',pt:['bat','f_bat']},{id:'alt',l:'ALTERNATEUR',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'MOTEUR',pt:['alt','f_alt']}]},
+ {g:'Carburant',w:'plancher et console',c:[{id:'fv',l:'ROBINET CARBURANT',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'MOTEUR',pt:['fv','f_fu','tkM','tkA']},{id:'mix',l:'MÉLANGE',t:'sel',o:['CUT','RICH'],ol:['ÉTOUFFOIR','RICHE'],pg:'MOTEUR',pt:['carb','f_fu']},{id:'ch',l:'RÉCHAUFF. CARBU',t:'sel',o:[false,true],ol:['FROID','CHAUD'],pg:'MOTEUR',pt:['carb','f_ch','ex']}]},
+ {g:'Moteur · rotor',w:'clé, embrayage, poignée des gaz',c:[{id:'key',l:'CLÉ (MAGNÉTOS)',t:'sel',o:['OFF','L','R','BOTH','START'],ol:['OFF','L','R','BOTH','START'],pg:'MOTEUR',pt:['magL','magR','spk','st']},
+  {id:'clutch',l:'EMBRAYAGE',t:'sel',o:[false,true],ol:['DÉBRAYÉ','EMBRAYÉ'],pg:'MOTEUR',pt:['clu','belt','shv1','shv2']},{id:'gov',l:'RÉGULATEUR',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'MOTEUR',pt:['crank','carb']},{id:'thr',l:'GAZ',t:'sel',o:['IDLE','OPEN'],ol:['RALENTI','PLEIN RÉGIME'],pg:'MOTEUR',pt:['carb','crank']},{id:'rbrake',l:'FREIN ROTOR',t:'sel',o:[true,false],ol:['SERRÉ','DESSERRÉ'],pg:'MOTEUR',pt:['rbrk']}]},
+ {g:'Feux',w:'console',c:[{id:'nav',l:'NAV',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'MOTEUR',pt:['navL','navR','navT']},{id:'acol',l:'ANTICOL',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'MOTEUR',pt:['acol']}]},
+ {g:'Commandes de vol',w:'cyclique en T, collectif, palonnier',c:[{id:'coll',l:'COLLECTIF',t:'sel',o:[0,1],ol:['BAS','DÉCOLLER'],pg:'MOTEUR',pt:['head','rotor']},{id:'cyc',l:'CYCLIQUE',t:'pad',o:[['F','▲ avant'],['A','▼ arrière'],['L','◀'],['R','▶']],pg:'MOTEUR',pt:['head','rotor']},{id:'ped',l:'PALONNIER',t:'pad',o:[['L','◀'],['R','▶']],pg:'MOTEUR',pt:['tr','tds']}]}];
+function init(){ return {ground:true,master:false,alt:false,fv:false,mix:'CUT',ch:false,key:'OFF',clutch:false,cl:0,gov:false,thr:'IDLE',rbrake:true,nav:false,acol:false,coll:0,cyc:'N',cycT:0,ped:'N',pedT:0,rpm:0,nr:0,run:false,crank:0,t:0,cht:15}; }
+function kk(s){ const k={}; k.altOn=s.alt&&s.run&&s.master; k.dc=s.master; k.mags=s.key!=='OFF'; k.fuel=s.fv&&s.mix==='RICH'; k.cranking=s.crank>0; k.belt=s.cl>0.98; k.clMove=(s.clutch&&s.cl<1)||(!s.clutch&&s.cl>0); return k; }
+function step(s,dt){ const k=kk(s); s.t+=dt; if(s.crank>0){ s.crank-=dt; if(s.crank<=0&&s.key==='START') s.key='BOTH'; s.rpm=near(s.rpm,22,dt*2); if(s.crank<1.2&&k.fuel&&k.mags&&!s.clutch) s.run=true; }
+ if(s.run&&(!k.fuel||!k.mags)) s.run=false;
+ const load=k.belt?1:0, tgt=s.run?(s.thr==='OPEN'||s.gov?(load&&s.gov?102:(s.thr==='OPEN'?100:60)):(load?55:60)):(s.crank>0?22:0); s.rpm=near(s.rpm,tgt,dt*(s.run?0.8:0.6));
+ if(s.clutch&&k.dc) s.cl=Math.min(1,s.cl+dt/7); else if(!s.clutch&&k.dc) s.cl=Math.max(0,s.cl-dt/5);
+ const nrT=(k.belt&&!s.rbrake)?s.rpm:0; s.nr=nrT>s.nr?near(s.nr,nrT,dt*0.5):Math.max(nrT,s.nr-dt*3);
+ if(s.coll===0) s.ground=true; else if(s.nr>=99&&s.gov) s.ground=false; if(!s.ground&&s.nr<90) s.ground=true;
+ s.cht=near(s.cht,s.run?(s.rpm>90?380:300):15,dt*0.1); s.cycT=Math.max(0,s.cycT-dt); if(!s.cycT) s.cyc='N'; s.pedT=Math.max(0,s.pedT-dt); if(!s.pedT) s.ped='N'; }
+function ev(s){ const k=kk(s), p={}, sp={}, A=(id,c,m)=>{ p[id]=m?[c,m]:c; };
+ if(s.master){ A('bat','el',k.altOn?null:'blink'); A('f_bat','el',k.altOn?'rev':'flow'); A('scr','el'); } if(k.altOn){ A('alt','el'); A('f_alt','el','flow'); }
+ A('tkM','fu','dim'); A('tkA','fu','dim'); if(s.fv){ A('fv','fu'); A('f_fu','fu',s.run?'flow':'st'); } if(k.fuel) A('carb','fu');
+ if(k.cranking){ A('st','el','blink'); A('crank','me','blink'); } if(s.run){ A('crank','me'); ['cylL','cylR'].forEach(x=>A(x,'hot')); A('ex','hot','flow'); A('oil','oil'); A('shv1','me'); }
+ if(k.mags&&(s.run||k.cranking)){ if(s.key==='L'||s.key==='BOTH'||s.key==='START') A('magL','ig'); if(s.key==='R'||s.key==='BOTH'||s.key==='START') A('magR','ig'); A('f_ign','ig','flow'); A('spk','ig','blink'); }
+ if(s.ch&&s.run){ A('f_ch','ah','flow'); A('carb','ah'); }
+ if(k.clMove) A('clu','el','blink'); if(s.cl>0.02) A('belt','me',s.run?'flow':null); if(s.nr>1){ ['shv2','mgb','head','tgb','sprag'].forEach(x=>A(x,'me')); A('tds','me','flow'); A('rotor','me','spin'); sp.rotor=Math.max(0.12,1.6-s.nr/102*1.45).toFixed(2)+'s'; A('tr','me','blink'); }
+ if(s.rbrake) A('rbrk',s.nr>20?'warn':'me',s.nr>20?'blink':null); if(s.coll>0&&s.nr>1) A('disc',s.ground?'me':'ac','dim'); if(s.cyc!=='N') A('head','me','blink'); if(s.ped!=='N') A('tr','me','blink');
+ if(s.master){ if(s.nav){ A('navL','lr'); A('navR','lg'); A('navT','lt'); } if(s.acol) A('acol','lr','blink'); }
+ const lv=[]; if(k.cranking) lv.push('DÉMARREUR : le moteur est lancé'+(s.clutch?' — EMBRAYÉ : beaucoup trop chargé !':'')); if(k.clMove) lv.push('ACTIONNEUR D\'EMBRAYAGE en mouvement (voyant CLUTCH allumé) : '+Math.round(s.cl*100)+' %'); if(s.run) lv.push(`MOTEUR ${Math.round(s.rpm)} % · ROTOR ${Math.round(s.nr)} %`);
+ const memo=[]; if(k.clMove) memo.push([AM,'CLUTCH']); if(s.master&&!k.altOn&&s.run) memo.push([AM,'ALT']); if(s.run&&s.rpm>=101&&s.nr>=101) memo.push([G,'RPM VERT']); if(s.rbrake&&s.nr>20) memo.push([RD,'FREIN ROTOR']);
+ return {p,sp,k,lv,memo}; }
+function page(pg,s,d){ let b=T(160,14,'INSTRUMENTS MOTEUR (aiguilles)',W,11,'middle')+ARC(90,80,40,s.rpm,115,'MOTEUR','%',s.rpm>104?RD:G,0.92)+ARC(230,80,40,s.nr,115,'ROTOR','%',G,0.92)+ARC(90,160,28,s.cht,500,'CHT','°C',G,0.9)+T(230,150,'ALT '+(d.k.altOn?'CHARGE':'—'),d.k.altOn?G:AM,11,'middle')+T(230,170,'EMBRAYAGE '+Math.round(s.cl*100)+' %',CY,10,'middle');
+ return SCR(b,d.memo); }
+function on(s,id,v,prev){ if(id==='key'&&v==='START'){ if(s.master&&!s.run) s.crank=s.clutch?0.8:2.5; else s.key='BOTH'; } if(id==='rbrake'&&v===true&&s.nr>20){ s.rbrake=false; s._rb=1; } else if(id==='rbrake') s._rb=0; }
+function ex(id,s,d){ const k=d.k, o={ln:[]}, ln=(c,t)=>o.ln.push([c,t]), blk=(t,go)=>{ o.blk=t; o.go=go; };
+ switch(id){
+ case 'master': o.h='Batterie'; ln('el','Le relais de batterie alimente la barre : démarreur, instruments, actionneur d\'embrayage, feux.'); ln('ig','Remarque : l\'allumage n\'en dépend pas ! Les magnétos produisent elles-mêmes le courant des bougies.'); if(!s.master&&s.run) ln('ig','Le moteur continue de tourner, batterie coupée : seules les magnétos l\'allument.'); break;
+ case 'alt': o.h='Alternateur'; ln('me','Entraîné par courroie par le moteur.'); ln('el','Il recharge la batterie et alimente le circuit quand le moteur tourne.'); if(!s.run) blk('Moteur arrêté : aucun courant produit.','key'); break;
+ case 'fv': o.h='Robinet carburant'; ln('fu','Les deux réservoirs (principal et auxiliaire) alimentent le carburateur par gravité, sans pompe.'); break;
+ case 'mix': o.h='Mélange'; ln('fu',s.mix==='RICH'?'RICHE : le carburateur dose l\'essence dans l\'air aspiré.':'ÉTOUFFOIR : plus d\'essence, le moteur s\'arrête (procédure d\'arrêt normale).'); break;
+ case 'ch': o.h='Réchauffage carburateur'; ln('ah','Une boîte d\'air envoie au carburateur de l\'air réchauffé autour de l\'échappement.'); ln('fu','Dans le venturi l\'air se détend et se refroidit : de la glace peut se former même à +20 °C par air humide. Le réchauffage la fait fondre (au prix d\'un peu de puissance).'); break;
+ case 'key': o.h='Clé de contact (magnétos)'; if(s.key==='START'||k.cranking){ if(!s.master){ blk('Batterie OFF : le démarreur ne tourne pas.','master'); break; } ln('el','START : le démarreur électrique entraîne le vilebrequin.'); ln('ig','Les magnétos, entraînées par le moteur, produisent les étincelles (2 bougies par cylindre).'); if(!k.fuel) blk('Pas de carburant : robinet ON et mélange RICHE.','mix'); if(s.clutch) blk('Embrayage engagé : le démarreur doit aussi lancer le rotor, beaucoup trop lourd. On démarre toujours DÉBRAYÉ.','clutch'); }
+  else if(s.key==='OFF') ln('ig','OFF : les magnétos sont mises à la masse, plus d\'étincelle, le moteur s\'arrête.'); else ln('ig',s.key==='BOTH'?'BOTH : les deux magnétos, fonctionnement normal.':`Une seule magnéto (${s.key}) : test avant vol, légère chute de régime attendue.`); break;
+ case 'clutch': o.h='Embrayage (clutch actuator)'; ln('el','Un moteur électrique fait descendre la poulie inférieure : les courroies se tendent progressivement (voyant CLUTCH allumé tant qu\'il bouge).'); ln('me','La puissance du moteur passe alors par les courroies à la poulie supérieure, la roue libre, la boîte de transmission et le rotor.');
+  if(!s.master) blk('Batterie OFF : l\'actionneur ne bouge pas.','master'); else if(s.clutch&&!s.run) ln('me','Moteur arrêté : les courroies se tendent mais rien ne tourne.'); break;
+ case 'gov': o.h='Régulateur'; ln('dat','Un petit calculateur agit sur la poignée des gaz pour garder le régime à 102 %, le pilote n\'a presque rien à corriger.'); break;
+ case 'thr': o.h='Poignée des gaz'; ln('me','Tournante, sur le collectif : câble vers le papillon du carburateur.'); break;
+ case 'rbrake': o.h='Frein rotor'; ln('me','Frein à câble sur la transmission.'); if(s._rb) blk('Interdit avec le rotor encore rapide (au-dessus de quelques pourcents) : attendre son ralentissement après l\'arrêt.'); break;
+ case 'coll': o.h='Collectif'; ln('me','Change le pas des deux pales ensemble. Commandes mécaniques par tiges (Raven I : sans hydraulique ; le Raven II ajoute des servocommandes).'); if(s.coll&&!s.gov) blk('Régulateur sur OFF ou régime pas au vert : on ne décolle pas.','gov'); break;
+ case 'cyc': o.h='Cyclique en T'; ln('me','Tiges et renvois vers le plateau cyclique : le disque rotor s\'incline.'); break;
+ case 'ped': o.h='Palonnier'; ln('me','Câbles vers le pas du rotor anticouple.'); break;
+ case 'nav': case 'acol': o.h=id==='nav'?'Feux de navigation':'Anticollision'; ln('lt',id==='nav'?'Rouge à gauche, vert à droite, blanc à l\'arrière.':'Feu rouge à éclats.'); break;
+ case 'ground': o.h='Situation'; ln('me',s.ground?'Au sol.':'En vol.'); break; }
+ return o; }
+const tours={start:{n:'Démarrage et embrayage',st:[['master',true,'Batterie ON.'],['fv',true,'Robinet carburant : l\'essence descend par gravité.'],['mix','RICH','Mélange riche.'],['acol',true,''],['clutch',false,'Vérifier : DÉBRAYÉ.'],['rbrake',false,'Frein rotor desserré.'],['key','START','Démarreur, puis les magnétos allument le moteur (jaune).',s=>s.run,'Attendre le moteur'],['alt',true,'Alternateur : il recharge la batterie (le courant change de sens).'],['clutch',true,'Embrayage : l\'actionneur tend les courroies, le rotor commence à tourner.',s=>s.cl>=1,'Attendre la fin de l\'embrayage'],['gov',true,'Régulateur ON : régime 102 %.',s=>s.nr>=99,'Attendre le régime'],['ch',true,'Réchauffage carburateur : air chaud de l\'échappement vers le carburateur.'],['coll',1,'Décollage.']]}};
+function preset(n){ const s=init(); if(n==='cold') return s; s.master=true; s.nav=true; if(n==='elec') return s; Object.assign(s,{fv:true,mix:'RICH',key:'BOTH',run:true,rpm:102,clutch:true,cl:1,gov:true,alt:true,rbrake:false,nr:102,acol:true,cht:380}); return s; }
+MOD.r44={name:'Robinson R44 Raven I',sub:'1 moteur à pistons Lycoming O-540 · transmission par courroies et embrayage · commandes mécaniques',vb:'0 0 400 600',svg:body+parts+labels,names:NM,ctl,init,step,ev,page,ex,on,tours,preset,pages:['MOTEUR'],legend:['el','fu','ig','hot','ah','me','oil','ac','lt','fire'],presets:[['cold','Appareil froid'],['elec','Sous tension'],['run','Moteur en route']],
+ ground:{on:s=>{ if(s.ground){ if(s.nr<99||!s.gov) return 'Régime rotor au vert et régulateur ON nécessaires.'; s.coll=1; s.ground=false; } else { s.coll=0; s.ground=true; } }}};
+})();
+
+/* ================= ACADÉMIE : PARTIE 5 — COURS AÉRONAUTIQUE ================= */
+const SV=(vb,inner,lab)=>`<svg viewBox="${vb}" role="img" aria-label="${lab}">${inner}</svg>`;
+const tx=(x,y,t,c='#e8eef2',a='start')=>`<text x="${x}" y="${y}" fill="${c}" text-anchor="${a}">${t}</text>`;
+const BTN=(k,t)=>`<p><button type="button" class="go" data-act="sys:${k}">⚙ ${t}</button></p>`;
+const SECT=SV('-40 -10 680 400',`<circle cx="230" cy="190" r="160" fill="#0d1a26" stroke="#9fb3c4" stroke-width="5"/><circle cx="230" cy="190" r="150" fill="none" stroke="#e8c76a" stroke-width="9" opacity=".8"/><circle cx="230" cy="190" r="140" fill="none" stroke="#b9a7d9" stroke-width="3" stroke-dasharray="3 4"/><circle cx="230" cy="190" r="134" fill="none" stroke="#6fd39a" stroke-width="4"/>
+${[...Array(24).keys()].map(i=>{ const a=i/24*Math.PI*2; return `<rect x="${230+156*Math.cos(a)-3}" y="${190+156*Math.sin(a)-3}" width="6" height="6" fill="#7f8c99"/>`; }).join('')}
+<path d="M80 240 H380" stroke="#7f8c99" stroke-width="8"/><path d="M90 240 V300 M370 240 V300" stroke="#7f8c99" stroke-width="4"/><rect x="150" y="262" width="160" height="56" fill="#16304a" stroke="#5f7d99"/><path d="M110 120 h60 v24 h-60z M290 120 h60 v24 h-60z" fill="#28465f" stroke="#6fd39a"/>
+<circle cx="120" cy="210" r="6" fill="#e0784a"/><circle cx="340" cy="210" r="6" fill="#e0784a"/><circle cx="230" cy="58" r="9" fill="none" stroke="#46c8d8" stroke-width="3"/>
+${[[160,1,200],[156,2,222],[150,3,244],[140,4,140],[134,5,162]].map(([r,n,a])=>{ const t=a*Math.PI/180, x1=230+r*Math.cos(t), y1=190+r*Math.sin(t), x2=230+188*Math.cos(t), y2=190+188*Math.sin(t); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fff" stroke-width=".8"/><circle cx="${x2}" cy="${y2}" r="9" fill="#e04ad8"/><text x="${x2}" y="${y2+4}" fill="#fff" text-anchor="middle" font-size="11">${n}</text>`; }).join('')}${[[140,108,6],[120,226,7],[256,58,8],[300,232,9],[382,284,10],[230,296,11]].map(([x,y,n])=>`<circle cx="${x}" cy="${y}" r="9" fill="#e04ad8"/><text x="${x}" y="${y+4}" fill="#fff" text-anchor="middle" font-size="11">${n}</text>`).join('')}<g font-size="12">${tx(400,40,'1 Revêtement (peau) : tôles d\'aluminium 2024 / Al-Li','#9fb3c4')}${tx(400,62,'2 Lisses (raidisseurs longitudinaux), carrés gris','#c0c8d0')}${tx(400,84,'3 Cadres (couples) : anneaux tous les ~50 cm','#e8c76a')}${tx(400,106,'4 Isolation thermo-acoustique (matelas)','#b9a7d9')}${tx(400,128,'5 Panneaux d\'habillage (sidewall)','#6fd39a')}${tx(400,150,'6 Coffres à bagages (hat racks)','#6fd39a')}${tx(400,172,'7 Faisceaux électriques (harnais)','#e0784a')}${tx(400,194,'8 Gaine d\'air conditionné','#46c8d8')}${tx(400,216,'9 Poutres de plancher (traverses)','#7f8c99')}${tx(400,238,'10 Bielles de plancher (soute)','#7f8c99')}${tx(400,260,'11 Soute à bagages / fret (ULD)','#5f7d99')}${tx(400,300,'Pression cabine : la coque travaille','#8fa4b8')}${tx(400,318,'comme un réservoir (contrainte de cercle).','#8fa4b8')}</g>`,'Coupe transversale de fuselage');
+const WBOX=SV('0 0 640 260',`<path d="M40 60 L600 100 L600 170 L40 210 Z" fill="#0d1a26" stroke="#5f7d99"/><path d="M110 70 L110 200 M560 98 L560 172" stroke="#e8c76a" stroke-width="7"/>${[180,250,320,390,460].map(x=>`<path d="M${x} ${66+x*0.07} L${x} ${204-x*0.07}" stroke="#7f8c99" stroke-width="3"/>`).join('')}<path d="M40 60 C20 90 20 180 40 210" fill="none" stroke="#46c8d8" stroke-width="6"/><path d="M600 100 L630 110 L630 160 L600 170" fill="none" stroke="#e04ad8" stroke-width="5"/>
+<g font-size="12">${tx(110,52,'Longeron avant','#e8c76a','middle')}${tx(560,90,'Longeron arrière','#e8c76a','end')}${tx(320,250,'Nervures (profil de l\'aile) · panneaux d\'extrados et d\'intrados raidis','#c0c8d0','middle')}${tx(14,236,'Bord d\'attaque, becs','#46c8d8')}${tx(470,226,'Bord de fuite : volets, ailerons, spoilers','#e04ad8')}${tx(320,140,'CAISSON DE VOILURE = RÉSERVOIR (aile « mouillée »)','#ffa21a','middle')}</g>`,'Caisson de voilure');
+const ENG=SV('0 0 640 230',`<path d="M20 40 H560 L620 95 V135 L560 190 H20 Z" fill="#0d1a26" stroke="#5f7d99"/><rect x="34" y="48" width="44" height="134" fill="#46c8d855"/><rect x="86" y="80" width="54" height="70" fill="#3ddc8444"/><rect x="146" y="86" width="110" height="58" fill="#3ddc8477"/><rect x="262" y="86" width="70" height="58" fill="#ff4a3d88"/><rect x="338" y="86" width="34" height="58" fill="#ffb020aa"/><rect x="378" y="80" width="110" height="70" fill="#ffb02066"/><path d="M500 86 H580 L600 115 L580 144 H500Z" fill="#e04ad855"/><path d="M40 115 H600" stroke="#e8eef2" stroke-dasharray="4 4"/><rect x="170" y="160" width="90" height="22" fill="#b48cff55" stroke="#b48cff"/>
+<g font-size="11">${tx(56,34,'Soufflante (N1)','#46c8d8','middle')}${tx(113,72,'Compr. BP','#3ddc84','middle')}${tx(200,78,'Compresseur HP (N2)','#3ddc84','middle')}${tx(297,78,'Chambre','#ff8a80','middle')}${tx(355,78,'Turb. HP','#ffb020','middle')}${tx(433,72,'Turbine BP','#ffb020','middle')}${tx(550,78,'Tuyère','#e04ad8','middle')}${tx(215,200,'Boîte d\'accessoires (AGB) : démarreur, IDG, pompes','#b48cff','middle')}${tx(320,222,'Flux secondaire (froid) autour du cœur ≈ 80 % de la poussée · flux primaire chaud dans le cœur','#8fa4b8','middle')}</g>`,'Turboréacteur double flux');
+const CHAIN=SV('0 0 640 120',`${[['Sonde Pitot',20,'#46c8d8'],['ADR (ADIRU)',150,'#b48cff'],['DMC / FWC',280,'#b48cff'],['PFD : bande vitesse',410,'#3ddc84']].map((r,i)=>`<rect x="${r[1]}" y="40" width="${i===3?190:110}" height="40" rx="8" fill="#0d1a26" stroke="${r[2]}" stroke-width="2"/>${tx(r[1]+(i===3?95:55),65,r[0],r[2],'middle')}${i<3?`<path d="M${r[1]+112} 60 h16" stroke="#e8eef2" stroke-width="2"/>`:''}`).join('')}${tx(320,24,'Du capteur à l\'écran : pression → calcul → affichage','#8fa4b8','middle')}${tx(320,106,'Sonde givrée = vitesse fausse : d\'où le réchauffage des sondes (PROBE HEAT)','#ffa21a','middle')}`,'Chaîne sonde-écran');
+const Q=(q,o,c,why)=>({q,o,c,why});
+const TB=(rows)=>`<table><tr><th>Commande</th><th>Pièce actionnée</th><th>Effet physique</th></tr>${rows.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>`;
+const PART5={id:'p5',n:'Partie 5 — Cours aéronautique : structures, moteurs, systèmes',d:'Le vocabulaire exact des pièces, et le lien entre chaque bouton du poste et la pièce qu\'il actionne, dans l\'Atelier des systèmes.',mods:[
+ {id:'ca0',t:'L\'Atelier des systèmes : un bouton, une pièce',h:`<p>Un pilote ne retient pas une check-list comme une suite de mots : il sait <b>ce que chaque bouton fait physiquement</b>. L'Atelier montre ce lien : à gauche les commandes réelles du poste, au centre l'écran système, à droite le schéma de l'appareil où <b>les pièces touchées se colorent</b>.</p>
+ <table><tr><th>Couleur</th><th>Ce qui circule</th></tr><tr><td style="color:#3fd0ff">■ bleu clair</td><td>Électricité (28 V continu, 115 V alternatif)</td></tr><tr><td style="color:#b48cff">■ violet</td><td>Électronique : calculateurs, signaux</td></tr><tr><td style="color:#ffa21a">■ orange</td><td>Carburant</td></tr><tr><td style="color:#3ddc84">■ vert</td><td>Hydraulique vert (A320), ou hydraulique tout court</td></tr><tr><td style="color:#4a8bff">■ bleu</td><td>Hydraulique bleu</td></tr><tr><td style="color:#ffe14a">■ jaune</td><td>Hydraulique jaune</td></tr><tr><td style="color:#ff4a3d">■ rouge</td><td>Air chaud prélevé sur les moteurs ou l'APU (bleed)</td></tr><tr><td style="color:#cfe9ff">■ blanc bleuté</td><td>Air conditionné, cabine</td></tr><tr><td style="color:#e04ad8">■ magenta</td><td>Mouvement mécanique : gouvernes, train, rotor, câbles</td></tr><tr><td style="color:#fff38a">■ jaune pâle</td><td>Allumage (étincelles)</td></tr><tr><td style="color:#ff7a2a">■ orange vif</td><td>Combustion, gaz chauds</td></tr><tr><td style="color:#ffa21a">▢ cadre ambre clignotant</td><td>Commandé mais bloqué : une condition manque</td></tr></table>
+ <div class="box"><b class="t">L'ordre compte</b>Dans l'atelier comme dans l'avion, une commande ne marche que si ses conditions sont réunies : pas d'écran sans 115 V, pas de démarrage moteur sans air comprimé, pas de volets sans pression hydraulique. Quand c'est le cas, un cadre ambre explique ce qui manque et montre la commande à utiliser.</div>
+ ${BTN('a320:start','Ouvrir l\'atelier : mise en route de l\'A320')}`,quiz:[Q('Sur le schéma, une conduite rouge animée signifie…',['du carburant','de l\'air chaud prélevé (bleed)','du courant électrique'],1,'Rouge = air prélevé sur les compresseurs des moteurs ou de l\'APU.')]},
+ {id:'ca1',t:'La cellule : fuselage, voilure, empennages, trains',h:`<p>La <b>cellule</b> est la structure de l'avion, sans les moteurs ni les équipements. Les avions de ligne utilisent une construction <b>semi-monocoque</b> : la peau porte une partie des efforts, renforcée par une ossature.</p>${SECT}
+ <h3>Le fuselage</h3><ul><li><b>Revêtement</b> (la peau) : tôles d'aluminium (alliages 2024, 7075, aluminium-lithium) rivetées, ou composite carbone sur les avions récents.</li><li><b>Cadres</b> (ou couples) : anneaux transversaux qui donnent la forme et reprennent la pression.</li><li><b>Lisses</b> : raidisseurs longitudinaux qui empêchent la peau de flamber.</li><li><b>Cloisons étanches</b> : la cloison avant (derrière le radôme) et la cloison arrière hémisphérique ferment la zone pressurisée.</li><li><b>Plancher</b> : poutres transversales et rails de sièges ; dessous, les <b>soutes</b>.</li><li><b>Case de train</b> : logement du train principal, sous le <b>caisson central de voilure</b>.</li></ul>
+ <h3>La voilure</h3>${WBOX}<ul><li><b>Caisson de voilure</b> : deux <b>longerons</b> (avant et arrière), des <b>nervures</b> qui donnent le profil, des panneaux d'<b>extrados</b> et d'<b>intrados</b> raidis. Fermé et étanche, il sert de réservoir.</li><li><b>Bord d'attaque</b> : <b>becs</b> mobiles (slats). <b>Bord de fuite</b> : <b>volets</b> Fowler (ils reculent et s'abaissent), <b>ailerons</b>, <b>spoilers</b> (destructeurs de portance, aussi aérofreins).</li><li><b>Mâts</b> (pylônes) : ils accrochent les moteurs sous l'aile ; le carburant, l'air prélevé, les câbles et l'hydraulique y passent.</li><li><b>Saumon</b> et <b>sharklet</b> (ailette) en bout d'aile, avec feu de navigation.</li></ul>
+ <h3>Empennages et trains</h3><ul><li><b>Plan horizontal réglable</b> (PHR, ou THS) avec les <b>gouvernes de profondeur</b> ; <b>dérive</b> avec la <b>gouverne de direction</b>.</li><li><b>Atterrisseurs</b> : jambe à <b>amortisseur oléopneumatique</b> (huile + azote), <b>contrefiche</b>, <b>vérin de relevage</b>, roues, <b>freins carbone</b> multidisques.</li></ul>
+ ${BTN('a320','Voir les pièces sur le schéma de l\'A320')}`,quiz:[Q('Quelles pièces donnent son profil à l\'aile ?',['Les lisses','Les nervures','Les cadres'],1,'Les nervures, entre les longerons, donnent la forme du profil.'),Q('Qu\'est-ce qui ferme l\'arrière de la zone pressurisée ?',['La dérive','La cloison étanche arrière','Le cône de queue'],1,'Une cloison hémisphérique, juste devant le cône de queue.')]},
+ {id:'ca2',t:'Les couches du fuselage, de la peau à l\'habillage',h:`<p>De l'extérieur vers la cabine, un fuselage d'avion de ligne est fait de couches qui ont chacune un nom et une fonction.</p>
+ <table><tr><th>Couche</th><th>Nom technique</th><th>Rôle</th></tr><tr><td>0</td><td><b>Revêtement</b> + peinture et apprêt anticorrosion</td><td>Forme aérodynamique, reprend la pression et les efforts</td></tr><tr><td>1</td><td><b>Lisses</b> et <b>cadres</b>, reliés par des <b>clips</b></td><td>Ossature ; la peau est rivetée dessus</td></tr><tr><td>2</td><td><b>Matelas d'isolation thermo-acoustique</b> (fibre de verre dans une enveloppe étanche)</td><td>Froid extérieur (−55 °C en croisière), bruit ; on y gère aussi la condensation</td></tr><tr><td>3</td><td><b>Faisceaux électriques</b> (harnais), <b>gaines d'air</b>, tuyauteries d'eau et d'oxygène</td><td>Ils courent entre cadres, accessibles en maintenance</td></tr><tr><td>4</td><td><b>Panneaux d'habillage</b> (sidewall), plafonds, <b>coffres à bagages</b></td><td>Aménagement de la cabine, démontables sans toucher à la structure</td></tr><tr><td>5</td><td><b>Plancher</b> (panneaux sandwich sur poutres) et <b>rails de sièges</b></td><td>Porte passagers et sièges ; dessous, soutes et avionique</td></tr></table>
+ <h3>Par zone</h3><ul><li><b>Poste de pilotage</b> : radôme (radar météo) devant la cloison avant, pare-brise feuilletés chauffés, <b>soute avionique</b> sous le plancher (batteries, calculateurs, centrales).</li><li><b>Tronçon central</b> : cabine, issues d'urgence au-dessus de l'aile, caisson central de voilure, case de train, packs de conditionnement sous le caisson.</li><li><b>Arrière</b> : galley et toilettes, cloison étanche arrière, <b>cône de queue</b> non pressurisé avec l'<b>APU</b>, son volet d'entrée d'air et son échappement.</li></ul>
+ <div class="box am"><b class="t">Hélicoptères</b>Non pressurisés : pas de cloisons étanches. La « plateforme mécanique » au-dessus de la cabine porte la boîte de transmission et le ou les moteurs, séparés de la cabine par des <b>cloisons pare-feu</b>.</div>`,quiz:[Q('Où se trouvent les batteries d\'un A320 ?',['Dans les ailes','Dans la soute avionique, sous le poste','Dans le cône de queue'],1,'La soute avionique, sous le plancher du poste, regroupe batteries et calculateurs.')]},
+ {id:'ca3',t:'Le turboréacteur : pièces et démarrage',h:`<p>Les A320 ont deux <b>turboréacteurs double flux</b> (CFM56-5B ou, sur les néo, LEAP-1A ou PW1100G). Deux arbres concentriques tournent indépendamment : l'<b>attelage basse pression N1</b> (soufflante + compresseur BP + turbine BP) et l'<b>attelage haute pression N2</b> (compresseur HP + turbine HP).</p>${ENG}
+ <ul><li><b>Entrée d'air</b> et <b>lèvre</b> (antigivrée par air chaud).</li><li><b>Soufflante</b> (fan) : la grande roue visible de face ; l'air qui la traverse et contourne le cœur forme le <b>flux secondaire</b>.</li><li><b>Compresseurs</b> BP (booster) puis HP : ils multiplient la pression (environ 30 fois au total).</li><li><b>Chambre de combustion annulaire</b> : <b>injecteurs</b> et deux <b>bougies d'allumage</b>.</li><li><b>Turbines HP puis BP</b> : les gaz chauds les font tourner ; elles entraînent les compresseurs et la soufflante.</li><li><b>Tuyère</b>, et <b>inverseur de poussée</b> (portes ou grilles) dans la nacelle.</li><li><b>Boîte d'accessoires</b> (AGB) entraînée par N2 : <b>démarreur pneumatique</b>, <b>IDG</b> (génératrice 90 kVA), <b>pompe hydraulique</b>, pompe carburant HP et <b>FMU</b> (doseur), alternateur dédié du FADEC.</li><li><b>FADEC</b> : calculateur à deux canaux qui pilote démarrage, dosage, limites.</li></ul>
+ <h3>Du bouton au moteur</h3>${TB([['ENG MODE → IGN/START','FADEC','Mise sous tension, séquence automatique prête'],['ENG MASTER → ON','Vanne carburant BP (mât), vanne de démarrage','Air comprimé → démarreur → N2 tourne'],['(automatique) 16 % N2','Bougies','Étincelles dans la chambre'],['(automatique) 22 % N2','Vanne HP du FMU, injecteurs','Combustion, l\'EGT monte'],['(automatique) 50 % N2','Vanne de démarrage','Fermée, démarreur désaccouplé'],['GEN 1 / ENG 1 PUMP','IDG, pompe hydraulique','Électricité, circuit vert à 3000 psi']])}
+ ${BTN('a320:start','Démarrer les moteurs dans l\'atelier')}`,quiz:[Q('Qui entraîne le démarreur pneumatique ?',['Le courant des batteries','L\'air comprimé de l\'APU ou d\'un autre moteur','Le carburant'],1,'C\'est une petite turbine à air : sans air comprimé, pas de démarrage.'),Q('Quel attelage entraîne la boîte d\'accessoires ?',['N1','N2','Aucun'],1,'L\'attelage haute pression N2.')]},
+ {id:'ca4',t:'Les circuits de l\'A320 : électricité, carburant, hydraulique, air',h:`<h3>Électricité</h3><ul><li>Deux <b>batteries</b> Ni-Cd 24 V / 23 Ah ; barres <b>DC BAT</b>, <b>DC 1</b>, <b>DC 2</b>, <b>DC ESS</b> (28 V continu) et barres <b>HOT</b> reliées directement aux batteries.</li><li>Sources alternatives 115 V / 400 Hz : deux <b>IDG</b> (90 kVA chacun), la génératrice <b>APU</b>, le <b>groupe de parc</b> (EXT PWR), et en secours la génératrice <b>CSM/G</b> entraînée par la <b>RAT</b>.</li><li>Les <b>TR</b> (transformateurs-redresseurs) passent l'alternatif en continu ; un <b>convertisseur statique</b> fait l'inverse en secours.</li></ul>
+ <h3>Carburant</h3><ul><li>Réservoirs <b>extérieurs</b> et <b>intérieurs</b> dans chaque aile, réservoir <b>central</b> dans le caisson central : environ 24 000 litres sur l'A320ceo de base.</li><li>Deux <b>pompes de gavage</b> (115 V AC) dans chaque réservoir intérieur et dans le central ; <b>vanne d'intercommunication</b> ; <b>vannes BP</b> dans les mâts (fermées par ENG MASTER OFF ou le bouton FIRE).</li></ul>
+ <h3>Hydraulique : trois circuits indépendants à 3000 psi</h3><table><tr><th>Circuit</th><th>Pompes</th><th>Principaux utilisateurs</th></tr><tr><td style="color:#3ddc84"><b>Vert</b></td><td>Pompe moteur 1, PTU</td><td>Train, freins normaux, volets, becs, ailerons, spoilers 1 et 5, profondeur, direction</td></tr><tr><td style="color:#4a8bff"><b>Bleu</b></td><td>Pompe électrique, RAT</td><td>Becs, ailerons, spoiler 3, profondeur, direction</td></tr><tr><td style="color:#ffe14a"><b>Jaune</b></td><td>Pompe moteur 2, pompe électrique, pompe à main (portes de soute), PTU</td><td>Volets, spoilers 2 et 4, profondeur, direction, freins alternés et de parc, roulette de nez</td></tr></table>
+ <p>Le <b>PTU</b> relie vert et jaune mécaniquement, sans mélanger les liquides, si l'écart dépasse 500 psi.</p>
+ <h3>Pneumatique et conditionnement</h3><ul><li>Air prélevé aux étages IP/HP du compresseur, régulé et refroidi dans le <b>pré-refroidisseur</b>, ou fourni par l'APU.</li><li>Deux <b>packs</b> (échangeurs + <b>machine à cycle à air</b>) refroidissent l'air, puis le <b>mélangeur</b> l'envoie en cabine. La <b>vanne de décharge</b> (outflow valve) règle la pression : altitude cabine d'environ 8 000 ft maximum.</li><li>Usages de l'air : packs, démarrage des moteurs, antigivrage voilure et entrées d'air, pressurisation des réservoirs hydrauliques.</li></ul>
+ ${BTN('a320:hyd','Atelier : qui alimente quoi en hydraulique')}${BTN('a320:fire','Atelier : feu moteur 1 au sol')}`,quiz:[Q('Quelle pompe peut pressuriser le circuit bleu en vol si tous les moteurs s\'arrêtent ?',['La pompe électrique jaune','La RAT','Le PTU'],1,'L\'éolienne de secours (RAT) entraîne une pompe bleue et la génératrice de secours.'),Q('Le PTU…',['mélange les liquides vert et jaune','transmet la puissance entre vert et jaune sans mélanger','alimente le bleu'],1,'Moteur hydraulique et pompe sur un même arbre : seule la puissance passe.')]},
+ {id:'ca5',t:'Instruments et calculateurs : du capteur à l\'écran, du manche à la gouverne',h:`<h3>Les capteurs</h3><ul><li><b>Sondes Pitot</b> (pression totale) et <b>prises statiques</b> : vitesse, altitude, vitesse verticale.</li><li><b>Sondes d'incidence</b> (AOA), <b>sonde TAT</b> (température totale).</li><li><b>Gyrolasers</b> et accéléromètres dans les centrales inertielles.</li></ul>${CHAIN}
+ <h3>Les calculateurs</h3><table><tr><th>Nom</th><th>Rôle</th></tr><tr><td><b>ADIRU</b> (×3)</td><td>ADR : vitesse, altitude, incidence. IR : attitude, cap, position. Alignement au sol de 10 minutes environ.</td></tr><tr><td><b>FMGC</b> (×2)</td><td>Gestion du vol (plan de vol, performances) et guidage (pilote automatique, auto-manette)</td></tr><tr><td><b>FCU</b></td><td>Le panneau sous le pare-brise : vitesse, cap, altitude sélectés</td></tr><tr><td><b>MCDU</b> (×2 ou 3)</td><td>Clavier-écran pour programmer les FMGC</td></tr><tr><td><b>ELAC</b> (×2), <b>SEC</b> (×3), <b>FAC</b> (×2)</td><td>Commandes de vol électriques : ailerons, profondeur, spoilers, direction, protections</td></tr><tr><td><b>FWC, SDAC, DMC</b></td><td>Surveillance des systèmes et alarmes (ECAM), génération des images des écrans</td></tr><tr><td><b>BSCU</b></td><td>Freinage, antidérapage</td></tr><tr><td><b>FADEC</b></td><td>Régulation de chaque moteur</td></tr></table>
+ <h3>Les écrans</h3><ul><li><b>PFD</b> : horizon artificiel, vitesse, altitude, vitesse verticale, modes du pilote automatique (FMA).</li><li><b>ND</b> : carte de navigation, radar météo. <b>E/WD</b> : paramètres moteurs et alarmes. <b>SD</b> : pages des systèmes (ELEC, HYD, FUEL, BLEED…), celles de l'atelier.</li><li><b>ISIS</b> : instrument de secours autonome.</li></ul>
+ <h3>Du manche à la gouverne</h3>${TB([['Mini-manche','ELAC / SEC → servocommandes','Ailerons et spoilers (roulis), profondeur et PHR (tangage)'],['Palonnier','Câbles + FAC → 3 servocommandes','Gouverne de direction'],['Levier volets','SFCC → moteurs hydrauliques → arbres → vérins à vis','Becs et volets'],['Levier de train','LGCIU → vanne de sélection (vert)','Trappes, jambes, verrous']])}
+ ${BTN('a320','Essayer le mini-manche dans l\'atelier')}`,quiz:[Q('Le mini-manche de l\'A320 est relié aux gouvernes par…',['des câbles','des signaux électriques vers des calculateurs','des bielles'],1,'Commandes de vol électriques : ELAC et SEC commandent les servocommandes hydrauliques.')]},
+ {id:'ca6',t:'Le Learjet 60 : jet d\'affaires à commandes mécaniques',h:`<ul><li><b>Moteurs</b> : deux Pratt & Whitney Canada <b>PW305A</b>, fixés sur le fuselage arrière par des mâts ; régulation électronique.</li><li><b>Électricité</b> : réseau <b>28 V continu</b>. Sur chaque moteur, un <b>démarreur-génératrice</b> sert de démarreur électrique puis de génératrice (environ 400 A). Des <b>convertisseurs</b> fournissent l'alternatif aux instruments. Pas d'APU.</li><li><b>Carburant</b> : réservoirs d'aile et de fuselage ; <b>pompes de secours</b> électriques pour le démarrage, puis <b>pompes à jet</b> entraînées par le débit moteur.</li><li><b>Commandes de vol</b> : <b>câbles et poulies</b> vers ailerons, profondeur et direction : elles fonctionnent avion éteint. Spoilers, volets, train et freins sont hydrauliques.</li><li><b>Empennage en T</b> : stabilisateur réchauffé électriquement ; bords d'attaque et pare-brise par air chaud.</li></ul>
+ ${TB([['START','Démarreur-génératrice','Moteur électrique : N2 tourne'],['Manette CUTOFF → IDLE (à 10 % N2)','Vanne carburant, allumage auto','Combustion ; trop tôt = démarrage chaud'],['GEN','Démarreur-génératrice','Devient génératrice 28 V'],['Volant','Câbles','Ailerons et profondeur, sans hydraulique']])}
+ ${BTN('lj60:start','Atelier : démarrage du Learjet 60')}`,quiz:[Q('Pourquoi place-t-on la manette sur IDLE seulement vers 10 % de N2 ?',['Pour économiser le carburant','Pour avoir assez d\'air et éviter un démarrage chaud','Pour charger la batterie'],1,'Trop de carburant pour trop peu d\'air : l\'ITT dépasse la limite.')]},
+ {id:'ca7',t:'L\'hélicoptère à turbine : H125 et S-76',h:`<ul><li><b>Turbomoteur à turbine libre</b> (Safran Arriel) : un <b>générateur de gaz</b> (compresseur, chambre, turbine ; régime <b>Ng</b>) produit des gaz qui font tourner une <b>turbine libre</b>, mécaniquement indépendante, reliée à la transmission. On démarre le générateur de gaz sans entraîner le rotor.</li><li><b>Roue libre</b> : le rotor peut tourner plus vite que le moteur, c'est ce qui permet l'<b>autorotation</b>.</li><li><b>BTP</b> (boîte de transmission principale) : réduction et renvoi d'angle vers le <b>mât rotor</b> ; elle entraîne aussi les <b>pompes hydrauliques</b> et l'<b>arbre de transmission arrière</b> vers la <b>BTA</b> et le <b>rotor anticouple</b>.</li><li><b>Tête rotor</b> : moyeu (Starflex sur H125), <b>plateau cyclique</b> (partie fixe et partie tournante), <b>biellettes de pas</b>. Le <b>collectif</b> change le pas de toutes les pales, le <b>cyclique</b> incline le plateau.</li><li><b>Servocommandes</b> hydrauliques (un circuit et des accumulateurs sur H125, deux circuits sur S-76). Le S-76 a un train escamotable.</li><li><b>VEMD</b> (H125) : écran des paramètres moteur Ng, T4 (température entre turbines), couple.</li></ul>
+ ${BTN('h125:start','Atelier : mise en route du H125')}${BTN('s76:start','Atelier : mise en route du S-76')}`,quiz:[Q('Quelle pièce permet l\'autorotation ?',['Le frein rotor','La roue libre','La turbine HP'],1,'La roue libre désaccouple le rotor du moteur arrêté.'),Q('Où est entraînée la pompe hydraulique d\'un H125 ?',['Par la batterie','Par la boîte de transmission principale','Par la turbine libre directement'],1,'Elle est sur la BTP : pas de pression tant que le rotor ne tourne pas.')]},
+ {id:'ca8',t:'L\'hélicoptère à piston : Robinson R44',h:`<ul><li><b>Moteur</b> Lycoming O-540, six cylindres à plat, <b>carburateur</b> (Raven I) avec <b>réchauffage</b> : la détente dans le venturi peut givrer par air humide, même à +20 °C.</li><li><b>Allumage par magnétos</b> : deux magnétos entraînées par le moteur produisent seules les étincelles (deux bougies par cylindre). Couper la batterie n'arrête pas le moteur ; la clé met les magnétos à la masse.</li><li><b>Transmission par courroies</b> : poulie inférieure (moteur), poulie supérieure (transmission). Un <b>actionneur d'embrayage</b> électrique tend les courroies après le démarrage : on démarre <b>débrayé</b>.</li><li><b>Roue libre</b> (sprag clutch) dans la poulie supérieure, <b>boîte de transmission</b>, rotor bipale, arbre arrière vers le rotor anticouple.</li><li><b>Commandes mécaniques</b> (tiges, renvois, câbles) ; <b>régulateur</b> qui garde le régime à 102 %.</li></ul>
+ ${TB([['Clé START','Démarreur, magnétos','Le vilebrequin tourne, étincelles'],['Embrayage ENGAGE','Actionneur électrique → courroies','Le rotor se met à tourner'],['Réchauffage carbu','Boîte d\'air chaud','Air chaud au carburateur'],['Mélange ÉTOUFFOIR','Carburateur','Moteur arrêté']])}
+ ${BTN('r44:start','Atelier : démarrage et embrayage du R44')}`,quiz:[Q('Pourquoi démarre-t-on un R44 débrayé ?',['Pour économiser la batterie','Le démarreur ne peut pas lancer moteur + rotor','Pour chauffer l\'huile'],1,'Le rotor est entraîné seulement ensuite, par l\'embrayage progressif.')]}
+]};
+if(window.ACAD&&ACAD.setPart) ACAD.setPart(PART5);
 })();
 
 </script>

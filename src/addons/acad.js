@@ -206,7 +206,8 @@ const PARTS=[
 const SRC=[['Programme et examens théoriques PPL/LAPL — ministère (DGAC)','https://www.ecologie.gouv.fr/politiques-publiques/examens-theoriques-devenir-personnel-navigant'],['Passage à 9 épreuves (déc. 2023) — AeroVFR','https://aerovfr.com/2023/10/de-la-pratique-de-lexamen-theorique'],['Fiche LAPL / PPL (heures, médical) — Aérogligli','https://www.aerogligli.fr/assets/img/resumes/fiche_resume_licences.pdf'],['FAA — Pilot\'s Handbook of Aeronautical Knowledge','https://www.faa.gov/regulations_policies/handbooks_manuals/aviation/phak'],['Coûts ENAC / intégré / modulaire (2026) — Salerya','https://salerya.fr/metiers/transport/pilote-de-ligne/formation-enac-vs-privee-roi/'],['Reconversion après 30 ans, médical classe 1 — Salerya','https://salerya.fr/metiers/transport/pilote-de-ligne/formation-enac-vs-privee-roi/reconversion-pilote-apres-30-ans/'],['Filière Cadets Air France — Air Journal','https://www.air-journal.fr/?p=275748'],['Financer une reconversion pilote (CPF, Transitions Pro, France Travail) — OPCO Direct','https://opcodirect.fr/metier/pilote-de-ligne'],['Pilote de ligne (ATPL intégré / modulaire) — CIDJ','https://www.cidj.com/s-orienter/metiers/pilote-de-ligne'],['Structure semi-monocoque (peau, cadres, lisses) — AeroToolbox','https://aerotoolbox.com/fuselage-structure/'],['A320 : dimensions officielles — Airbus','https://www.aircraft.airbus.com/en/aircraft/a320-family/a320ceo'],['Matériaux des hélicoptères (AS350 / H125) — Pilot Teacher','https://pilotteacher.com/what-are-helicopters-made-of-things-you-have-never-heard-of/'],['Composants composites du S-76 — NASA / DTIC','https://apps.dtic.mil/sti/html/tr/ADA233525/index.html']];
 
 /* ---------- lecteur ---------- */
-const LIST=[]; PARTS.forEach(p=>p.mods.forEach(m=>LIST.push({p,m})));
+const LIST=[]; function rebuild(){ LIST.length=0; PARTS.forEach(p=>p.mods.forEach(m=>LIST.push({p,m}))); } rebuild();
+function setPart(np){ const i=PARTS.findIndex(p=>p.id===np.id); if(i>=0) PARTS[i]=np; else PARTS.push(np); rebuild(); }
 const ST={i:0,toc:false}; const store={get(){ try{ return JSON.parse(localStorage.getItem('pt-acad')||'{}'); }catch(e){ return {}; } },set(v){ try{ localStorage.setItem('pt-acad',JSON.stringify(v)); }catch(e){} }};
 let done=store.get();
 function dom(){ let a=document.getElementById('acad'); if(a) return a; a=document.createElement('section'); a.id='acad'; a.hidden=true; a.setAttribute('aria-label','Académie');
@@ -223,7 +224,7 @@ function dom(){ let a=document.getElementById('acad'); if(a) return a; a=documen
   return a; }
 function home(){ return `<div class="kick">Avant le simulateur</div><h1>Apprendre à piloter, de zéro</h1><p>Commencez ici si vous n'avez jamais piloté. Quatre parties, à lire dans l'ordre : chaque module se termine par quelques questions. Votre progression est gardée sur cet appareil.</p>
   <div class="cards">${PARTS.map(p=>{ const n=p.mods.length, k=p.mods.filter(m=>done[m.id]).length; return `<button type="button" class="card" data-mod="${LIST.findIndex(x=>x.p===p)}"><span class="kick">${k}/${n} modules</span><b>${p.n}</b>${p.d}<div class="pg"><i style="width:${n?k/n*100:0}%"></i></div></button>`; }).join('')}</div>
-  <div class="box mg"><b class="t">Le parcours complet</b>1. Cours débutant → 2. Cours du simulateur → 3. Mode automatique puis guidé → 4. Examen blanc → 5. Le vrai pilotage (brevet) → 6. La reconversion professionnelle → 7. L'anatomie de chaque appareil.</div>
+  <div class="box mg"><b class="t">Le parcours complet</b>1. Cours débutant → 2. Cours du simulateur → 3. Mode automatique puis guidé → 4. Examen blanc → 5. Le vrai pilotage (brevet) → 6. La reconversion professionnelle → 7. Le cours aéronautique (structures, moteurs, systèmes) avec l'Atelier des systèmes.</div>
   <h2>Références</h2><ul class="src">${SRC.map(s=>`<li><a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a></li>`).join('')}</ul><p class="src">Chiffres et règles vérifiés en novembre 2026 ; ils évoluent : confirmez auprès de la DGAC, de votre médecin agréé et des écoles. Les formules de calcul du simulateur sont pédagogiques, pas les tables d'un constructeur.</p>`; }
 function modHTML(x,i){ const {p,m}=x, k=p.mods.indexOf(m)+1;
   return `<div class="kick">${p.n} · module ${k}/${p.mods.length}</div><h1>${m.t}</h1>${m.h}
@@ -242,11 +243,11 @@ function render(){ const a=dom(), body=a.querySelector('.in'), toc=a.querySelect
 function go(i){ ST.i=Math.max(-1,Math.min(LIST.length-1,i)); render(); }
 function open(i){ const a=dom(); a.hidden=false; ST.toc=false; go(i==null?-1:i); }
 function close(){ const a=dom(); a.hidden=true; }
-function act(k){ if(typeof selAC==='undefined') return; if(!selAC) selAC='a320'; if(!selMI||!MISSIONS[selMI]) selMI=(AC[selAC].kind==='fw')?'full-fw':'full-rw';
+function act(k){ if(k.startsWith('sys')){ const q=k.split(':'); close(); if(window.SYSAT) SYSAT.open(q[1],q[2]); return; } if(typeof selAC==='undefined') return; if(!selAC) selAC='a320'; if(!selMI||!MISSIONS[selMI]) selMI=(AC[selAC].kind==='fw')?'full-fw':'full-rw';
   close(); try{ renderMenu(); }catch(e){}
   if(k==='brief'){ if(window.BR&&BR.show) BR.show(false,0); return; }
   if(window.BR&&BR.launchMode) BR.launchMode(k); }
-window.ACAD={open,close,PARTS};
+window.ACAD={open,close,PARTS,setPart};
 
 /* ---------- entrée dans le menu (avant le choix de l'appareil) ---------- */
 function inject(){ document.querySelectorAll('#c-mi [data-mi^="sc-"]:not([disabled]) .k').forEach(k=>k.textContent='Scénario guidé'); const box=document.querySelector('#menu .box'); if(!box||box.querySelector('.acad-b')) return; const sub=box.querySelector('.sub');
