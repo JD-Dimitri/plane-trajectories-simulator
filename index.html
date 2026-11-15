@@ -4457,6 +4457,24 @@ const SVG_FAN=`<svg viewBox="0 0 640 220" role="img" aria-label="Turboréacteur 
 <text x="40" y="196">1 Aspiration · 2 Compression · 3 Combustion · 4 Détente — l'air froid qui contourne le cœur (flux secondaire) donne ~80 % de la poussée</text></svg>`;
 const SVG_SIX=`<svg viewBox="0 0 640 300" role="img" aria-label="Les six instruments de base">${[['Anémomètre','vitesse air (kt)'],['Horizon artificiel','assiette, inclinaison'],['Altimètre','altitude (ft)'],['Indicateur de virage','bille = symétrie'],['Conservateur de cap','cap magnétique'],['Variomètre','montée / descente (ft/min)']].map((x,k)=>{ const cx=110+(k%3)*210, cy=80+Math.floor(k/3)*140; return `<circle cx="${cx}" cy="${cy}" r="48" fill="#0d1a26" stroke="#5f7d99" stroke-width="3"/>${k===1?`<path d="M${cx-46} ${cy}a46 46 0 0 1 92 0z" fill="#2a6fb0"/><path d="M${cx-46} ${cy}a46 46 0 0 0 92 0z" fill="#7a4f2a"/><path d="M${cx-24} ${cy}h48" stroke="#ffb020" stroke-width="4"/>`:`<path d="M${cx} ${cy}l${Math.cos(k)*36} ${Math.sin(k)*36}" stroke="#e8eef2" stroke-width="3"/>`}<text x="${cx}" y="${cy+66}" text-anchor="middle" class="lb">${x[0]}</text><text x="${cx}" y="${cy+80}" text-anchor="middle" font-size="11">${x[1]}</text>`; }).join('')}</svg>`;
 
+/* ---------- anatomie : couches et coupes ---------- */
+const LCOL=['#9fb3c4','#7f8c99','#e8c76a','#e0784a','#b9a7d9','#6fd39a'];
+function LAYERS(L){ const n=L.length, cx=320, cy=330; let arcs='';
+  L.forEach((l,i)=>{ const r0=300-i*44, r1=r0-44; arcs+=`<path d="M${cx-r0} ${cy} A${r0} ${r0} 0 0 1 ${cx+r0} ${cy} L${cx+r1} ${cy} A${r1} ${r1} 0 0 0 ${cx-r1} ${cy}z" fill="${l[1]}" opacity="0.85"/><text x="${cx}" y="${cy-r0+28}" text-anchor="middle" style="fill:#0b131b;font-weight:700;font-size:15px">${l[0].split(' — ')[0]}</text>`; });
+  return `<svg viewBox="0 0 640 340" role="img" aria-label="Couches du fuselage">${arcs}<text x="20" y="24" class="lb">EXTÉRIEUR (air à −55 °C en croisière)</text><text x="${cx}" y="${cy-12}" text-anchor="middle" style="fill:#0b131b;font-weight:700">HABITACLE</text></svg>
+  <table><tr><th>Couche</th><th>Ce qu'on y trouve</th></tr>${L.map(l=>`<tr><td><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${l[1]};margin-right:6px"></span><b>${l[0]}</b></td><td>${l[2]}</td></tr>`).join('')}</table>`; }
+function ZONE(rows){ const N=['Peau extérieure','Coque structurale','Isolation','Réseaux (câbles, conduits)','Revêtements intérieurs','Partie habitable'];
+  return `<table><tr><th style="width:34%">Couche</th><th>Dans cette zone</th></tr>${rows.map(([k,t])=>`<tr><td><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${LCOL[+k]};margin-right:6px"></span>Niveau ${k} — ${N[+k]}</td><td>${t}</td></tr>`).join('')}</table>`; }
+function CUT(ac){ const heli=/h125|r44|s76/.test(ac); const Z=(x,w,c,t)=>`<rect x="${x}" y="40" width="${w}" height="190" fill="${c}" opacity="0.12"/><text x="${x+w/2}" y="34" text-anchor="middle" class="lb">${t}</text>`;
+  let body, zones;
+  if(!heli){ const jet=ac==='lj60';
+    body=jet?`<path d="M40 150 C60 118 110 108 150 108 L470 108 C520 110 560 128 600 140 L600 150 C560 160 520 172 470 174 L150 174 C100 174 60 168 40 150z" fill="#1d3246" stroke="#5f7d99"/><path d="M520 108 L560 50 L600 50 L590 112z" fill="#1d3246" stroke="#5f7d99"/><path d="M540 52 h70" stroke="#5f7d99" stroke-width="7"/><rect x="455" y="96" width="70" height="20" rx="9" fill="#2a4560" stroke="#5f7d99"/><path d="M260 170 L340 205 L380 205 L330 170z" fill="#1d3246" stroke="#5f7d99"/>${[0,1,2,3,4,5].map(i=>`<rect x="${210+i*34}" y="124" width="14" height="16" rx="5" fill="#0f1a24"/>`).join('')}`
+      :`<path d="M30 150 C40 120 80 104 130 104 L520 104 C560 104 590 118 610 132 L610 146 C590 156 560 170 520 172 L130 172 C80 172 40 166 30 150z" fill="#1d3246" stroke="#5f7d99"/><path d="M500 104 L560 40 L600 40 L590 110z" fill="#1d3246" stroke="#5f7d99"/><path d="M250 172 L330 215 L390 215 L340 172z" fill="#1d3246" stroke="#5f7d99"/><rect x="280" y="176" width="70" height="22" rx="10" fill="#2a4560" stroke="#5f7d99"/>${Array.from({length:14},(_,i)=>`<rect x="${150+i*24}" y="122" width="9" height="13" rx="4" fill="#0f1a24"/>`).join('')}<path d="M190 138 H520" stroke="#6fd39a" stroke-dasharray="4 4"/><text x="200" y="166" style="font-size:11px">soute avant · caisson central · soute arrière</text><path d="M120 106 V170" stroke="#e8c76a" stroke-width="3"/><path d="M540 108 V166" stroke="#e8c76a" stroke-width="3"/><text x="96" y="100" style="font-size:11px" class="am">cloison avant</text><text x="520" y="100" style="font-size:11px" class="am">cloison arrière</text>`;
+    zones=Z(30,110,'#46c8d8','AVANT · POSTE')+Z(140,380,'#6fd39a','CORPS · CABINE')+Z(520,95,'#e04ad8','ARRIÈRE'); }
+  else { body=`<path d="M70 150 C70 112 110 98 160 98 L280 98 C320 98 340 110 350 126 L600 136 L600 146 L350 150 C340 170 300 182 250 182 L140 182 C95 182 70 172 70 150z" fill="#1d3246" stroke="#5f7d99"/><path d="M82 140 C86 112 112 104 150 104 L170 104 L170 150 L82 150z" fill="#0f1a24"/><rect x="190" y="78" width="120" height="22" rx="8" fill="#2a4560" stroke="#5f7d99"/><path d="M250 78 V58" stroke="#8ea3b8" stroke-width="5"/><path d="M60 56 H440" stroke="#8ea3b8" stroke-width="4"/><path d="M580 100 L600 100 L604 150 L590 150z" fill="#1d3246" stroke="#5f7d99"/><circle cx="596" cy="120" r="22" fill="none" stroke="#8ea3b8" stroke-dasharray="5 4"/>${ac==='s76'?'<circle cx="130" cy="196" r="9" fill="#111"/><circle cx="260" cy="196" r="10" fill="#111"/>':'<path d="M100 205 H300 M130 182 L120 205 M270 182 L280 205" stroke="#8ea3b8" stroke-width="4"/>'}<text x="200" y="74" style="font-size:11px">moteur · boîte de transmission</text>`;
+    zones=Z(70,110,'#46c8d8','AVANT · POSTE')+Z(180,170,'#6fd39a','CORPS · CABINE')+Z(350,265,'#e04ad8','ARRIÈRE · POUTRE'); }
+  return `<svg viewBox="0 0 640 240" role="img" aria-label="Zones de l'appareil">${zones}${body}</svg>`; }
+
 /* ---------- contenu ---------- */
 const Q=(q,o,c,why)=>({q,o,c,why});
 const PARTS=[
@@ -4536,8 +4554,41 @@ const PARTS=[
  {id:'r4',t:'Étape 4 : la formation et le premier poste',h:`<ol><li><b>ATPL théorique</b> : une quinzaine de matières (13 à 14 épreuves selon le programme) — systèmes, performances, météo, navigation, réglementation, facteurs humains…</li><li><b>CPL</b> (licence de pilote professionnel) et <b>IR</b> (vol aux instruments), souvent sur bimoteur.</li><li><b>MCC / APS</b> : travail en équipage sur simulateur de ligne.</li><li>Vous obtenez un « <b>ATPL gelé</b> » : licence professionnelle avec la théorie ATPL.</li><li><b>Sélection compagnie</b> : tests techniques, psychotechniques, anglais, entretien.</li><li><b>Qualification de type</b> (A320, B737…) sur simulateur, puis vols en ligne sous supervision.</li><li>Copilote (OPL), puis <b>commandant de bord</b> une fois l'expérience acquise (1 500 h de vol pour l'ATPL complet, plus les critères de la compagnie).</li></ol>
  <div class="box mg"><b class="t">Plan type sur 24 à 36 mois</b>Mois 0 : médical classe 1 · mois 1 à 3 : financement et choix d'école · mois 3 à 6 : inscription, PPL ou début d'intégré · mois 6 à 28 : ATPL théorique, CPL, IR · puis MCC, sélection compagnie, qualification de type.</div>`,
   quiz:[Q('Quel est l\'ordre logique ?',['Qualification de type → CPL → médical','Médical classe 1 → ATPL théorique + CPL/IR → MCC → qualification de type','PPL → commandant de bord'],1,'Médical d\'abord, puis licences, travail en équipage, et enfin le type d\'avion de la compagnie.')]}
-]}];
-const SRC=[['Programme et examens théoriques PPL/LAPL — ministère (DGAC)','https://www.ecologie.gouv.fr/politiques-publiques/examens-theoriques-devenir-personnel-navigant'],['Passage à 9 épreuves (déc. 2023) — AeroVFR','https://aerovfr.com/2023/10/de-la-pratique-de-lexamen-theorique'],['Fiche LAPL / PPL (heures, médical) — Aérogligli','https://www.aerogligli.fr/assets/img/resumes/fiche_resume_licences.pdf'],['FAA — Pilot\'s Handbook of Aeronautical Knowledge','https://www.faa.gov/regulations_policies/handbooks_manuals/aviation/phak'],['Coûts ENAC / intégré / modulaire (2026) — Salerya','https://salerya.fr/metiers/transport/pilote-de-ligne/formation-enac-vs-privee-roi/'],['Reconversion après 30 ans, médical classe 1 — Salerya','https://salerya.fr/metiers/transport/pilote-de-ligne/formation-enac-vs-privee-roi/reconversion-pilote-apres-30-ans/'],['Filière Cadets Air France — Air Journal','https://www.air-journal.fr/?p=275748'],['Financer une reconversion pilote (CPF, Transitions Pro, France Travail) — OPCO Direct','https://opcodirect.fr/metier/pilote-de-ligne'],['Pilote de ligne (ATPL intégré / modulaire) — CIDJ','https://www.cidj.com/s-orienter/metiers/pilote-de-ligne']];
+]},
+{id:'p5',n:'Partie 5 — Anatomie des appareils',d:'Chaque appareil couche par couche, de la peau extérieure à l\'habitacle : avant / poste, corps, arrière.',mods:[
+ {id:'an0',t:'Les couches d\'un appareil, de l\'extérieur à l\'habitacle',h:`<p>Un fuselage n'est pas une simple coque : c'est un empilement de couches, chacune avec un rôle. On les lit <b>de l'extérieur (niveau 0) vers l'intérieur</b>, dans le même ordre que sur l'avion réel.</p>${LAYERS([['Niveau 0 — Peau extérieure','#9fb3c4','Tôle d\'aluminium (ou composite) rivetée : elle porte les efforts (structure « semi-monocoque ») et donne la forme. Dessus : sondes, antennes, feux, trappes.'],['Niveau 1 — Coque structurale','#7f8c99','Cadres (anneaux transversaux) et lisses (raidisseurs longitudinaux) rivés à la peau ; cloisons pressurisées, poutres de plancher.'],['Niveau 2 — Isolation thermique et phonique','#e8c76a','Matelas de fibre de verre sous film, entre les cadres : contre le froid (−55 °C dehors) et le bruit.'],['Niveau 3 — Réseaux','#e0784a','Faisceaux électriques le long des cadres et au plafond, conduits de climatisation, tuyauteries d\'oxygène, d\'eau, de carburant.'],['Niveau 4 — Barrière et revêtements intérieurs','#b9a7d9','Panneaux de paroi et de plafond en composite nid d\'abeille (légers, peu inflammables), coffres, moquette ignifugée.'],['Niveau 5 — Partie habitable','#6fd39a','Poste de pilotage, cabine passagers, offices, toilettes, soutes.']])}
+ <div class="box"><b class="t">Pourquoi cet ordre ?</b>La peau et la coque portent les charges ; l'isolation doit être au contact de la paroi froide ; les fils et conduits restent accessibles derrière les panneaux, qu'on démonte en maintenance sans toucher à la structure.</div>
+ <div class="box am"><b class="t">Pressurisé ou non</b>Un avion de ligne et un jet d'affaires sont <b>pressurisés</b> : la coque est un réservoir sous pression fermé par deux cloisons étanches (avant et arrière). Les hélicoptères de ce simulateur ne le sont pas : leur isolation est surtout acoustique.</div>`,
+  quiz:[Q('Quelle couche porte les efforts du fuselage avec la peau ?',['Les panneaux d\'habillage','Les cadres et les lisses','L\'isolation'],1,'Peau + cadres + lisses forment la structure semi-monocoque.'),Q('Où passent les faisceaux électriques ?',['Dans la peau extérieure','Le long des cadres, derrière les panneaux intérieurs','Sous la moquette uniquement'],1,'Ils restent accessibles derrière les panneaux, fixés sur la structure.')]},
+ {id:'an1',t:'Airbus A320 : anatomie détaillée',h:`<p>Avion de ligne biréacteur de 37,57 m, fuselage de 3,95 m de large, pressurisé. Structure principale en <b>alliages d'aluminium</b> (peau, cadres, lisses rivés), empennage en grande partie en <b>composite</b>.</p>${CUT('a320')}
+ <h2>Avant · poste de pilotage</h2>${ZONE([['0','Radôme en composite (transparent aux ondes) avec l\'antenne du radar météo ; sondes : 3 tubes de Pitot, prises statiques, sondes d\'incidence, sonde de température ; pare-brise feuilleté chauffé ; trappes du train avant.'],['1','Cloison pressurisée avant (derrière le radôme) ; cadres du poste ; case du train avant ; plancher du poste.'],['2','Isolation des parois et du plafond du poste.'],['3','Zone la plus dense en câbles : sous le poste, la baie avionique (calculateurs de commandes de vol, centrales inertielles, radios) ; câblage vers les panneaux.'],['4','Habillage du poste, planches de bord, plafonnier (overhead), piédestal.'],['5','2 sièges pilotes, strapontins observateurs, porte blindée vers la cabine.']])}
+ <h2>Corps · cabine et équipage</h2>${ZONE([['0','Peau en aluminium (alliage 2024), hublots en acrylique double vitrage, portes passagers et portes de soute, antennes, feux anticollision ; sous le ventre : carénage voilure-fuselage.'],['1','Cadres et lisses ; poutres du plancher cabine ; caisson central de voilure (réservoir central) ; logements du train principal.'],['2','Matelas isolants entre les cadres, tout autour de la cabine.'],['3','Faisceaux électriques et conduits de climatisation au plafond et le long des parois ; oxygène passagers au-dessus des sièges ; eau et évacuations vers offices et toilettes.'],['4','Panneaux de paroi et de plafond en nid d\'abeille, coffres à bagages, moquette, éclairage.'],['5','150 à 180 sièges, offices avant et arrière, toilettes ; sous le plancher : soutes avant et arrière.']])}
+ <h2>Arrière · empennage et queue</h2>${ZONE([['0','Dérive et plan horizontal réglable (THS) avec gouvernes de direction et de profondeur ; cône de queue ; sortie d\'échappement de l\'APU.'],['1','Cloison pressurisée arrière en dôme (fin de la partie pressurisée) ; caisson de dérive et de plan horizontal en composite carbone (bords d\'attaque en fibre de verre).'],['2','Isolation jusqu\'à la cloison arrière ; au-delà, zone non pressurisée.'],['3','Câbles et vérins des gouvernes ; alimentation de l\'APU (carburant, électricité, air).'],['4','Habillage de l\'office arrière et des toilettes.'],['5','Office arrière, toilettes ; derrière la cloison : l\'APU dans son compartiment coupe-feu.']])}
+ <h3>Ailes</h3><p>Caisson en aluminium formant des réservoirs intégraux ; becs au bord d'attaque ; volets, spoilers et ailerons au bord de fuite ; sharklets en bout d'aile ; réacteurs CFM56 ou IAE sur mâts.</p>`,
+  quiz:[Q('Où se termine la partie pressurisée de l\'A320 ?',['Au niveau des ailes','À la cloison pressurisée arrière (dôme)','Au bout de la dérive'],1,'La cloison arrière ferme le « réservoir » pressurisé ; l\'APU est derrière, en zone non pressurisée.'),Q('Pourquoi le radôme du nez est-il en composite ?',['Pour être plus lourd','Pour laisser passer les ondes du radar météo','Pour résister au feu'],1,'Le métal bloquerait les ondes du radar.')]},
+ {id:'an2',t:'Learjet 60 : anatomie détaillée',h:`<p>Jet d'affaires de 17,88 m, pressurisé, cabine où l'on tient debout (1,74 m). Structure en <b>aluminium</b> semi-monocoque ; réacteurs à l'arrière et empennage en T.</p>${CUT('lj60')}
+ <h2>Avant · poste de pilotage</h2>${ZONE([['0','Nez avec radôme et radar météo ; tubes de Pitot et prises statiques sur les flancs ; pare-brise chauffé ; trappes du train avant.'],['1','Cloison pressurisée avant ; cadres du poste ; case du train avant.'],['2','Isolation du poste.'],['3','Baie avionique dans le nez et sous le plancher ; câblage des écrans.'],['4','Planche de bord, panneau supérieur, habillage.'],['5','2 sièges pilotes.']])}
+ <h2>Corps · cabine</h2>${ZONE([['0','Peau aluminium, 6 hublots de chaque côté, porte d\'entrée avec escalier intégré, issue de secours.'],['1','Cadres, lisses, poutres de plancher ; fixation de l\'aile basse sous la cabine (réservoirs d\'aile).'],['2','Isolation thermique et phonique épaisse (cabine de luxe, bruit des réacteurs arrière).'],['3','Câbles, conduits de climatisation et d\'oxygène dans les parois et le plafond.'],['4','Habillage cuir et boiseries, placards, toilettes.'],['5','6 à 8 sièges passagers.']])}
+ <h2>Arrière</h2>${ZONE([['0','Mâts et nacelles des deux réacteurs PW305A ; empennage en T (stabilisateur au sommet de la dérive) ; cône de queue.'],['1','Cloison pressurisée arrière ; structure renforcée qui porte les réacteurs et l\'empennage.'],['2','Isolation renforcée près des réacteurs.'],['3','Câbles et commandes vers les gouvernes ; carburant et électricité des réacteurs.'],['4','Soute à bagages arrière.'],['5','Soute (non habitée).']])}`,
+  quiz:[Q('Où sont les réacteurs du Learjet 60 ?',['Sous les ailes','De part et d\'autre du fuselage arrière','Dans le nez'],1,'Montés sur mâts à l\'arrière, devant l\'empennage en T.')]},
+ {id:'an3',t:'Airbus H125 (Écureuil) : anatomie détaillée',h:`<p>Hélicoptère monoturbine de 10,93 m de fuselage, <b>non pressurisé</b>. Cabine avec grande verrière, structure en aluminium et en composites, poutre de queue en aluminium.</p>${CUT('h125')}
+ <h2>Avant · poste</h2>${ZONE([['0','Grande verrière en acrylique (vue vers le bas et l\'avant) ; tube de Pitot ; portes.'],['1','Plancher et structure de cabine qui supportent les patins ; montants de verrière.'],['2','Insonorisation légère (pas de pressurisation).'],['3','Câblage de la planche de bord et des commandes ; commandes de vol (cyclique, pas collectif, palonniers) avec servocommandes hydrauliques.'],['4','Planche de bord, sièges.'],['5','Pilote à droite, passagers.']])}
+ <h2>Corps · cabine et mécanique</h2>${ZONE([['0','Capots moteur et de boîte de transmission sur le toit ; tête rotor à 3 pales ; patins.'],['1','Plateforme mécanique au-dessus de la cabine : boîte de transmission principale (BTP), turbine Arriel 2D derrière ; cloison coupe-feu en acier inoxydable entre moteur et cabine.'],['2','Insonorisation sous le toit (bruit de la BTP).'],['3','Réservoir carburant résistant à l\'impact sous le plancher ; câblage et hydraulique.'],['4','Habillage et sièges de cabine.'],['5','Jusqu\'à 6 passagers ; soutes latérales.']])}
+ <h2>Arrière</h2>${ZONE([['0','Poutre de queue, stabilisateur horizontal avec dérives d\'extrémité, dérive, rotor anticouple à 2 pales.'],['1','Poutre de queue en aluminium (monocoque : la peau porte les efforts).'],['2','—'],['3','Arbre de transmission vers le rotor arrière ; câbles des feux.'],['4','—'],['5','Non habitable.']])}`,
+  quiz:[Q('Où se trouve le moteur du H125 ?',['Sous le plancher','Sur le toit, derrière la boîte de transmission','Dans la poutre de queue'],1,'La turbine est sur la plateforme mécanique, séparée de la cabine par une cloison coupe-feu.')]},
+ {id:'an4',t:'Robinson R44 : anatomie détaillée',h:`<p>Hélicoptère léger à moteur à pistons, 4 places, non pressurisé. Structure mixte : <b>treillis en tubes d'acier soudés</b> au centre, cabine en aluminium et fibre de verre, poutre de queue en tube d'aluminium.</p>${CUT('r44')}
+ <h2>Avant · poste</h2>${ZONE([['0','Bulle en acrylique ; portes amovibles ; tube de Pitot sur le nez.'],['1','Coque de cabine en aluminium riveté et fibre de verre.'],['2','Insonorisation minimale.'],['3','Câblage de la console centrale ; commandes de vol mécaniques (cyclique en « T », pas collectif, palonniers).'],['4','Console, sièges.'],['5','2 places avant (pilote à droite), 2 places arrière.']])}
+ <h2>Corps · mécanique</h2>${ZONE([['0','Carénage du mât ; tête rotor à 2 pales ; patins.'],['1','Treillis en tubes d\'acier soudés qui porte le moteur, la transmission et le mât.'],['2','—'],['3','Moteur Lycoming 6 cylindres à pistons derrière les sièges arrière ; courroies et embrayage ; réservoirs de carburant (souples sur les versions récentes) ; batterie et câblage.'],['4','Dossiers des sièges arrière (cloison avec le compartiment moteur).'],['5','Places arrière.']])}
+ <h2>Arrière</h2>${ZONE([['0','Poutre de queue, dérives haute et basse, rotor anticouple à 2 pales à gauche.'],['1','Tube monocoque en aluminium.'],['2','—'],['3','Arbre de transmission du rotor arrière.'],['4','—'],['5','Non habitable.']])}`,
+  quiz:[Q('Quel type de moteur équipe le R44 ?',['Une turbine','Un moteur à pistons 6 cylindres','Un moteur électrique'],1,'Un Lycoming à pistons, qui entraîne le rotor par courroies et embrayage.')]},
+ {id:'an5',t:'Sikorsky S-76 : anatomie détaillée',h:`<p>Hélicoptère biturbine de 13,22 m de fuselage, train rentrant, non pressurisé. Structure principalement en <b>aluminium</b>, avec des éléments en <b>composite</b> (stabilisateur, longerons des pales du rotor de queue).</p>${CUT('s76')}
+ <h2>Avant · poste</h2>${ZONE([['0','Nez avec radar météo, pare-brise chauffé, portes du poste, trappe du train avant.'],['1','Structure du poste et case du train avant.'],['2','Insonorisation.'],['3','Avionique (écrans, pilote automatique quatre axes) et câblage dense.'],['4','Planche de bord, panneau supérieur.'],['5','2 pilotes (commandant à droite).']])}
+ <h2>Corps · cabine et mécanique</h2>${ZONE([['0','Capots des deux turbomoteurs et de la BTP sur le toit ; tête rotor à 4 pales ; portes coulissantes ; logements du train principal.'],['1','Plancher et cadres ; plateforme mécanique au-dessus de la cabine avec cloisons coupe-feu.'],['2','Insonorisation renforcée (transport VIP et offshore).'],['3','Réservoirs carburant sous le plancher ; câblage, hydraulique, climatisation.'],['4','Habillage, sièges, bagagerie.'],['5','12 à 13 passagers.']])}
+ <h2>Arrière</h2>${ZONE([['0','Poutre de queue, stabilisateur horizontal, dérive, rotor anticouple à 4 pales à gauche.'],['1','Poutre semi-monocoque.'],['2','—'],['3','Arbre de transmission et boîtes intermédiaire et arrière.'],['4','Soute à bagages à l\'arrière de la cabine.'],['5','Soute (non habitée).']])}`,
+  quiz:[Q('Combien de pales a le rotor principal du S-76 ?',['2','3','4'],2,'Quatre pales, et quatre aussi au rotor anticouple.')]}
+]}
+];
+const SRC=[['Programme et examens théoriques PPL/LAPL — ministère (DGAC)','https://www.ecologie.gouv.fr/politiques-publiques/examens-theoriques-devenir-personnel-navigant'],['Passage à 9 épreuves (déc. 2023) — AeroVFR','https://aerovfr.com/2023/10/de-la-pratique-de-lexamen-theorique'],['Fiche LAPL / PPL (heures, médical) — Aérogligli','https://www.aerogligli.fr/assets/img/resumes/fiche_resume_licences.pdf'],['FAA — Pilot\'s Handbook of Aeronautical Knowledge','https://www.faa.gov/regulations_policies/handbooks_manuals/aviation/phak'],['Coûts ENAC / intégré / modulaire (2026) — Salerya','https://salerya.fr/metiers/transport/pilote-de-ligne/formation-enac-vs-privee-roi/'],['Reconversion après 30 ans, médical classe 1 — Salerya','https://salerya.fr/metiers/transport/pilote-de-ligne/formation-enac-vs-privee-roi/reconversion-pilote-apres-30-ans/'],['Filière Cadets Air France — Air Journal','https://www.air-journal.fr/?p=275748'],['Financer une reconversion pilote (CPF, Transitions Pro, France Travail) — OPCO Direct','https://opcodirect.fr/metier/pilote-de-ligne'],['Pilote de ligne (ATPL intégré / modulaire) — CIDJ','https://www.cidj.com/s-orienter/metiers/pilote-de-ligne'],['Structure semi-monocoque (peau, cadres, lisses) — AeroToolbox','https://aerotoolbox.com/fuselage-structure/'],['A320 : dimensions officielles — Airbus','https://www.aircraft.airbus.com/en/aircraft/a320-family/a320ceo'],['Matériaux des hélicoptères (AS350 / H125) — Pilot Teacher','https://pilotteacher.com/what-are-helicopters-made-of-things-you-have-never-heard-of/'],['Composants composites du S-76 — NASA / DTIC','https://apps.dtic.mil/sti/html/tr/ADA233525/index.html']];
 
 /* ---------- lecteur ---------- */
 const LIST=[]; PARTS.forEach(p=>p.mods.forEach(m=>LIST.push({p,m})));
@@ -4557,12 +4608,12 @@ function dom(){ let a=document.getElementById('acad'); if(a) return a; a=documen
   return a; }
 function home(){ return `<div class="kick">Avant le simulateur</div><h1>Apprendre à piloter, de zéro</h1><p>Commencez ici si vous n'avez jamais piloté. Quatre parties, à lire dans l'ordre : chaque module se termine par quelques questions. Votre progression est gardée sur cet appareil.</p>
   <div class="cards">${PARTS.map(p=>{ const n=p.mods.length, k=p.mods.filter(m=>done[m.id]).length; return `<button type="button" class="card" data-mod="${LIST.findIndex(x=>x.p===p)}"><span class="kick">${k}/${n} modules</span><b>${p.n}</b>${p.d}<div class="pg"><i style="width:${n?k/n*100:0}%"></i></div></button>`; }).join('')}</div>
-  <div class="box mg"><b class="t">Le parcours complet</b>1. Cours débutant → 2. Cours du simulateur → 3. Mode automatique puis guidé → 4. Examen blanc → 5. Le vrai pilotage (brevet) → 6. La reconversion professionnelle.</div>
+  <div class="box mg"><b class="t">Le parcours complet</b>1. Cours débutant → 2. Cours du simulateur → 3. Mode automatique puis guidé → 4. Examen blanc → 5. Le vrai pilotage (brevet) → 6. La reconversion professionnelle → 7. L'anatomie de chaque appareil.</div>
   <h2>Références</h2><ul class="src">${SRC.map(s=>`<li><a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a></li>`).join('')}</ul><p class="src">Chiffres et règles vérifiés en novembre 2026 ; ils évoluent : confirmez auprès de la DGAC, de votre médecin agréé et des écoles. Les formules de calcul du simulateur sont pédagogiques, pas les tables d'un constructeur.</p>`; }
 function modHTML(x,i){ const {p,m}=x, k=p.mods.indexOf(m)+1;
   return `<div class="kick">${p.n} · module ${k}/${p.mods.length}</div><h1>${m.t}</h1>${m.h}
    ${m.quiz&&m.quiz.length?`<div class="quiz"><h3>✔ Vérifiez vos connaissances</h3>${m.quiz.map((q,j)=>`<div class="qq" data-j="${j}"><p>${j+1}. ${q.q}</p>${q.o.map((o,n)=>`<button type="button" data-qi="${j}:${n}">${o}</button>`).join('')}<div class="why" hidden></div></div>`).join('')}</div>`:''}
-   ${i===LIST.length-1||LIST[i+1].p!==p?`<div class="box"><b class="t">Fin de la ${p.n.split(' — ')[0].toLowerCase()}</b>${p.id==='p1'?'Vous connaissez l\'avion, le vol et le métier. Suite : le cours du simulateur.':p.id==='p2'?'Place à la pratique : mode automatique, mode guidé, puis examen blanc.':p.id==='p3'?'Suite : comment en faire son métier.':'Bon vol ! Revenez au simulateur pour vous entraîner et repasser l\'examen blanc.'}</div>`:''}`; }
+   ${i===LIST.length-1||LIST[i+1].p!==p?`<div class="box"><b class="t">Fin de la ${p.n.split(' — ')[0].toLowerCase()}</b>${p.id==='p1'?'Vous connaissez l\'avion, le vol et le métier. Suite : le cours du simulateur.':p.id==='p2'?'Place à la pratique : mode automatique, mode guidé, puis examen blanc.':p.id==='p3'?'Suite : comment en faire son métier.':p.id==='p4'?'Suite : l\'anatomie de chaque appareil, couche par couche.':'Bon vol ! Revenez au simulateur pour vous entraîner et repasser l\'examen blanc.'}</div>`:''}`; }
 function answer(b){ const [j,n]=b.dataset.qi.split(':').map(Number), x=LIST[ST.i], q=x.m.quiz[j], box=b.closest('.qq'); if(box.dataset.done) return; box.dataset.done=1;
   box.querySelectorAll('button').forEach((bb,k)=>{ if(k===q.c) bb.classList.add('good'); else if(bb===b) bb.classList.add('bad'); bb.disabled=true; });
   const w=box.querySelector('.why'); w.hidden=false; w.innerHTML=(n===q.c?'✓ Exact. ':'✗ Réponse : <b>'+q.o[q.c]+'</b>. ')+q.why;
@@ -4751,6 +4802,267 @@ buildModel=function(key){ const f=BUILD[key]; if(!f) return _bm(key); const {g,L
 const _pc=placeCamera; placeCamera=function(){ _pc.apply(this,arguments); if(!MODEL||!MODEL.userData.real) return; const u=MODEL.userData;
   if(u.gear) u.gear.visible=S.onGround||S.gear!==false; if(u.trotor) u.trotor.rotation.x+=(S.eng[0]||S.eng[1]?2.2:0.8)*(S.nr||0); };
 try{ if(typeof MODEL!=='undefined'&&MODEL) setModel(); }catch(e){}
+})();
+
+</script>
+<script>
+/* ===== DÉCOR : tours de contrôle, aérogares et villes =====
+   Les nuages d'orage en boules sont retirés de la vue 3D (ils restent sur le radar météo).
+   Repères réels : tour de JFK 98 m (1992) · tours de Roissy-CDG : Nord 112 m, Sud ≈ 90 m, Centrale 75 m, Est 60 m · Terminal 1 circulaire (1974) ·
+   Manhattan (One World Trade Center 541 m, Empire State Building 443 m, Chrysler 319 m) · Paris (tour Eiffel 330 m, Montparnasse 210 m, La Défense). Positions approchées. */
+(function(){
+const T=THREE;
+cbModel=function(c){ const g=new T.Group(); g.visible=false; g.userData.mat=new T.MeshLambertMaterial(); scene.add(g); return g; };   // plus de « blocs arrondis »
+const M=c=>new T.MeshLambertMaterial({color:c});
+const GLASS=new T.MeshLambertMaterial({color:0x5f8fae,emissive:0x0a1620}), CONC=M(0xc9c6bf), WHITE=M(0xeef0f2), GREY=M(0x8c949c), DARK=M(0x2b3138), ROOF=M(0x6f767d);
+function facade(base,win,lit){ const cv=document.createElement('canvas'); cv.width=64; cv.height=128; const g=cv.getContext('2d'); g.fillStyle=base; g.fillRect(0,0,64,128);
+  for(let y=4;y<128;y+=8) for(let x=3;x<64;x+=8){ g.fillStyle=Math.random()<lit?'#ffe9a8':win; g.fillRect(x,y,5,5); } const t=new T.CanvasTexture(cv); t.wrapS=t.wrapT=T.RepeatWrapping; return t; }
+const FAC=[facade('#9aa4ad','#33475a',0.08),facade('#c2b9a8','#3b4652',0.06),facade('#5e7383','#1c2c3a',0.1),facade('#d7d9dc','#4a5d70',0.05)];
+const famMat=FAC.map(t=>new T.MeshLambertMaterial({map:t}));
+/* un objet posé au sol en (lat, lon) : repère local x = est, y = haut, z = sud */
+function place(obj,lat,lon,elev,hdg){ const p=ecef(lat,lon,elev||0), b=enuBasis(lat,lon); const g=new T.Group(); g.matrixAutoUpdate=false;
+  const m=new T.Matrix4().makeBasis(new T.Vector3(...b.E),new T.Vector3(...b.U),new T.Vector3(-b.N[0],-b.N[1],-b.N[2])); m.setPosition(p[0],p[1],p[2]); g.matrix.copy(m);
+  if(hdg) obj.rotation.y=-hdg*Math.PI/180; g.add(obj); world.add(g); return g; }
+/* tour de contrôle : fût, bloc technique, vigie vitrée, toit, antennes */
+function tower(h,style){ const g=new T.Group(), r=style==='slim'?3.2:4.2, cabH=6, cabR=style==='wide'?9:7.5;
+  const shaft=new T.Mesh(new T.CylinderGeometry(r,r*1.15,h-cabH-3,16),CONC); shaft.position.y=(h-cabH-3)/2; g.add(shaft);
+  const base=new T.Mesh(new T.BoxGeometry(26,9,18),CONC); base.position.set(14,4.5,0); g.add(base);
+  const deck=new T.Mesh(new T.CylinderGeometry(cabR*0.9,r*1.2,3,10),CONC); deck.position.y=h-cabH-1.5; g.add(deck);
+  const cab=new T.Mesh(new T.CylinderGeometry(cabR*1.08,cabR,cabH,10),GLASS); cab.position.y=h-cabH/2; g.add(cab);
+  const roof=new T.Mesh(new T.CylinderGeometry(cabR*0.7,cabR*1.12,1.4,10),DARK); roof.position.y=h+0.7; g.add(roof);
+  const ant=new T.Mesh(new T.CylinderGeometry(0.15,0.15,8,6),GREY); ant.position.y=h+5; g.add(ant);
+  const rad=new T.Mesh(new T.BoxGeometry(5,0.6,1),GREY); rad.position.y=h+3; g.add(rad);
+  const bcn=mkLight('#ff3020',6); bcn.position.y=h+9.2; g.add(bcn); return g; }
+function box(w,h,d,mat,x,z,y){ const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat); m.position.set(x||0,(y||0)+h/2,z||0); return m; }
+function terminal(len,dep,h,glass){ const g=new T.Group(); g.add(box(len,h,dep,WHITE)); g.add(box(len*0.98,h*0.45,dep*1.02,glass?GLASS:GREY,0,0,h*0.35)); g.add(box(len*1.02,1.2,dep*1.06,ROOF,0,0,h)); return g; }
+function hangar(w,d,h){ const g=new T.Group(); const body=new T.Mesh(new T.CylinderGeometry(w/2,w/2,d,16,1,false,0,Math.PI),M(0xb8bfc6)); body.rotation.z=Math.PI/2; body.rotation.y=Math.PI/2; body.scale.set(1,1,h/(w/2)); body.position.y=0; g.add(body); return g; }
+/* immeubles fusionnés par famille de façade (peu d'appels de dessin, adapté au mobile) */
+function merged(list){ const g=new T.Group(); [0,1,2,3].forEach(k=>{ const P=[],N=[],U=[]; list.filter(b=>b.k===k).forEach(b=>{ const geo=new T.BoxGeometry(b.w,b.h,b.d).toNonIndexed(); const uv=geo.attributes.uv;
+    for(let i=0;i<uv.count;i++) uv.setXY(i,uv.getX(i)*Math.max(1,Math.max(b.w,b.d)/14),uv.getY(i)*Math.max(1,b.h/22));
+    geo.rotateY(b.r||0); geo.translate(b.x,b.h/2,b.z); P.push(...geo.attributes.position.array); N.push(...geo.attributes.normal.array); U.push(...geo.attributes.uv.array); });
+    if(!P.length) return; const bg=new T.BufferGeometry(); bg.setAttribute('position',new T.Float32BufferAttribute(P,3)); bg.setAttribute('normal',new T.Float32BufferAttribute(N,3)); bg.setAttribute('uv',new T.Float32BufferAttribute(U,2)); g.add(new T.Mesh(bg,famMat[k])); }); return g; }
+function rng(seed){ let s=seed; return ()=>{ s=(s*16807)%2147483647; return s/2147483647; }; }
+/* quartier : zone (rectangle ou ellipse) remplie d'immeubles */
+function city(lat0,lon0,lat1,lon1,step,hMin,hMax,seed,elev,hdg,ellipse){ const rnd=rng(seed), c=[(lat0+lat1)/2,(lon0+lon1)/2], kx=111320*Math.cos(c[0]*Math.PI/180), list=[];
+  const W=(lon1-lon0)*kx/2, H=(lat1-lat0)*111320/2;
+  for(let x=-W;x<=W;x+=step) for(let z=-H;z<=H;z+=step){ if(ellipse&&(x*x/(W*W)+z*z/(H*H))>1) continue; if(rnd()<0.18) continue;
+    list.push({x,z,h:hMin+Math.pow(rnd(),2.2)*(hMax-hMin),w:step*(0.45+rnd()*0.35),d:step*(0.45+rnd()*0.35),k:Math.floor(rnd()*4),r:-(hdg||0)*Math.PI/180}); }
+  place(merged(list),c[0],c[1],elev); }
+/* bande urbaine le long d'un axe (île de Manhattan) : largeurs en mètres le long de l'axe */
+function strip(A,B,widths,step,hFn,seed,elev,hdg){ const rnd=rng(seed), c=[(A[0]+B[0])/2,(A[1]+B[1])/2], kx=111320*Math.cos(c[0]*Math.PI/180);
+  const ax=(B[1]-A[1])*kx, az=-(B[0]-A[0])*111320, L=Math.hypot(ax,az), ux=ax/L, uz=az/L, vx=-uz, vz=ux, list=[];
+  for(let u=-L/2;u<=L/2;u+=step){ const f=(u+L/2)/L, wi=widths[Math.min(widths.length-1,Math.floor(f*widths.length))]; for(let v=-wi/2;v<=wi/2;v+=step){ if(rnd()<0.15) continue;
+    list.push({x:u*ux+v*vx,z:u*uz+v*vz,h:hFn(f,rnd),w:step*(0.5+rnd()*0.3),d:step*(0.5+rnd()*0.3),k:Math.floor(rnd()*4),r:-(hdg||0)*Math.PI/180}); } }
+  place(merged(list),c[0],c[1],elev); }
+function landmark(kind,lat,lon,elev){ const g=new T.Group();
+  if(kind==='1wtc'){ const sh=new T.Mesh(new T.CylinderGeometry(18,42,417,4),GLASS); sh.rotation.y=Math.PI/4; sh.position.y=208; g.add(sh); const sp=new T.Mesh(new T.CylinderGeometry(1.2,2.5,124,6),GREY); sp.position.y=417+62; g.add(sp); }
+  if(kind==='esb'){ [[57,140,40,0],[44,60,30,140],[32,110,24,200],[18,60,14,310],[8,20,8,370]].forEach(([w,h,d,y])=>g.add(box(w,h,d,famMat[1],0,0,y))); const sp=new T.Mesh(new T.CylinderGeometry(1,3,63,8),GREY); sp.position.y=380+31; g.add(sp); }
+  if(kind==='chrysler'){ g.add(box(40,240,40,famMat[3])); const cr=new T.Mesh(new T.ConeGeometry(16,60,8),M(0xd9dde2)); cr.position.y=270; g.add(cr); const sp=new T.Mesh(new T.CylinderGeometry(0.6,1.5,25,6),GREY); sp.position.y=312; g.add(sp); }
+  if(kind==='eiffel'){ const mat=M(0x7a5a3c); const leg=(h0,h1,w0,w1)=>{ const m=new T.Mesh(new T.CylinderGeometry(w1,w0,h1-h0,4,1,true),mat); m.rotation.y=Math.PI/4; m.position.y=(h0+h1)/2; g.add(m); };
+    leg(0,57,62,40); g.add(box(70,4,70,mat,0,0,57)); leg(61,115,40,22); g.add(box(42,3,42,mat,0,0,115)); leg(118,276,22,6); g.add(box(14,6,14,mat,0,0,276)); const sp=new T.Mesh(new T.CylinderGeometry(1,2,48,6),mat); sp.position.y=306; g.add(sp); }
+  if(kind==='montparnasse'){ g.add(box(60,210,36,famMat[2])); }
+  place(g,lat,lon,elev); return g; }
+
+/* ---------- New York : JFK, LaGuardia, Manhattan, héliport ---------- */
+place(tower(98,'wide'),40.6440,-73.7808,4);
+[[40.6443,-73.7826,320,80,22,true,20],[40.6455,-73.7766,240,70,20,true,60],[40.6468,-73.7896,300,70,18,true,-30],[40.6432,-73.7897,220,70,18,false,0],[40.6492,-73.7833,200,60,16,false,90],[40.6420,-73.7740,180,60,16,false,20]]
+  .forEach(([la,lo,l,d,h,gl,hd])=>place(terminal(l,d,h,gl),la,lo,4,hd));
+[[40.6585,-73.7920],[40.6600,-73.7860],[40.6560,-73.8000]].forEach(([la,lo])=>place(hangar(70,80,24),la,lo,4,30));
+city(40.6460,-73.7930,40.6520,-73.7780,90,8,22,7,4,0);   // parkings et bâtiments de la zone centrale
+if(APTS.KLGA) place(tower(71,'slim'),40.7746,-73.8746,6);
+strip([40.7010,-74.0140],[40.7980,-73.9490],[900,1300,1700,2000,2300,2300,2300,2200,2100,2000],90,(f,r)=>{ const lower=f<0.14, mid=f>0.42&&f<0.62; return (lower?50:mid?60:15)+Math.pow(r(),2.2)*(lower?240:mid?280:80); },11,5,29);   // Manhattan : Lower Manhattan, Midtown
+city(40.6800,-74.0000,40.7000,-73.9500,110,10,45,23,5,0);       // Brooklyn
+landmark('1wtc',40.7127,-74.0134,5); landmark('esb',40.7484,-73.9857,5); landmark('chrysler',40.7516,-73.9755,5);
+/* ---------- Paris : Roissy-CDG et la ville ---------- */
+place(tower(112,'slim'),49.0186,2.5350,110); place(tower(90,'slim'),48.9985,2.5560,110); place(tower(75,'wide'),49.0090,2.5505,110); place(tower(60,'slim'),49.00597,2.59729,110);
+{ const t1=new T.Group(); const ring=new T.Mesh(new T.CylinderGeometry(96,96,40,40),CONC); ring.position.y=20; t1.add(ring); const top=new T.Mesh(new T.CylinderGeometry(70,96,4,40),ROOF); top.position.y=42; t1.add(top);
+  for(let i=0;i<7;i++){ const a=i/7*Math.PI*2; const sat=box(26,10,26,WHITE,Math.cos(a)*210,Math.sin(a)*210); t1.add(sat); } place(t1,49.0144,2.5418,110); }
+[[49.0045,2.5650,420,70,20,-12],[49.0030,2.5760,420,70,20,12],[49.0040,2.5880,520,80,22,0],[49.0090,2.5900,260,90,24,90]].forEach(([la,lo,l,d,h,hd])=>place(terminal(l,d,h,true),la,lo,110,hd));
+[[48.9960,2.5780],[48.9945,2.5880],[48.9975,2.6000]].forEach(([la,lo])=>place(hangar(90,100,30),la,lo,110,-10));
+city(49.0040,2.5280,49.0120,2.5480,90,10,35,29,110,0);          // Roissypôle, hôtels, fret
+city(48.8180,2.2550,48.9000,2.4150,160,18,36,31,0,0,true);         // Paris intra-muros (immeubles de 6 à 8 étages)
+city(48.8850,2.2300,48.8960,2.2480,60,60,230,37,0,0);          // La Défense
+landmark('eiffel',48.8584,2.2945,0); landmark('montparnasse',48.8421,2.3219,0);
+// nuit : les fenêtres et la vigie s'éclairent un peu
+setInterval(()=>{ try{ const n=SKY.u.night.value; GLASS.emissive.setRGB(0.04+0.25*n,0.08+0.25*n,0.12+0.2*n); famMat.forEach(m=>m.emissive&&m.emissive.setRGB(0.25*n,0.22*n,0.12*n)); }catch(e){} },2000);
+})();
+
+</script>
+<script>
+/* ===== ÉCRANS AGRANDIS =====
+   Toucher / cliquer un écran du tableau de bord (PFD, ND, E/WD, SD…) l'ouvre en grand, en direct, avec une légende de lecture.
+   Pendant l'agrandissement, le tableau est dessiné en plus haute définition pour rester net. */
+(function(){
+const INFO={
+ pfd:['PFD — écran de pilotage (commandant)','Au centre l\'horizon (assiette, inclinaison) ; à gauche la vitesse (kt) ; à droite l\'altitude (ft) et la vitesse verticale ; en bas le cap ; en haut les modes du pilote automatique (FMA).'],
+ nd:['ND — écran de navigation (commandant)','La route du FMS (trait vert), les points, la distance au prochain point, le vent (flèche), le trafic et la météo radar.'],
+ ewd:['E/WD — moteurs et alarmes','N1 (poussée), EGT (température), N2, débit carburant, position des volets ; en bas les messages ECAM et les mémos.'],
+ sd:['SD — écran systèmes','La page système demandée : électricité, carburant, hydraulique, portes, roues… ; en bas température, heure et masse.'],
+ nd2:['ND — écran de navigation (copilote)','Même lecture que le ND du commandant, avec ses propres réglages.'],
+ pfd2:['PFD — écran de pilotage (copilote)','Même lecture que le PFD du commandant : horizon, vitesse, altitude, cap, modes.'],
+ all:['Tableau de bord','Instruments de vol et moteurs de l\'appareil.']};
+function rects(){ const cv=$('ckc'); if(!cv||view!=='ck') return []; const r=cv.getBoundingClientRect(); if(r.height<20) return []; const W=r.width,H=r.height, out=[];
+  if(ACK==='a320'||ACK==='lj60'){ const s=Math.min(H*0.66,W/5.7), gap=(W-5*s)/6, y0=H*0.08, X=i=>gap+i*(s+gap);
+    out.push(['pfd',X(0),y0,s,s],['nd',X(1),y0,s,s],['nd2',X(3),y0,s,s],['pfd2',X(4),y0,s,s]);
+    if(ACK==='a320'){ const sc=Math.min(s,(H-y0-10)/2); out.push(['ewd',X(2)+(s-sc)/2,y0,sc,sc],['sd',X(2)+(s-sc)/2,y0+sc+4,sc,sc]); } else out.push(['ewd',X(2),y0,s,s]); }
+  else out.push(['all',W*0.08,6,W*0.84,H-12]);
+  return out.map(([k,x,y,w,h])=>({k,x,y,w,h,r})); }
+const Z={k:null,t:null};
+const css=document.createElement('style'); css.textContent=`
+#zoomscr{position:fixed;inset:0;z-index:58;background:#000000f0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;gap:8px}
+#zoomscr[hidden]{display:none}
+#zoomscr .zh{width:min(96vw,620px);display:flex;align-items:center;gap:8px;color:#fff;font:700 18px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase}
+#zoomscr .zh span{flex:1}#zoomscr button{background:#132232;color:#fff;border:1px solid #2b3d50;border-radius:9px;padding:7px 12px;font:600 14px 'Barlow Condensed',sans-serif;cursor:pointer}
+#zoomscr canvas{width:min(96vw,620px,70vh);height:auto;border:2px solid #46c8d8;border-radius:10px;background:#000;image-rendering:auto}
+#zoomscr .zl{width:min(96vw,620px);color:#cfd8df;font:14px/1.45 'Inter',system-ui,sans-serif;background:#0b131bee;border:1px solid #2b3d50;border-radius:10px;padding:8px 10px}
+#zoomscr .zn{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}`;
+document.head.appendChild(css);
+const ov=document.createElement('div'); ov.id='zoomscr'; ov.hidden=true; ov.innerHTML=`<div class="zh"><span></span><button type="button" data-x aria-label="Fermer">✕ Fermer</button></div><canvas></canvas><div class="zl"></div><div class="zn"></div>`; document.body.appendChild(ov);
+const zc=ov.querySelector('canvas'), zg=zc.getContext('2d');
+function draw(){ const cv=$('ckc'); const R=rects().find(o=>o.k===Z.k); if(!cv||!R){ close(); return; }
+  const sx=cv.width/R.r.width, sy=cv.height/R.r.height, w=Math.round(R.w*sx), h=Math.round(R.h*sy), D=Math.min(1240,Math.max(w,h,600));
+  const ar=R.w/R.h; zc.width=ar>=1?D:Math.round(D*ar); zc.height=ar>=1?Math.round(D/ar):D; zg.imageSmoothingEnabled=true; zg.imageSmoothingQuality='high';
+  zg.drawImage(cv,Math.round(R.x*sx),Math.round(R.y*sy),w,h,0,0,zc.width,zc.height); }
+function open(k){ Z.k=k; const i=INFO[k]||INFO.all; ov.querySelector('.zh span').textContent='🔍 '+i[0]; ov.querySelector('.zl').textContent=i[1];
+  ov.querySelector('.zn').innerHTML=rects().map(o=>`<button type="button" data-k="${o.k}"${o.k===k?' style="border-color:#46c8d8"':''}>${(INFO[o.k]||INFO.all)[0].split(' — ')[0]}${/2$/.test(o.k)?' F/O':''}</button>`).join('');
+  ov.hidden=false; clearInterval(Z.t); draw(); Z.t=setInterval(draw,150); }
+function close(){ ov.hidden=true; Z.k=null; clearInterval(Z.t); }
+ov.addEventListener('click',e=>{ const b=e.target.closest('button'); if(b&&b.dataset.k){ open(b.dataset.k); return; } if(b&&b.dataset.x!=null){ close(); return; } if(e.target===ov) close(); });
+// haute définition pendant l'agrandissement
+ckSize=function(){ const r=CK.cv.getBoundingClientRect(), d=Z.k?Math.min(4,(devicePixelRatio||1)*2.2):Math.min(2,devicePixelRatio||1); if(!r.width) return false;
+  const W=Math.round(r.width*d), H=Math.round(r.height*d); if(CK.cv.width!==W||CK.cv.height!==H){ CK.cv.width=W; CK.cv.height=H; }
+  CK.g=CK.cv.getContext('2d'); CK.g.setTransform(d,0,0,d,0,0); CK.w=r.width; CK.h=r.height; return true; };
+// toucher court sur un écran = agrandir (un glissé ou un appui long ne déclenche rien)
+let down=null; const cv=$('ckc');
+cv.addEventListener('pointerdown',e=>{ down={x:e.clientX,y:e.clientY,t:performance.now()}; });
+cv.addEventListener('pointerup',e=>{ if(!down) return; const d=down; down=null; if(Math.hypot(e.clientX-d.x,e.clientY-d.y)>12||performance.now()-d.t>700) return;
+  const hit=rects().find(o=>e.clientX>=o.r.left+o.x&&e.clientX<=o.r.left+o.x+o.w&&e.clientY>=o.r.top+o.y&&e.clientY<=o.r.top+o.y+o.h); if(hit) open(hit.k); });
+cv.style.cursor='zoom-in';
+addEventListener('keydown',e=>{ if(e.key==='Escape'&&!ov.hidden) close(); });
+window.ZOOMSCR={open,close};
+})();
+
+</script>
+<script>
+/* ===== ACTIONS INCOHÉRENTES : cadre jaune puis cadre rouge =====
+   Une commande actionnée hors de l'ordre des procédures ou contre la logique de fonctionnement :
+   1) cadre JAUNE clignotant autour de la commande + explication (ce que dit la procédure) ; Annuler (recommandé) ou « Le faire quand même » ;
+   2) si on force : cadre ROUGE + conséquences réelles de la décision, et l'action est appliquée dans le simulateur.
+   L'action attendue par le guide (étape en cours) n'est jamais bloquée. Valeurs A320 : VLO 250 kt, VLE 280 kt, VFE 1/2/3/FULL 230/200/185/177 kt, VMO 350 kt / MMO M0,82. */
+(function(){
+const ad=()=>{ try{ return airdata(); }catch(e){ return {alt:S.alt/FT,cas:0,gs:0}; } };
+const air=()=>!S.onGround, A_=()=>ad().alt, V=()=>ad().cas, fw=()=>A.kind==='fw';
+const fail=k=>!!(window.FAIL&&FAIL[k]);
+const VFE={a320:{'1':230,'2':200,'3':185,'FULL':177},lj60:{'8':250,'20':200,'40':150}};
+const R=[];   // {ids, bad(next,el), y (titre, texte jaune), r (conséquences), no (impossible : pas de forçage), fx (effet supplémentaire)}
+const rule=(ids,bad,y,r,o)=>R.push(Object.assign({ids:[].concat(ids),bad,y,r},o||{}));
+/* ---- train ---- */
+rule(['gearL','b-gear'],n=>n===true&&air()&&fw()&&(V()>250||(A_()>15000)),
+  ['Sortir le train maintenant est incohérent',()=>`On sort le train en approche, vers 2 000 ft sol, et seulement sous 250 kt (VLO de l'A320). Vous êtes à ${Math.round(A_()).toLocaleString('fr-FR')} ft et ${Math.round(V())} kt.`],
+  ()=>['La traînée double environ : la vitesse chute, il faut beaucoup plus de poussée.','Consommation fortement augmentée : l\'autonomie ne suffit peut-être plus pour la destination et le dégagement.',V()>280?'Au-delà de 280 kt (VLE), trappes et jambes de train peuvent être arrachées ou déformées : inspection au sol obligatoire.':'Bruit et vibrations dans la cabine ; alarme ECAM si la vitesse dépasse les limites.','Le pilote automatique et l\'automanette compensent en augmentant la poussée.']);
+rule(['gearL','b-gear'],n=>n===false&&!air()&&fw(),['Rentrer le train au sol est impossible','Au sol, le levier est verrouillé : rentrer le train ferait s\'effondrer l\'avion sur son ventre.'],null,{no:true});
+/* ---- volets ---- */
+const vfeBad=n=>{ const t=VFE[ACK]; if(!t||!air()) return false; const name=typeof n==='number'?(A.flaps[n]||{}).n:n; return t[name]!=null&&V()>t[name]+3; };
+rule(['flapL','b-flap'],vfeBad,['Vitesse trop élevée pour ce braquage de volets',n=>{ const name=typeof n==='number'?(A.flaps[n]||{}).n:n; return `Volets ${name} : vitesse maximale ${VFE[ACK][name]} kt (VFE). Vous êtes à ${Math.round(V())} kt : réduisez d'abord la vitesse, puis sortez les volets un cran à la fois.`; }],
+  ()=>['Dépassement de la VFE : efforts excessifs sur les volets et leurs rails — inspection structurelle obligatoire après le vol.','Alarme « OVERSPEED » ; l\'avion cabre brusquement (augmentation soudaine de portance).','Risque de blocage ou d\'asymétrie des volets : roulis non commandé.']);
+rule(['flapL','b-flap'],n=>{ const name=typeof n==='number'?(A.flaps[n]||{}).n:n; return air()&&String(name)==='0'&&S.flap>0&&V()<(ACK==='a320'?195:150)&&aglFt()<4000; },
+  ['Rentrer les volets trop tôt',()=>`Les volets se rentrent par étapes, une fois la vitesse « F » puis « S » atteinte (≈ 210 kt sur A320). Vous n'êtes qu'à ${Math.round(V())} kt.`],
+  ()=>['La portance chute d\'un coup : l\'avion s\'enfonce.','Près du sol, risque de décrochage (alarme « STALL ») et de perte de hauteur dangereuse.']);
+/* ---- pressurisation, oxygène ---- */
+rule('manVs',n=>n==='UP'&&air()&&A_()>10000,['Ouvrir la vanne de pressurisation en croisière',()=>`La commande manuelle MAN V/S ne sert qu'après une double panne du système automatique. Vers le haut, elle ouvre la vanne de sortie (outflow) : à ${Math.round(A_()).toLocaleString('fr-FR')} ft, c'est une dépressurisation.`],
+  ()=>['L\'air de la cabine s\'échappe : l\'altitude cabine monte rapidement.','Alarme « CAB PR EXCESS CAB ALT » vers 9 550 ft cabine ; les masques passagers tombent vers 14 000 ft cabine.','Hypoxie : à FL350 le temps de conscience utile n\'est que de 30 s à 1 min — masques équipage immédiatement.','Descente d\'urgence obligatoire vers 10 000 ft (ou l\'altitude de sécurité) ; froid, buée, douleurs d\'oreilles.'],{fx:()=>{ try{ failSet('depress',true); }catch(e){} }});
+rule('cpMode',n=>n===true&&air()&&A_()>10000&&!fail('depress'),['Pressurisation en mode manuel sans panne','Le mode MAN n\'est utilisé qu\'après la panne des deux régulateurs. En croisière, c\'est au pilote de tenir l\'altitude cabine à la main.'],
+  ()=>['Plus de régulation automatique : chaque mouvement de MAN V/S change la pression cabine.','Risque de dépressurisation ou de surpression si la commande est mal tenue.']);
+rule('ditch',n=>n===true&&air()&&A_()>3000,['DITCHING n\'est prévu qu\'avant un amerrissage','Ce bouton ferme toutes les vannes sous le plancher (vanne de sortie, ventilation) pour limiter l\'entrée d\'eau.'],
+  ()=>['La vanne de sortie se ferme : la pression cabine monte jusqu\'aux soupapes de sécurité, inconfort pour les oreilles.','Plus de ventilation des soutes et de l\'avionique : échauffement des équipements.']);
+rule('ramAir',n=>n===true&&air()&&A_()>10000&&!fail('pack1'),['RAM AIR en croisière','RAM AIR sert à ventiler la cabine après la perte des deux packs ou une fumée, sous 10 000 ft.'],
+  ()=>['La vanne ne s\'ouvre que si la différence de pression est inférieure à 1 psi : en croisière pressurisée, elle reste sans effet.','Si elle s\'ouvrait, l\'air de la cabine s\'échapperait : dépressurisation.']);
+rule('oxyPax',n=>n===true&&air()&&!fail('depress'),['Faire tomber les masques sans dépressurisation','Les masques passagers ne se déclenchent manuellement que si la cabine dépasse 14 000 ft et qu\'ils ne sont pas tombés tout seuls.'],
+  ()=>['Les masques tombent dans toute la cabine : stress, panique possible.','Les générateurs chimiques ne durent que 12 à 15 min : plus d\'oxygène disponible pour une vraie urgence.','Atterrissage dès que possible pour remettre l\'avion en état.']);
+/* ---- moteurs ---- */
+['master1','master2'].forEach((id,k)=>rule(id,n=>n===false&&air()&&!fail('eng'+(k+1))&&!fail('fire'+(k+1))&&!fail('dualEng'),[`Couper le moteur ${k+1} en vol`,'Un moteur ne se coupe en vol que sur procédure ECAM (feu, dommage grave, vibrations), après confirmation des deux pilotes.'],
+  ()=>['Perte de la moitié de la poussée : l\'avion ne peut plus tenir la croisière et doit redescendre (drift-down, ≈ FL200–FL250 sur un moteur).',`Perte de la génératrice ${k+1} et du circuit hydraulique associé (${k?'jaune':'vert'}).`,'Dissymétrie de poussée : l\'avion lacet vers le moteur coupé, il faut compenser au palonnier / trim.','Déroutement vers l\'aéroport adapté le plus proche (« LAND ASAP »).']));
+['fire1','fire2'].forEach((id,k)=>rule(id,n=>air()&&!fail('fire'+(k+1)),[`Bouton FEU du moteur ${k+1} sans feu`,'Ce bouton isole le moteur : carburant, hydraulique, génératrice et prélèvement d\'air coupés. Il ne s\'utilise que sur alarme ENG FIRE.'],
+  ()=>['Le moteur s\'arrête et ne peut plus être rallumé normalement en vol.','Perte de poussée, de génératrice et d\'hydraulique de ce côté.','Déroutement immédiat.']));
+['ag11','ag12','ag21','ag22','agA'].forEach(id=>rule(id,n=>!fail(id[2]==='A'?'apuFire':'fire'+id[2]),['Percuter un extincteur sans feu','Les agents extincteurs ne se déclenchent que sur un feu confirmé, dans l\'ordre de la procédure (AGENT 1, puis AGENT 2 après 30 s si le feu persiste).'],
+  ()=>['La bouteille est vidée : plus de protection si un vrai feu se déclare.','Avion immobilisé au sol pour remplacer la bouteille.']));
+rule(['thrSel'],n=>n==='TOGA'&&air()&&A_()>20000,['Poussée maximale (TOGA) en croisière','TOGA est réservée au décollage et à la remise des gaz. En croisière, la poussée est gérée sur CL par l\'automanette.'],
+  ()=>['Survitesse en quelques dizaines de secondes : dépassement de VMO 350 kt / MMO M0,82, alarme « OVERSPEED ».','Usure accélérée des moteurs, consommation très élevée.']);
+rule(['thrSel'],n=>n==='IDLE'&&!air()&&ad().gs>40&&S.thr>0.6,['Réduire au ralenti pendant la course au décollage','Avant V1, réduire = décollage interrompu (sur décision du commandant). Après V1, on décolle quoi qu\'il arrive.'],
+  ()=>['Décollage interrompu : freinage automatique maximal, inverseurs.',ad().gs>130?'Au-delà de V1, la piste restante ne suffit plus pour s\'arrêter : sortie de piste.':'Freins très chauds : risque de pneus dégonflés (fusibles thermiques), attente avant un nouveau départ.']);
+rule(['thrSel'],n=>n==='REV'&&air(),['Inverseurs de poussée en vol','Les inverseurs ne fonctionnent qu\'au sol, après le toucher des roues.'],null,{no:true});
+['thr1','thr2'].forEach(id=>rule(id,n=>n==='CUTOFF'&&air(),['Couper l\'alimentation d\'un réacteur en vol','La manette sur CUTOFF arrête le réacteur : seulement sur procédure de panne.'],
+  ()=>['Le réacteur s\'éteint : moitié de la poussée perdue, descente obligatoire, déroutement.','Perte de la génératrice associée.']));
+/* ---- électricité, systèmes ---- */
+['bat1','bat2'].forEach(id=>rule(id,n=>n===false&&air()&&fw(),['Batterie hors circuit en vol','Les batteries restent sur AUTO pendant tout le vol : elles sont le dernier secours électrique.'],
+  ()=>['Si les génératrices tombent ensuite, plus de secours immédiat : écrans noirs jusqu\'à la sortie de l\'éolienne de secours (RAT).','Perte de la recharge et de la surveillance batterie.']));
+['gen1','gen2','apuGen'].forEach(id=>rule(id,n=>n===false&&air()&&ACK==='a320'&&!fail(id),['Génératrice coupée en vol sans panne','Une génératrice ne se coupe que sur procédure (panne, surchauffe IDG).'],
+  ()=>['Une source électrique en moins : délestage automatique d\'équipements (cabine, office).','Si la seconde génératrice tombe : configuration de secours (ELEC EMER CONFIG).']));
+['idg1','idg2'].forEach(id=>rule(id,n=>n===true&&!fail('idg1'),['Déconnecter l\'IDG sans panne','La déconnexion de l\'IDG est irréversible en vol : elle ne se fait que sur alarme IDG (pression ou température d\'huile).'],
+  ()=>['La génératrice correspondante est perdue jusqu\'à la maintenance au sol (réenclenchement uniquement moteur arrêté).','Exploitation suivante possiblement interdite (MEL).']));
+['ir1','ir2','ir3'].forEach(id=>rule(id,n=>n==='OFF'&&air(),['Éteindre une centrale inertielle en vol','Les IR restent sur NAV pendant tout le vol ; l\'alignement n\'est possible qu\'avion immobile au sol.'],
+  ()=>['L\'écran correspondant perd attitude, cap et position (drapeaux rouges ATT, HDG).','Impossible de la réaligner en vol : au mieux le mode ATT, avec un cap à entrer à la main.']));
+['fpL1','fpL2','fpC1','fpC2','fpR1','fpR2'].forEach(id=>rule(id,n=>n===false&&air()&&ACK==='a320',['Couper une pompe carburant en vol','Les pompes restent sur AUTO ; on ne les coupe que sur procédure (fuite, déséquilibre).'],
+  ()=>['Si les deux pompes d\'un réservoir sont coupées, le moteur est alimenté par gravité : risque d\'extinction en altitude.','Le carburant de ce réservoir n\'est plus utilisé : déséquilibre et carburant inutilisable.']));
+['elac1','elac2','sec1','sec2','sec3','fac1','fac2'].forEach(id=>rule(id,n=>n===false&&air()&&ACK==='a320',['Couper un calculateur de commandes de vol','ELAC, SEC et FAC restent en marche ; on ne les réinitialise que sur procédure ECAM.'],
+  ()=>['Perte d\'une partie des commandes de vol et de leurs redondances.','Avec deux ELAC coupés : loi de pilotage « alternate », les protections (décrochage, survitesse, inclinaison) disparaissent.']));
+['hydG','hydY','hydB'].forEach(id=>rule(id,n=>n===false&&air()&&ACK==='a320',['Couper une pompe hydraulique en vol','Les pompes hydrauliques alimentent gouvernes, train, freins et volets : on ne les coupe que sur fuite ou surchauffe.'],
+  ()=>['Perte de pression du circuit concerné : gouvernes, volets, train ou freins associés moins efficaces ou perdus.','Distance d\'atterrissage augmentée.']));
+rule(['xpdr'],n=>n==='STBY'&&air(),['Transpondeur en veille en vol','Le transpondeur reste sur AUTO / ON pendant tout le vol.'],
+  ()=>['Le contrôle ne voit plus votre identification ni votre altitude sur le radar.','Le TCAS des autres avions ne vous détecte plus : risque de collision.']);
+rule(['tcas'],n=>n==='STBY'&&air(),['TCAS en veille en vol','Le TCAS (anticollision) reste sur TA/RA en vol.'],()=>['Plus aucune alerte de trafic ni ordre d\'évitement : risque de collision en vol.']);
+['gpwsSys','gpwsTerr','gpwsT','gpwsS'].forEach(id=>rule(id,n=>n===false&&air(),['Couper l\'avertisseur de proximité du sol','Le GPWS / TERR reste actif ; il ne s\'inhibe que sur procédure (fausse alarme confirmée).'],()=>['Plus d\'alarme « TERRAIN, PULL UP » : un rapprochement dangereux du relief ne serait plus signalé.']));
+rule(['pbrake'],n=>n===true&&air(),['Frein de parc en vol','Le frein de parc ne se serre qu\'avion arrêté au sol.'],()=>['Au toucher des roues, roues bloquées : pneus éclatés, sortie de piste possible.']);
+rule(['door'],n=>n==='UNLOCK'&&air(),['Ouvrir la porte du poste sans identification','On n\'autorise l\'accès qu\'après avoir identifié la personne (caméra, interphone) ; sinon on laisse NORM ou on sélectionne LOCK.'],
+  ()=>['Intrusion possible dans le poste de pilotage : c\'est pour l\'empêcher que la porte est blindée.']);
+rule(['apuMaster'],n=>n===false&&!air()&&!S.eng.some(Boolean)&&!SYS.extPwr,['Couper l\'APU sans autre source','Moteurs arrêtés et sans groupe de parc, l\'APU est la seule source d\'électricité et d\'air.'],()=>['Plus d\'électricité ni de climatisation : retour sur batteries, écrans éteints, cabine qui chauffe.']);
+/* ---- hélicoptères ---- */
+rule(['rbrake'],n=>n==='ON'&&air(),['Frein rotor en vol','Le frein rotor ne s\'utilise qu\'au sol, moteur coupé, sous un régime rotor faible.'],()=>['Freiner le rotor en vol arrêterait la sustentation : destruction de la transmission et chute.'],{no:true});
+['fuelSO','fsv1','fsv2'].forEach(id=>rule(id,n=>n==='CLOSED'&&air(),['Fermer le robinet carburant en vol','Le robinet carburant reste ouvert pendant tout le vol ; il ne se ferme que sur feu moteur ou à l\'arrêt.'],
+  ()=>['Le moteur s\'arrête faute de carburant.','Sur hélicoptère monomoteur : autorotation immédiate (baisser le pas général) et atterrissage forcé.']));
+rule(['mix'],n=>n==='OFF'&&air(),['Mélange sur OFF en vol','La mixture coupe l\'arrivée d\'essence : elle ne se tire qu\'à l\'arrêt du moteur.'],()=>['Le moteur s\'arrête : autorotation immédiate et atterrissage forcé.']);
+rule(['clutch'],n=>n==='DISENGAGE'&&air(),['Débrayer en vol','L\'embrayage relie le moteur au rotor : il reste engagé de la mise en route à l\'arrêt.'],()=>['Le rotor n\'est plus entraîné : autorotation obligatoire, risque de survitesse moteur.']);
+rule(['mag'],n=>n==='OFF'&&air(),['Magnétos sur OFF en vol','Les magnétos restent sur BOTH en vol.'],()=>['Plus d\'allumage : le moteur s\'arrête, autorotation immédiate.']);
+['ecl1','ecl2'].forEach(id=>rule(id,n=>n==='OFF'&&air(),['Couper un moteur (ECL) en vol','Le levier ECL reste sur FLY en vol ; OFF seulement sur procédure de panne.'],()=>['Un moteur perdu : puissance réduite, vol stationnaire impossible à masse élevée, atterrissage dès que possible.']));
+rule(['twist'],n=>n==='IDLE'&&air(),['Poignée tournante au ralenti en vol','La poignée reste sur FLIGHT en vol ; IDLE sert à l\'entraînement à l\'autorotation avec instructeur.'],()=>['La puissance chute : le rotor ralentit, autorotation nécessaire.']);
+rule(['gov'],n=>n===false&&air(),['Couper le régulateur en vol','Le régulateur (governor) tient le régime rotor automatiquement.'],()=>['Le régime rotor varie à chaque mouvement du pas : charge de travail élevée, risque de sous-régime.']);
+
+/* ---------- intercepteur ---------- */
+const css=document.createElement('style'); css.textContent=`
+.gfr{position:fixed;z-index:62;pointer-events:none;border-radius:8px}.gfr.y{border:4px solid #ffd400;box-shadow:0 0 0 3px #0008,0 0 22px #ffd400;animation:gblink .5s steps(2) infinite}.gfr.r{border:4px solid #ff2b2b;box-shadow:0 0 0 3px #0008,0 0 24px #ff2b2b}
+@keyframes gblink{50%{border-color:transparent;box-shadow:none}}
+#gdlg{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:63;width:min(560px,calc(100vw - 16px));max-height:70vh;overflow:auto;border-radius:14px;padding:12px 14px;color:#fff;font:15px/1.45 'Inter',system-ui,sans-serif;box-shadow:0 10px 40px #000c}
+#gdlg.y{background:#2a2300f5;border:3px solid #ffd400}#gdlg.r{background:#2a0606f5;border:3px solid #ff2b2b}
+#gdlg .k{font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.14em;text-transform:uppercase}#gdlg.y .k{color:#ffd400}#gdlg.r .k{color:#ff6a5a}
+#gdlg h3{font:700 21px 'Barlow Condensed',sans-serif;margin:3px 0 6px}#gdlg ul{margin:6px 0;padding-left:20px}#gdlg li{margin:4px 0}
+#gdlg .b{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}#gdlg button{border-radius:9px;padding:9px 13px;font:700 14px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;border:1px solid #fff4;background:#132232;color:#fff}
+#gdlg .ok{background:#1f6b3a;border-color:#3ddc84}#gdlg .force{background:#5a1010;border-color:#ff4a3d}`;
+document.head.appendChild(css);
+let frame=null, dlg=null, pass=false;
+function clear(){ if(frame){ frame.remove(); frame=null; } if(dlg){ dlg.remove(); dlg=null; } clearInterval(clear.t); }
+function frameOn(el,cls){ if(frame) frame.remove(); frame=document.createElement('div'); frame.className='gfr '+cls; document.body.appendChild(frame);
+  const pos=()=>{ if(!frame) return; const b=(el.closest('.sw')||el).getBoundingClientRect(); frame.style.display=b.width>2&&b.height>2?'':'none'; Object.assign(frame.style,{left:(b.left-6)+'px',top:(b.top-6)+'px',width:(b.width+12)+'px',height:(b.height+12)+'px'}); }; pos(); clearInterval(clear.t); clear.t=setInterval(pos,200); }
+const val=(x,n)=>typeof x==='function'?x(n):x;
+function expected(el){ try{ if(!GD.on) return false; const st=GD.steps[GD.i]; if(!st) return false; return st.items.some(it=>{ if(!it[3]) return false; try{ if(it[1]()) return false; }catch(e){} const t=PT.el(it[3]); return t&&(t===el||t.contains(el)||el.contains(t)); }); }catch(e){ return false; } }
+function show(rl,n,el,apply){ clear(); try{ SND.play('caution'); }catch(e){} frameOn(el,'y'); dlg=document.createElement('div'); dlg.id='gdlg'; dlg.className='y';
+  dlg.innerHTML=`<div class="k">⚠ Action incohérente avec la procédure</div><h3>${rl.y[0]}</h3><p>${val(rl.y[1],n)}</p><div class="b"><button type="button" class="ok" data-c>✓ Annuler (recommandé)</button>${rl.no?'':'<button type="button" class="force" data-f>Le faire quand même ⚠</button>'}</div>`;
+  document.body.appendChild(dlg);
+  dlg.querySelector('[data-c]').onclick=()=>{ clear(); try{ ovhSync(); pedSync(); a320Sync(); }catch(e){} };
+  const f=dlg.querySelector('[data-f]'); if(f) f.onclick=()=>{ pass=true; try{ apply(); }catch(e){} pass=false; if(rl.fx) try{ rl.fx(); }catch(e){}
+    try{ if(window.EXAM&&EXAM.on){ EXAM.res[GD.i]='ko'; (EXAM.det[GD.i]=EXAM.det[GD.i]||[]).push({what:'Action dangereuse : '+rl.y[0],why:val(rl.y[1],n)}); } }catch(e){}
+    frameOn(el,'r'); try{ SND.play('warning'); }catch(e){} const cons=val(rl.r,n)||[];
+    dlg.className='r'; dlg.innerHTML=`<div class="k">⛔ Conséquences de votre décision</div><h3>${rl.y[0]}</h3><ul>${cons.map(c=>`<li>${c}</li>`).join('')}</ul><div class="b"><button type="button" data-k>J'ai compris</button></div>`;
+    dlg.querySelector('[data-k]').onclick=clear; }; }
+function check(id,n,el,apply){ if(pass||expected(el)) return false; const rl=R.find(r=>r.ids.includes(id)&&(()=>{ try{ return r.bad(n,el); }catch(e){ return false; } })()); if(!rl) return false; show(rl,n,el,apply); return true; }
+addEventListener('click',e=>{ if(pass) return; const el=e.target.closest('button[data-sw],button[data-pd],#b-gear,#b-flap'); if(!el) return;
+  let id, n; if(el.id==='b-gear'){ id='b-gear'; n=!S.gear; } else if(el.id==='b-flap'){ id='b-flap'; n=S.flap>=A.flaps.length-1?0:S.flap+1; }
+  else if(el.dataset.sw){ id=el.dataset.sw; n=!SYS[id]; if(el.dataset.t==='pb'&&el.dataset.dl==='OFF') n=!n; }   // boutons « cockpit sombre » : voyant OFF allumé = système coupé else { id=el.dataset.pd; n=id==='pbrake'?!S.pbrake:!(typeof pedGet==='function'?pedGet(id):SYS[id]); }
+  if(check(id,n,el,()=>el.click())){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
+addEventListener('change',e=>{ if(pass) return; const el=e.target; if(el.tagName!=='SELECT') return; const id=el.dataset.sw||el.dataset.pd; if(!id) return; const n=id==='gearL'?el.value==='DOWN':el.value;
+  if(check(id,n,el,()=>{ el.value=typeof n==='boolean'?(n?'DOWN':'UP'):n; el.dispatchEvent(new Event('change',{bubbles:true})); })){ e.stopImmediatePropagation(); try{ ovhSync(); pedSync(); a320Sync(); }catch(x){} } },true);
+// raccourci clavier G (train)
+addEventListener('keydown',e=>{ if(pass||e.repeat) return; if((e.key==='g'||e.key==='G')&&!/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||'')){ const b=$('b-gear'); if(b&&check('b-gear',!S.gear,b,()=>{ pass=true; toggleGear(); pass=false; })){ e.stopImmediatePropagation(); e.preventDefault(); } } },true);
+window.GUARD={rules:R,clear};
 })();
 
 </script>

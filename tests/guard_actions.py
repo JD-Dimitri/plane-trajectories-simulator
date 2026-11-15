@@ -1,0 +1,25 @@
+import asyncio
+from playwright.async_api import async_playwright
+async def main():
+  async with async_playwright() as p:
+    b=await p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--use-gl=swiftshader','--enable-unsafe-swiftshader'])
+    pg=await b.new_page(viewport={'width':390,'height':800}); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
+    await pg.goto('http://localhost:8765/final.html'); await pg.wait_for_timeout(2500)
+    await pg.evaluate("selMI='sc-9525'; $('go').click();"); await pg.wait_for_timeout(2500)
+    await pg.evaluate("SCNG&&SCNG.stop&&SCNG.stop(); document.querySelectorAll('#bar .more,#b-more').forEach(b=>b.click())")
+    print(await pg.evaluate("({air:!S.onGround,alt:Math.round(airdata().alt),cas:Math.round(airdata().cas),gear:S.gear})"))
+    await pg.evaluate("$('b-gear').click()"); await pg.wait_for_timeout(400)
+    print('yellow:',await pg.evaluate("(()=>{const d=document.getElementById('gdlg'); return d&&d.className+' | '+d.querySelector('h3').textContent})()"), 'gear',await pg.evaluate("S.gear"))
+    await pg.screenshot(path='guard_y.png')
+    await pg.evaluate("document.querySelector('#gdlg [data-f]').click()"); await pg.wait_for_timeout(400)
+    print('red:',await pg.evaluate("(()=>{const d=document.getElementById('gdlg'); return d&&d.className+' | '+d.querySelectorAll('li').length})()"), 'gear',await pg.evaluate("S.gear"))
+    await pg.screenshot(path='guard_r.png')
+    await pg.evaluate("GUARD.clear(); $('b-ped').click()"); await pg.wait_for_timeout(500)
+    await pg.evaluate("document.querySelector('[data-sw=master1],[data-pd=master1]').click()"); await pg.wait_for_timeout(300)
+    print('master1:',await pg.evaluate("(()=>{const d=document.getElementById('gdlg'); return d&&d.querySelector('h3').textContent})()"), await pg.evaluate("SYS.master1"))
+    await pg.evaluate("GUARD.clear(); const s=document.querySelector('[data-pd=thrSel]'); s.value='TOGA'; s.dispatchEvent(new Event('change',{bubbles:true}))"); await pg.wait_for_timeout(300)
+    print('toga:',await pg.evaluate("(()=>{const d=document.getElementById('gdlg'); return d&&d.querySelector('h3').textContent})()"), await pg.evaluate("SYS.thrSel+' sel='+document.querySelector('[data-pd=thrSel]').value"))
+    await pg.evaluate("GUARD.clear(); document.querySelector('[data-sw=elac1]')&&document.querySelector('[data-sw=elac1]').click()"); await pg.wait_for_timeout(300)
+    print('elac1:',await pg.evaluate("(()=>{const d=document.getElementById('gdlg'); return d&&d.querySelector('h3').textContent})()"))
+    print(errs or 'no errors'); await b.close()
+asyncio.run(main())
