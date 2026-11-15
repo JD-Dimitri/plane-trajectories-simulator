@@ -1,0 +1,67 @@
+# PLANE TRAJECTORIES — simulateur de vol pédagogique
+
+Simulateur web (un seul fichier HTML) pour comprendre et vivre le métier de pilote, du tour de l'avion à pied jusqu'à l'avion stationné à destination.
+
+## Lancer
+
+Ouvrir `index.html` dans un navigateur récent, ou le servir localement :
+
+```bash
+python3 -m http.server 8000   # puis http://localhost:8000
+```
+
+Il faut une connexion internet pour three.js et les polices (CDN).
+
+## Ce que contient le simulateur
+
+- **Monde** : globe 3D réel, aéroports et pistes réels (JFK, CDG, héliports de Manhattan), jour, crépuscule ou nuit, météo réelle (METAR / ATIS).
+- **Appareils** : Airbus A320-200, Learjet 60, H125, Robinson R44, Sikorsky S-76.
+- **Cockpit A320** : panneau plafond, pédestal, FCU, écrans PFD, ND, E/WD et SD dessinés en direct.
+- **Parcours pilote complet** en étapes numérotées 0 → N : préparation, tour avion, mise sous tension, démarrage, roulage, décollage, croisière, approche, atterrissage, parking.
+- **Modes** (exclusifs) : pédagogique guidé, automatique (observation), sans guide, vol libre, scénarios et pannes, QCM, radio ATC.
+- **Dossier de vol pas à pas** affiché avant le vol : modes expliqués, METAR décodé, tour avion, calculs détaillés (masse et centrage, carburant, V1/VR/V2, vent, descente).
+- **Mode automatique** : bulle par étape avec chronomètre, hiérarchie `PILOTER L'APPAREIL › PARTIE › ÉTAPE › SOUS-ÉTAPE n/N`, commandes encadrées en rouge et numérotées (vert quand c'est fait), sous-étape finale sur l'écran du résultat.
+- **Son** 100 % synthétisé (Web Audio) : moteurs, rotors, vent, roulage, alarmes réelles, annonces radiosonde, équipage et cabine, météo, aéroport.
+- **Mobile** : image recentrée pour voir la piste, barre compacte, panneaux déplaçables et fermables, glisser pour changer de page.
+
+Les valeurs marquées [ESTIMÉ] sont des approximations pédagogiques et les systèmes marqués [SIMULÉ] sont simplifiés. Ce simulateur ne remplace ni un manuel de vol ni une formation agréée.
+
+## Structure du dépôt
+
+| Chemin | Rôle |
+| --- | --- |
+| `index.html` | Le simulateur complet, prêt à publier (généré) |
+| `src/base.html` | Moteur du simulateur (monde, appareils, cockpit, guide, ATC, météo…) |
+| `src/addons/*.js` | Modules V7 : `audio`, `brief` (dossier pas à pas), `bubble` (bulle du mode automatique et fiabilité des étapes), `drag`, `close`, `view` (affichage mobile), `frames` (cadres numérotés, hiérarchie, pushback) |
+| `tools/build.py` | Assemble `src/` en `index.html` |
+| `tests/auto_flight.py` | Vol complet automatique accéléré, détecte les blocages d'étape |
+
+Après une modification dans `src/` :
+
+```bash
+python3 tools/build.py
+```
+
+## Tester
+
+```bash
+cd tests && npm i three@0.128.0 && pip install playwright && python3 -m playwright install chromium && cd ..
+python3 tools/build.py --test
+cd tests && python3 -m http.server 8765 &
+python3 auto_flight.py a320     # puis lj60, h125, r44, s76
+```
+
+Dernière vérification (V7.3) : vol automatique complet sans blocage sur les 5 appareils.
+
+## Historique récent
+
+| Version | Changement |
+| --- | --- |
+| V7.7 | Fin du repoussage dans l'axe de la voie : roulage vers l'avant, piste devant soi ; repoussage expliqué et accéléré ×4 en mode automatique |
+| V7.6 | Cadres rouges numérotés « sous-étape n/N » sur les commandes et écrans, bulle explicative, hiérarchie visible |
+| V7.5 | Piste et décor visibles sur téléphone, barre compacte, bouton « masquer écrans » |
+| V7.4 | Croix de fermeture sur tous les panneaux |
+| V7.3 | Mode automatique corrigé (blocage étape 14, alignement, décollage après check-list) |
+| V7.2 | Panneaux déplaçables, modes exclusifs, dossier mobile |
+| V7.1 | Bulle d'étape avec chronomètre en mode automatique |
+| V7 | Audio réaliste et dossier de vol pas à pas |
