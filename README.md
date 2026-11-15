@@ -25,6 +25,7 @@ Il faut une connexion internet pour three.js et les polices (CDN).
 - **Examen blanc** : vol complet sans aide, blocs et écrans encadrés `[ ? ]` sans nommer la commande, QCM d'aide après 30 s, questions de calcul (masse, carburant, VR, descente, VAPP) et de tour avion, décollage seulement si tout est validé (sinon épreuve éliminatoire), tableau ✓ / ✗ et bloc-notes final avec renvoi vers le dossier, le mode automatique ou le mode guidé de l'étape ratée.
 - **Scénarios guidés** (US Airways 1549, Germanwings 9525 sur le vrai trajet Barcelone → Düsseldorf au FL380 au-dessus des Alpes, sans le crash (la partie critique devient une urgence : commandant hors du poste, dépressurisation, descente d'urgence arrêtée à l'altitude de sécurité, retour au poste, surveillance croisée), module sécurité du poste,, fuite carburant fictive, pannes) avec le même système de cadres rouges / verts numérotés.
 - **Bouton « Lancer »** sur chaque carte de mode du dossier : le parcours correspondant démarre directement.
+- **Modèles 3D aux cotes réelles** (constructeurs, certificats de type EASA) : A320-200 avec sharklets et CFM56, Learjet 60 à empennage en T et réacteurs arrière, H125 (rotor 3 pales), R44 (2 pales), S-76 (4 pales, train rentrant) ; train qui rentre en vol, rotors principal et arrière animés.
 - **Son** 100 % synthétisé (Web Audio) : moteurs, rotors, vent, roulage, alarmes réelles, annonces radiosonde, équipage et cabine, météo, aéroport.
 - **Mobile** : image recentrée pour voir la piste, barre compacte, panneaux déplaçables et fermables, glisser pour changer de page.
 
@@ -36,7 +37,7 @@ Les valeurs marquées [ESTIMÉ] sont des approximations pédagogiques et les sys
 | --- | --- |
 | `index.html` | Le simulateur complet, prêt à publier (généré) |
 | `src/base.html` | Moteur du simulateur (monde, appareils, cockpit, guide, ATC, météo…) |
-| `src/addons/*.js` | Modules : `audio`, `brief` (dossier pas à pas, boutons Lancer), `bubble` (bulle du mode automatique et fiabilité des étapes), `drag`, `close`, `view` (affichage mobile), `frames` (cadres numérotés, hiérarchie, pushback), `scn` (scénarios guidés), `exam` (examen blanc), `acad` (Académie) |
+| `src/addons/*.js` | Modules : `audio`, `brief` (dossier pas à pas, boutons Lancer), `bubble` (bulle du mode automatique et fiabilité des étapes), `drag`, `close`, `view` (affichage mobile), `frames` (cadres numérotés, hiérarchie, pushback), `scn` (scénarios guidés), `exam` (examen blanc), `acad` (Académie), `models` (modèles 3D) |
 | `tools/build.py` | Assemble `src/` en `index.html` |
 | `tests/auto_flight.py` | Vol complet automatique accéléré, détecte les blocages d'étape |
 | `tests/exam_blanc.py` | Examen blanc piloté par un élève simulé (`perfect` : réussite et décollage ; `wrong` : épreuve éliminatoire) |
@@ -62,6 +63,7 @@ Dernière vérification (V8.0) : examen blanc A320 complet réussi (25/25, déco
 
 | Version | Changement |
 | --- | --- |
+| V8.2 | Modèles 3D des 5 appareils reconstruits aux cotes publiées ; train rentré en vol ; descente d'urgence à 4 000 ft/min dans le scénario Germanwings |
 | V8.1 | Germanwings 9525 : parcours Barcelone → Düsseldorf sans le crash, partie critique remplacée par une urgence de pilotage au-dessus du relief |
 | V8.0 | Examen blanc, Académie (cours débutant → brevet → reconversion), boutons « Lancer » sur les cartes du dossier |
 | V7.8 | Scénarios guidés avec cadres rouges / verts : US Airways 1549, sécurité du poste (Germanwings 9525), fuite carburant fictive, pannes |

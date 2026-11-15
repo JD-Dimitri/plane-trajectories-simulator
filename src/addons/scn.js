@@ -107,7 +107,7 @@ const SG=window.SCNG, S_=id=>`[data-sw="${id}"]`;
 SG.clicked={}; SG.flags={}; SG.stepT=0;
 addEventListener('click',e=>{ const t=e.target.closest&&e.target.closest('[data-sw],[data-pd]'); if(t) SG.clicked[t.dataset.sw||t.dataset.pd]=performance.now(); },true);
 setInterval(()=>{ if(SG.on&&typeof SYS!=='undefined'&&SYS.door==='UNLOCK') SG.flags.unlocked=true; },300);
-setInterval(()=>{ if(!SG.on||!SCN.cur||SCN.cur.id!=='GW-ROUTE') return; const a=alt(); if(FAIL.depress&&a>1000) SG.minAlt=Math.min(SG.minAlt||99999,a); const st=GD.steps[GD.i]; if(st&&st.part==='E'&&!SG.flags.buzz){ SG.flags.buzz=true; flash('Buzzer : le commandant demande à rentrer','am'); try{ SND.play('chime'); }catch(e){} } },500);
+setInterval(()=>{ if(!SG.on||!SCN.cur||SCN.cur.id!=='GW-ROUTE') return; const a=alt(); if(FAIL.depress&&a>1000) SG.minAlt=Math.min(SG.minAlt||99999,a); if(FAIL.depress&&AP.on&&AP.alt<20000&&AP.alt>=15000&&a>AP.alt+800) AP.vs=Math.max(AP.vs||0,4000); const st=GD.steps[GD.i]; if(st&&st.part==='E'&&!SG.flags.buzz){ SG.flags.buzz=true; flash('Buzzer : le commandant demande à rentrer','am'); try{ SND.play('chime'); }catch(e){} } },500);
 const alt=()=>{ try{ return airdata().alt; }catch(e){ return 0; } };
 const inStep=s=>()=>SG.stepT&&performance.now()-SG.stepT>s*1000;
 const sw=(id,v)=>()=>{ SYS[id]=v; try{ sysEffect(id); }catch(e){} try{ a320Sync(); }catch(e){} try{ ovhSync(); }catch(e){} };
