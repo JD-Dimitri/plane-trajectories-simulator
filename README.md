@@ -66,6 +66,7 @@ Dernière vérification (V8.0) : examen blanc A320 complet réussi (25/25, déco
 
 | Version | Changement |
 | --- | --- |
+| V8.6 | PC : bouton « Vue avant » et retour automatique de la vue cockpit vers l'avant |
 | V8.5 | Cadres jaune / rouge pour les actions incohérentes ; Académie : anatomie des 5 appareils |
 | V8.4 | Écrans du tableau de bord agrandis au toucher |
 | V8.3 | Décor : tours de contrôle, aérogares, Manhattan, Paris ; nuages en boules retirés |

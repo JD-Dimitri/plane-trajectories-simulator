@@ -39,3 +39,15 @@ const _resize=resize; resize=function(){ _resize(); if(view==='ck'&&scrHidden) d
 const _sv=setView; setView=function(v){ const r=_sv.apply(this,arguments); resize(); return r; };
 setInterval(recentre,500); syncBtns(); resize();
 })();
+
+/* V8.6 — PC : la vue cockpit revient vers l'avant.
+   Un clic-glissé sur l'image 3D (souvent involontaire à la souris) relève la tête : on ne voit plus que le ciel.
+   → bouton « 🎯 Vue avant » dès que le regard est décalé, et retour doux vers l'avant après 4 s sans manipulation
+   (sauf si l'on regarde volontairement le plafonnier). Double-clic ou touche 0 : recentrage immédiat. */
+(function(){ let lastIn=performance.now(); ['pointerdown','pointermove','wheel'].forEach(t=>addEventListener(t,e=>{ if(e.type!=='pointermove'||e.buttons) lastIn=performance.now(); },{passive:true}));
+  const b=document.createElement('button'); b.type='button'; b.id='b-front'; b.textContent='🎯 Vue avant'; b.hidden=true;
+  b.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:30;background:#132232ee;color:#fff;border:1px solid #46c8d8;border-radius:10px;padding:8px 14px;font:700 14px "Barlow Condensed",sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer';
+  b.onclick=()=>{ LK.ty=LK.tp=0; LK.tz=1; b.hidden=true; }; document.body.appendChild(b);
+  setInterval(()=>{ if(typeof LK==='undefined'||!$('menu').hidden){ b.hidden=true; return; } const off=Math.abs(LK.tp)>0.12||Math.abs(LK.ty)>0.25||Math.abs(LK.tz-1)>0.35;
+    b.hidden=!(off&&view!=='walk');
+    if(view==='ck'&&off&&LK.tp<0.6&&performance.now()-lastIn>4000){ LK.tp*=0.85; LK.ty*=0.85; LK.tz+=(1-LK.tz)*0.1; if(Math.abs(LK.tp)<0.02) LK.tp=0; if(Math.abs(LK.ty)<0.02) LK.ty=0; } },200); })();
