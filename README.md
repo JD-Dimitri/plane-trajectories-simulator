@@ -66,6 +66,7 @@ Dernière vérification (V8.0) : examen blanc A320 complet réussi (25/25, déco
 
 | Version | Changement |
 | --- | --- |
+| V8.12 | Un seul appareil à la fois (une mission propre à un appareil le sélectionne) ; même méthode pour tous : cours du simulateur par appareil (A320, Learjet 60, H125, R44, S-76) et questions d'examen hélicoptère |
 | V8.11 | Hélicoptères : chaque instrument s'agrandit au clic avec sa légende ; horizon artificiel alimenté (plus de drapeau OFF permanent) |
 | V8.10 | Menu de départ défilable (haut et bas) sur mobile et PC ; plus d'annonce « Flaps one » ni de bruit de volets au démarrage |
 | V8.9 | FMS : la ligne verte du ND est le plan de vol (orthodromie départ → destination, route Barcelone → Düsseldorf pour Germanwings) ; le mode NAV la rejoint puis la suit avec correction d'écart latéral |

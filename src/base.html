@@ -2758,6 +2758,7 @@ function buildHelp(){ const fw=A.kind==='fw', r=(k,d)=>`<tr><td>${k}</td><td>${d
 /* ---- menu ---- */
 let selAC=ls.get('sim-ac')||'a320', selMI=null, selTM='real';
 const TIMES=[['real','Heure réelle','UTC actuelle'],['dawn','Aube','07 h locales'],['noon','Jour','12 h locales'],['dusk','Crépuscule','18 h 30 locales'],['night','Nuit','23 h locales']];
+const MI_AC={'sc-1549':'a320','sc-9525':'a320','sc-fict':'a320'};   // missions propres à un appareil
 function renderMenu(){ const a=AC[selAC];
   $('c-ac').innerHTML=Object.entries(AC).map(([k,v])=>`<button type="button" class="card${k===selAC?' on':''}" data-ac="${k}"><span class="k">${v.kind==='fw'?'Avion':'Hélicoptère'}</span><b>${v.name}</b><span>${v.sub}</span></button>`).join('');
   const ms=Object.entries(MISSIONS).filter(([k,m])=>a.kind==='fw'?(m.fw||k.startsWith('sc-')&&!['sc-s76','sc-heli'].includes(k)):(m.rw||['sc-s76','sc-heli'].includes(k)));
@@ -2767,8 +2768,10 @@ function renderMenu(){ const a=AC[selAC];
     const d2=document.createElement('label'); d2.className='card'; d2.style.cssText=d.style.cssText; d2.innerHTML='<input type="checkbox" id="m-auto" style="width:20px;height:20px"><span><b style="font-size:15px">Mode automatique (observation)</b> · le simulateur enchaîne seul toutes les étapes du vol complet, avec les boîtes d\'information et le pilotage automatique (croisière accélérée)</span>'; d.after(d2);
     const d3=document.createElement('button'); d3.type='button'; d3.className='card'; d3.style.cssText='min-height:0;margin-top:10px'; d3.innerHTML='<b style="font-size:15px">QCM</b><span>Séries de questions pour apprendre (procédures, masse et centrage, carburant, navigation, roulage, appareil)</span>'; d3.onclick=()=>qcmOpen(); d2.after(d3); }
   $('c-tm').innerHTML=TIMES.map(([k,n,d])=>`<button type="button" class="card${k===selTM?' on':''}" data-tm="${k}" style="min-height:64px"><b>${n}</b><span>${d}</span></button>`).join('');
-  document.querySelectorAll('[data-ac]').forEach(b=>b.onclick=()=>{ selAC=b.dataset.ac; ls.set('sim-ac',selAC); renderMenu(); });
-  document.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>{ const m=MISSIONS[b.dataset.mi]; if(m.link){ window.open(m.link,'_blank','noopener'); return; } if(!m.soon){ selMI=b.dataset.mi; renderMenu(); } });
+  // un seul appareil à la fois : une mission propre à un appareil sélectionne cet appareil, et changer d'appareil abandonne une mission incompatible
+  document.querySelectorAll('[data-ac]').forEach(b=>b.onclick=()=>{ selAC=b.dataset.ac; ls.set('sim-ac',selAC); if(MI_AC[selMI]&&MI_AC[selMI]!==selAC) selMI=null; renderMenu(); });
+  document.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>{ const m=MISSIONS[b.dataset.mi]; if(m.link){ window.open(m.link,'_blank','noopener'); return; } if(!m.soon){ selMI=b.dataset.mi; const need=MI_AC[selMI]; if(need&&need!==selAC){ selAC=need; ls.set('sim-ac',selAC); flash('Cette mission se vole en '+AC[need].name+' : appareil sélectionné','am'); } renderMenu(); } });
+  document.querySelectorAll('#c-mi [data-mi]').forEach(b=>{ const need=MI_AC[b.dataset.mi]; if(need&&need!==selAC) b.insertAdjacentHTML('beforeend',`<span class="req" style="display:block;color:var(--am);font:700 12px 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;margin-top:6px">✈ ${AC[need].name} uniquement</span>`); });
   document.querySelectorAll('[data-tm]').forEach(b=>b.onclick=()=>{ selTM=b.dataset.tm; renderMenu(); }); }
 function openMenu(){ paused=true; $('menu').hidden=false; renderMenu(); }
 $('go').onclick=startMission;
