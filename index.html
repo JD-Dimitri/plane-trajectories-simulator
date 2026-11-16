@@ -6988,19 +6988,79 @@ const css=document.createElement('style'); css.textContent=`#sacrew{position:fix
 #sacrew input,#sacrew select,#sacrew textarea{font:15px 'Inter',sans-serif;padding:6px 8px;border:1px solid #9aa4ae;border-radius:3px;background:#fff;color:#14181c;text-transform:none;letter-spacing:0}
 #sacrew textarea{min-height:76px;font:13px 'JetBrains Mono',monospace}#sacrew .ft{display:flex;gap:8px;justify-content:flex-end;padding:10px 14px;border-top:1px solid #c9c2b0;flex-wrap:wrap}
 #sacrew button{border-radius:6px;padding:9px 14px;font:700 14px 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border:1px solid #14181c;background:#fff;color:#14181c}#sacrew .go{background:#1f8a4c;color:#fff;border-color:#1f8a4c}
-#sacrew .note{font-size:12px;color:#5a646e;margin:6px 0 0}`; document.head.appendChild(css);
+#sacrew .note{font-size:12px;color:#5a646e;margin:6px 0 0}
+#sacrew .addp{display:grid;grid-template-columns:1fr 1fr 88px auto;gap:6px;margin-top:6px}#sacrew .addp button,#sacrew .paxb button{padding:6px 10px;font-size:13px}
+#sacrew .paxb{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}#sacrew .paxb span{font:600 12px 'JetBrains Mono',monospace;color:#4a5560}
+#seatmap{position:fixed;inset:0;z-index:86;background:#071019;display:flex;flex-direction:column;align-items:center;overflow:auto;padding:10px;color:#e8eef2;font:13px 'Inter',sans-serif}
+#seatmap .sh{width:min(560px,100%);display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}#seatmap .sh b{font:700 18px 'Barlow Condensed',sans-serif;letter-spacing:.06em}
+#seatmap button{background:#132232;color:#fff;border:1px solid #2b3d50;border-radius:8px;padding:7px 12px;font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+#seatmap .lg{width:min(560px,100%);display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#9fb3c4;margin-bottom:6px}#seatmap .lg i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+#seatmap .info{width:min(560px,100%);min-height:20px;background:#0d1b28;border:1px solid #1d2f40;border-radius:8px;padding:6px 10px;margin-bottom:6px}
+#seatmap svg{max-width:min(560px,100%);height:auto}#seatmap .seat{cursor:pointer}`; document.head.appendChild(css);
 function form(cb,small){ let m=document.getElementById('sacrew'); if(m) m.remove(); m=document.createElement('div'); m.id='sacrew'; const v=CREW;
  const f=(k,l,t='text',ex='')=>`<label>${l}<input name="${k}" type="${t}" value="${String(v[k]??'').replace(/"/g,'&quot;')}" ${ex}></label>`, g=(k)=>`<select name="${k}">${['Hôtesse','Steward'].map(o=>`<option ${v[k]===o?'selected':''}>${o}</option>`).join('')}</select>`;
  m.innerHTML=`<div class="w"><div class="hd"><b>FEUILLE D'ÉQUIPAGE · MANIFESTE</b><small>GENERAL DECLARATION / CREW LIST</small></div><div class="bd">
   <h4>Vol</h4><div class="g">${f('vol','N° de vol')}${f('imm','Immatriculation')}${f('dep','Départ (OACI)')}${f('arr','Arrivée (OACI)')}</div>
   <h4>Équipage technique</h4><div class="g">${f('cdb','Commandant de bord (CDB)')}${f('opl','Officier pilote de ligne (OPL)')}${f('meca','Mécanicien sol')}</div>
   ${small?'':`<h4>Équipage de cabine (PNC)</h4><div class="g">${f('cc','Chef de cabine')}<label>PNC 2 ${g('g2')}<input name="pnc2" value="${v.pnc2}"></label><label>PNC 3 ${g('g3')}<input name="pnc3" value="${v.pnc3}"></label><label>PNC 4 ${g('g4')}<input name="pnc4" value="${v.pnc4}"></label></div>`}
-  <h4>Passagers</h4><div class="g">${f('pax','Nombre de passagers','number',`min="0" max="${small?small:180}"`)}</div><label style="margin-top:8px">Liste nominative (NOM Prénom · siège), facultative<textarea name="paxl">${v.paxl}</textarea></label>
+  <h4>Passagers</h4><div class="g">${f('pax','Nombre de passagers','number',`min="0" max="${small?small:180}"`)}</div><label style="margin-top:8px">Liste nominative (NOM Prénom · siège)<textarea name="paxl" style="min-height:120px">${v.paxl}</textarea></label>
+  <div class="addp"><input data-ln placeholder="NOM" aria-label="Nom"><input data-fn placeholder="Prénom" aria-label="Prénom"><select data-se aria-label="Siège"></select><button type="button" data-add>➕ Ajouter</button></div>
+  <div class="paxb"><button type="button" data-fill>👥 Compléter tous les passagers</button><button type="button" data-seat>🪑 Sièges (vue du dessus)</button><span data-cnt></span></div>
   <p class="note">Comme la « General Declaration » remise aux autorités : équipage, nombre et liste des passagers. Les noms sont fictifs et modifiables ; ils sont repris par les personnages du schéma et dans les dialogues.</p></div>
   <div class="ft"><button type="button" data-r>Valeurs par défaut</button><button type="button" data-x>Annuler</button><button type="button" class="go" data-ok>✓ Valider et présenter l'équipage</button></div></div>`;
- document.body.appendChild(m);
+ document.body.appendChild(m); paxUI(m,small); m.querySelector('[name=paxl]').addEventListener('input',()=>paxUI(m,small)); m.querySelector('[name=pax]').addEventListener('input',()=>paxUI(m,small));
  m.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; if(b.dataset.x!=null) m.remove(); if(b.dataset.r!=null){ CREW=Object.assign({},DEF); m.remove(); form(cb,small); }
+  if(b.dataset.add!=null){ const ln=m.querySelector('[data-ln]'), fn=m.querySelector('[data-fn]'), se=m.querySelector('[data-se]'); const nom=(ln.value||'').trim().toUpperCase(), pre=(fn.value||'').trim(); if(!nom){ ln.focus(); return; }
+    const L=paxParse(m), seat=se.value||freeSeats(LAY(small),L)[0]||''; L.push({n:(nom+' '+pre).trim(),s:seat}); paxWrite(m,L); ln.value=''; fn.value=''; paxUI(m,small); return; }
+  if(b.dataset.fill!=null){ const L=paxParse(m), n=Math.max(+m.querySelector('[name=pax]').value||0,L.length); fillPax(LAY(small),L,n); paxWrite(m,L); paxUI(m,small); return; }
+  if(b.dataset.seat!=null){ seatMap(m,small); return; }
   if(b.dataset.ok!=null){ m.querySelectorAll('[name]').forEach(i=>{ CREW[i.name]=i.type==='number'?Math.max(0,Math.min(+i.max||180,+i.value||0)):i.value; }); try{ localStorage.setItem('sa-crew',JSON.stringify(CREW)); }catch(e){} m.remove(); cb(); } }); }
+
+/* ---------- plan de cabine : dispositions types, liste nominative, vue du dessus des sièges ---------- */
+// dispositions [cabine, rangs, groupes de lettres de part et d'autre des couloirs] ; rangées d'issues de secours
+function LAY(small){ const k=small===6?'lj60':small===5?'h125':small===12?'s76':small===3?'r44':(typeof ACK!=='undefined'&&ACK==='b777'?'b777':'a320');
+  const R=(c,a,b,g,ex)=>{ const o=[]; for(let r=a;r<=b;r++) o.push({r,c,g,ex:(ex||[]).includes(r)}); return o; };
+  const L={ a320:{n:'A320 · 180 sièges (30 rangs, 3-3) · issues au-dessus de l\'aile rangs 11-12',rows:R('Y',1,30,[['A','B','C'],['D','E','F']],[11,12])},
+    b777:{n:'777-300ER · 442 sièges type Air Austral (18 J · 40 W · 384 Y)',rows:[...R('J',1,3,[['A','C'],['D','G'],['H','K']]),...R('W',6,10,[['A','C'],['D','E','F','G'],['H','K']]),...R('Y',20,57,[['A','B','C'],['D','E','F','G'],['H','J','K']],[20,33,47]),{r:58,c:'Y',g:[[],['D','E','F','G'],[]]}]},
+    lj60:{n:'Learjet 60 · 6 sièges club',rows:R('C',1,3,[['A'],['C']])}, h125:{n:'H125 · 5 passagers (1 avant gauche, banquette arrière 4)',rows:[{r:1,c:'P',g:[['A'],[]]},{r:2,c:'P',g:[['A','B'],['C','D']]}]},
+    s76:{n:'S-76 · 12 passagers (3 rangs, 2-2)',rows:R('P',1,3,[['A','B'],['C','D']])}, r44:{n:'R44 · 3 passagers (avant gauche, arrière 2)',rows:[{r:1,c:'P',g:[['A'],[]]},{r:2,c:'P',g:[['A'],['B']]}]} };
+  const o=L[k]; o.k=k; o.all=[]; o.rows.forEach(r=>r.g.flat().forEach(l=>o.all.push(r.r+l))); return o; }
+function paxParse(m){ return (m.querySelector('[name=paxl]').value||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{ const p=l.split(/\s*[·|;]\s*/); return {n:p[0],s:(p[1]||'').toUpperCase().replace(/\s/g,'')}; }); }
+function paxWrite(m,L){ m.querySelector('[name=paxl]').value=L.map(p=>p.n+(p.s?' · '+p.s:'')).join('\n'); }
+function freeSeats(lay,L){ const used=new Set(L.map(p=>p.s)); return lay.all.filter(s=>!used.has(s)); }
+const NOMS=['MARTIN','BERNARD','THOMAS','PETIT','ROBERT','RICHARD','DURAND','DUBOIS','MOREAU','LAURENT','SIMON','MICHEL','LEFEBVRE','LEROY','ROUX','DAVID','BERTRAND','MOREL','FOURNIER','GIRARD','BONNET','DUPONT','LAMBERT','FONTAINE','ROUSSEAU','VINCENT','MULLER','LEFEVRE','FAURE','ANDRE','MERCIER','BLANC','GUERIN','BOYER','GARNIER','CHEVALIER','FRANCOIS','LEGRAND','GAUTHIER','GARCIA','PERRIN','ROBIN','CLEMENT','MORIN','NICOLAS','HENRY','ROUSSEL','MATHIEU','GAUTIER','MASSON','NGUYEN','DIALLO','SILVA','ROSSI','SCHMIDT','KOWALSKI','HOARAU','PAYET','GRONDIN','FONTAINE','RIVIERE','TECHER','BOYER','LEBON','MAILLOT','SMITH','JOHNSON','TANAKA','KHAN','COHEN'];
+const PRENOMS=['Paul','Linh','Ana','Jan','Emma','Lucas','Chloé','Hugo','Léa','Louis','Manon','Nathan','Camille','Jules','Sarah','Gabriel','Inès','Arthur','Jade','Adam','Louise','Raphaël','Lina','Mathis','Zoé','Noah','Alice','Ethan','Lola','Tom','Mila','Théo','Rose','Sacha','Nina','Malik','Yasmine','Karim','Aïcha','Kenji','Sofia','Marco','Olga','Pedro','Fatou','Mamadou','Priya','Ravi','Mei','David','Julie','Claire','Pierre','Marie','Jean','Anne','Michel','Sophie','Nicolas','Isabelle'];
+function fillPax(lay,L,n){ n=Math.min(n,lay.all.length); const taken=new Set(L.map(p=>p.n)), free=freeSeats(lay,L); let seed=L.length*7919+n*31; const rnd=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
+  for(let i=free.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [free[i],free[j]]=[free[j],free[i]]; }
+  // les passagers déjà listés sans siège reçoivent un siège libre
+  L.forEach(p=>{ if(!p.s||!lay.all.includes(p.s)) p.s=free.shift()||''; });
+  let guard=0; while(L.length<n&&free.length&&guard++<5000){ const nm=NOMS[Math.floor(rnd()*NOMS.length)]+' '+PRENOMS[Math.floor(rnd()*PRENOMS.length)]; if(taken.has(nm)) continue; taken.add(nm); L.push({n:nm,s:free.shift()}); } }
+function paxUI(m,small){ const lay=LAY(small), L=paxParse(m), se=m.querySelector('[data-se]'), fr=freeSeats(lay,L), cap=lay.all.length, px=m.querySelector('[name=pax]');
+  px.max=cap; if(+px.value>cap) px.value=cap;
+  if(se){ const cur=se.value; se.innerHTML=fr.slice(0,600).map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join(''); }
+  const c=m.querySelector('[data-cnt]'); if(c) c.textContent=`${L.length} nommé(s) / ${px.value||0} passagers · ${cap} sièges · ${fr.length} libres`; }
+function seatMap(m,small){ const lay=LAY(small); let L=paxParse(m), sel=null; let w=document.getElementById('seatmap'); if(w) w.remove(); w=document.createElement('div'); w.id='seatmap'; document.body.appendChild(w);
+  const draw=()=>{ const by={}; L.forEach((p,i)=>{ if(p.s) by[p.s]=i; }); const S=16, gap=3, aisle=14, maxW=Math.max(...lay.rows.map(r=>r.g.reduce((a,g)=>a+g.length*(S+gap),0)+(r.g.length-1)*aisle));
+    const W=maxW+70, top=90; let y=top, cells=''; const col={J:'#7a2a6f',W:'#2f6db3',Y:'#3a4656',C:'#3a4656',P:'#3a4656'}; let lastC='';
+    lay.rows.forEach(r=>{ if(r.c!==lastC){ y+=lastC?14:4; cells+=`<text x="${W/2}" y="${y}" text-anchor="middle" fill="#9fb3c4" font-size="9" letter-spacing="1.5" font-family="JetBrains Mono">${{J:'CLASSE AFFAIRES',W:'PREMIUM ÉCO',Y:'ÉCONOMIQUE',C:'CABINE',P:'CABINE'}[r.c]}</text>`; y+=6; lastC=r.c; }
+      const rw=r.g.reduce((a,g)=>a+g.length*(S+gap),0)+(r.g.length-1)*aisle; let x=(W-rw)/2+16;
+      cells+=`<text x="${(W-rw)/2-4}" y="${y+12}" fill="#9fb3c4" font-size="9" text-anchor="end" font-family="JetBrains Mono">${r.r}</text>`;
+      if(r.ex) cells+=`<text x="${W-14}" y="${y+12}" fill="#ffd166" font-size="9" font-family="JetBrains Mono">⇆</text>`;
+      r.g.forEach((g,gi)=>{ g.forEach(l=>{ const id=r.r+l, i=by[id], occ=i!=null, me=sel===id; cells+=`<g class="seat" data-s="${id}"><rect x="${x}" y="${y}" width="${S}" height="${S}" rx="4" fill="${me?'#ffe14a':occ?'#3ddc84':col[r.c]}" stroke="${r.ex?'#ffd166':'#0b141c'}" stroke-width="1.2"/><text x="${x+S/2}" y="${y+11.5}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${occ||me?'#06210f':'#c9d4de'}" font-family="Inter">${occ?L[i].n.split(' ').map(t=>t[0]).join('').slice(0,2):l}</text></g>`; x+=S+gap; }); if(gi<r.g.length-1) x+=aisle-gap; });
+      y+=S+gap+ (r.ex?4:0); });
+    const H=y+70, fus=`<path d="M${W/2} 6 C ${W*0.86} 30, ${W-6} 70, ${W-6} ${top-10} L ${W-6} ${H-60} C ${W-6} ${H-25}, ${W*0.62} ${H-6}, ${W/2} ${H-4} C ${W*0.38} ${H-6}, 6 ${H-25}, 6 ${H-60} L 6 ${top-10} C 6 70, ${W*0.14} 30, ${W/2} 6 Z" fill="#0f1c28" stroke="#5f7a92" stroke-width="2"/>`;
+    const ck=`<path d="M${W/2-24} 46 Q ${W/2} 30 ${W/2+24} 46" fill="none" stroke="#3fd0ff" stroke-width="3"/><text x="${W/2}" y="64" text-anchor="middle" fill="#9fb3c4" font-size="9" font-family="JetBrains Mono">POSTE · avant</text>`;
+    const occN=L.filter(p=>p.s&&lay.all.includes(p.s)).length;
+    w.innerHTML=`<div class="sh"><b>🪑 PLAN DE CABINE · VUE DU DESSUS</b><span><button type="button" data-fill>👥 Compléter</button> <button type="button" data-back>↩ Retour au document</button></span></div>
+     <div class="lg"><span>${lay.n}</span><span><i style="background:#3ddc84"></i>occupé (${occN})</span><span><i style="background:#3a4656"></i>libre (${lay.all.length-occN})</span><span><i style="background:#ffe14a"></i>sélection</span><span style="color:#ffd166">⇆ rangée d'issue de secours</span></div>
+     <div class="info">${sel?(by[sel]!=null?`Siège <b>${sel}</b> : ${L[by[sel]].n}. Touchez un siège libre pour le déplacer, ou de nouveau ce siège pour annuler.`:`Siège <b>${sel}</b> libre.`):'Touchez un siège : nom du passager ; puis un siège libre pour le déplacer.'}</div>
+     <svg viewBox="0 0 ${W} ${H}" width="${W*1.5}">${fus}${ck}${cells}</svg>`;
+    w.querySelector('[data-back]').onclick=()=>{ paxWrite(m,L); paxUI(m,small); w.remove(); };
+    w.querySelector('[data-fill]').onclick=()=>{ const n=Math.max(+m.querySelector('[name=pax]').value||0,L.length); fillPax(lay,L,n); draw(); };
+    w.querySelectorAll('.seat').forEach(g=>g.onclick=()=>{ const id=g.dataset.s, i=by[id];
+      if(sel&&sel!==id&&by[sel]!=null&&i==null){ L[by[sel]].s=id; sel=null; draw(); return; }
+      sel=sel===id?null:id; draw(); }); };
+  draw(); }
 /* ---------- outils de parcours ---------- */
 const Q=(t,n,o)=>Object.assign({t,n},o||{});            // séquence (sans commande)
 const K=(c,v,n,say,w,wt)=>({c,v,n,say,w,wt});            // commande
