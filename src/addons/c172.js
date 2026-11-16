@@ -68,7 +68,7 @@ const _cd=coldDark; coldDark=function(){ if(!C()) return _cd.apply(this,argument
   S.eng=[false,false]; S.n2=[0,0]; S.nr=0; S.thr=0; S.coll=0; S.pbrake=true; S.flap=0; S.gear=true; AP.on=AP.ath=false; AP.appr=false; S.rpm=0;
   Object.assign(SYS,{bat1:false,alt1:false,avion:false,pitot:false,beacon:false,landL:'OFF',taxiL:false,navLt:false,strobe:'OFF',gaz:'RALENTI',mix:'IDLE CUT-OFF',carbH:'FROID',primer:'0',mags:'OFF',fuelSel:'BOTH',trim:'NEUTRE',xpdr:'OFF',irAl:0,ir1:'ON'});
   GD.magL=GD.magR=GD.carbT=0; GD.cTi=null; AP.alt=1500; AP.vs=500; AP.hdg=250; GD.idleOK=false; GD.cLeg=null; GD.cAir=false; GD.cLanded=false; GD.primed=false; buildOVH(); };
-const _sd=sysDefaults; sysDefaults=function(){ _sd.apply(this,arguments); if(C()){ AP.alt=1500; AP.vs=500; AP.hdg=250; GD.cLeg=null; GD.cAir=false; GD.cLanded=false; GD.cTi=null; } if(C()) Object.assign(SYS,{bat1:true,alt1:true,avion:true,mix:'RICH',mags:'BOTH',fuelSel:'BOTH',carbH:'FROID',primer:'0',gaz:'RALENTI',xpdr:'ALT',navLt:true,beacon:true,strobe:'ON',irAl:1}); };
+const _sd=sysDefaults; sysDefaults=function(){ _sd.apply(this,arguments); if(C()){ if(!(S.fuel>0)) S.fuel=Math.round(WB.c172.fuelMax*0.8); AP.alt=1500; AP.vs=500; AP.hdg=250; GD.cLeg=null; GD.cAir=false; GD.cLanded=false; GD.cTi=null; } if(C()) Object.assign(SYS,{bat1:true,alt1:true,avion:true,mix:'RICH',mags:'BOTH',fuelSel:'BOTH',carbH:'FROID',primer:'0',gaz:'RALENTI',xpdr:'ALT',navLt:true,beacon:true,strobe:'ON',irAl:1}); };
 
 /* ---- moteur à pistons : démarrage, régime, magnétos, réchauffage carburateur, dépression (gyroscopes) ---- */
 let crankT=0;
@@ -203,4 +203,37 @@ const _dc=drawCockpit; drawCockpit=function(){ if(!C()) return _dc.apply(this,ar
 // pilote automatique KAP 140 (option de nombreux C172) : panneau HDG / NAV / ALT / VS
 const _bf=buildFCU; buildFCU=function(){ if(!C()) return _bf.apply(this,arguments); const sv=ACK; try{ ACK='lj60'; _bf.apply(this,arguments); } finally{ ACK=sv; }
   const f=$('fcu'); if(f){ const l=f.querySelector('.lbl'); if(l) l.textContent='Bendix/King KAP 140 · pas d\'automanette : la puissance se règle à la main'; const b=f.querySelector('[data-f="ap"]'); if(b) b.textContent='AP'; } };
+})();
+/* ===== NAVIGATION VFR (PPL) : Toussus → Rambouillet → Dourdan → Toussus, avec log de navigation calculé ===== */
+(function(){
+if(typeof AC==='undefined'||!AC.c172) return;
+const WPS=[['LFPN',48.7519,2.1062],['RAMBOUILLET',48.6440,1.8300],['DOURDAN',48.5290,2.0110],['LFPN',48.7519,2.1062]];
+const DECL=2, VP=95, BURN=22, ALT=1500;   // déclinaison magnétique ≈ 2° Est [ESTIMÉ, région parisienne 2026] ; Vp 95 kt ; 22 kg/h
+MISSIONS['c172-nav']={n:'Navigation VFR · Toussus → Rambouillet → Dourdan → Toussus',d:'Cessna 172P, première navigation PPL (≈ 36 NM) : log de navigation calculé avec le vent du jour (route vraie et magnétique, dérive, cap, vitesse sol, temps, carburant), suivi des points tournants, retour et atterrissage à Toussus.',
+  fw:true,ac:'c172',start:()=>rwStart('LFPN','25R'),dest:'LFPN',destRw:'25R',wps:WPS};
+MI_AC['c172-nav']='c172';
+function navLog(){ const m=(typeof WXS!=='undefined'&&WXS.met.LFPN)||{dir:240,spd:8}, wd=m.dir||0, ws=m.spd||0, legs=[]; let T=0, F=0, D=0;
+  for(let i=1;i<WPS.length;i++){ const a=WPS[i-1], b=WPS[i], rv=(brg(a[1],a[2],b[1],b[2])+360)%360, nm=gcKm(a[1],a[2],b[1],b[2])/1.852, ang=(wd-rv)*Math.PI/180, x=Math.asin(Math.max(-1,Math.min(1,ws*Math.sin(ang)/VP)))*180/Math.PI,
+    cv=(rv+x+360)%360, cm=(cv-DECL+360)%360, vs=VP*Math.cos(x*Math.PI/180)-ws*Math.cos(ang), t=nm/vs*60, f=t/60*BURN; T+=t; F+=f; D+=nm;
+    legs.push({from:a[0],to:b[0],rv,rm:(rv-DECL+360)%360,nm,x,cm,vs,t,f}); }
+  return {legs,T,F,D,wd,ws,res:BURN*0.5}; }
+const r0=v=>String(Math.round(v)).padStart(3,'0');
+function open(){ let p=document.getElementById('navlog'); if(!p){ p=document.createElement('div'); p.id='navlog'; p.style.cssText='position:fixed;inset:0;z-index:67;background:#000a;display:flex;align-items:flex-start;justify-content:center;padding:10px;overflow:auto'; document.body.appendChild(p); p.addEventListener('click',e=>{ if(e.target===p||e.target.closest('[data-x]')) p.hidden=true; }); }
+  const L=navLog(), th='padding:4px 6px;border-bottom:1px solid #2b3d50;text-align:right', tl=th.replace('right','left');
+  p.innerHTML=`<div style="background:#0d1a26;color:#e8eef2;border:1px solid #2b3d50;border-radius:12px;max-width:760px;width:100%;font:13px Inter,sans-serif"><div style="display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #2b3d50"><b style="font:700 18px 'Barlow Condensed',sans-serif;letter-spacing:.06em">🧭 LOG DE NAVIGATION · F-HTCA</b><button type="button" data-x style="background:none;border:0;color:#fff;font-size:20px">✕</button></div>
+   <div style="padding:10px 12px;overflow:auto"><p>Vp ${VP} kt · altitude ${ALT} ft QNH · vent ${r0(L.wd)}°/${L.ws} kt (METAR LFPN) · déclinaison ${DECL}° E · consommation ${BURN} kg/h</p>
+   <table style="border-collapse:collapse;width:100%"><tr>${['Branche','Rv','Rm','Dist. NM','Dérive','Cm','Vs kt','Temps','Carb. kg'].map((h,i)=>`<th style="${i?th:tl}">${h}</th>`).join('')}</tr>
+   ${L.legs.map(l=>`<tr><td style="${tl}">${l.from} → ${l.to}</td><td style="${th}">${r0(l.rv)}°</td><td style="${th}">${r0(l.rm)}°</td><td style="${th}">${l.nm.toFixed(1)}</td><td style="${th}">${l.x>=0?'+':''}${l.x.toFixed(0)}°</td><td style="${th}"><b>${r0(l.cm)}°</b></td><td style="${th}">${Math.round(l.vs)}</td><td style="${th}">${Math.round(l.t)} min</td><td style="${th}">${l.f.toFixed(1)}</td></tr>`).join('')}
+   <tr><td style="${tl}"><b>Total</b></td><td></td><td></td><td style="${th}"><b>${L.D.toFixed(1)}</b></td><td></td><td></td><td></td><td style="${th}"><b>${Math.round(L.T)} min</b></td><td style="${th}"><b>${L.F.toFixed(1)}</b></td></tr></table>
+   <p>Carburant minimal : délestage ${L.F.toFixed(1)} kg + roulage 3 kg + réserve finale 30 min (${L.res.toFixed(0)} kg, NCO.OP.125) + aléas 10 % = <b>${(L.F*1.1+3+L.res).toFixed(0)} kg</b> (à bord : ${Math.round(S.fuel||0)} kg).</p>
+   <p class="m2-note">Méthode : dérive X = arcsin(Vw·sin(vent − Rv) / Vp) ; Cv = Rv + X ; Cm = Cv − déclinaison Est ; Vs = Vp·cos X − Vw·cos(vent − Rv). Les points tournants sont des repères au sol (villes), pas des points de report officiels ; l\'altitude et les espaces aériens (TMA de Paris, zones réglementées) se vérifient sur la carte OACI et l\'AIP avant tout vol réel.</p></div></div>`;
+  p.hidden=false; }
+window.NAVLOG={open,navLog};
+let btn=null, next=1, tLeg=0;
+setInterval(()=>{ const on=typeof MI!=='undefined'&&MI&&MI.wps===WPS&&document.getElementById('menu').hidden;
+  if(!btn){ btn=document.createElement('button'); btn.type='button'; btn.id='b-navlog'; btn.textContent='🧭 Log de nav'; btn.style.cssText='position:fixed;top:52px;right:8px;z-index:46;padding:7px 11px;border-radius:9px;border:1px solid #e04ad8;background:#1a0f22;color:#fff;font:600 13px Inter,sans-serif'; btn.onclick=open; document.body.appendChild(btn); }
+  btn.style.display=on?'block':'none'; if(!on){ next=1; return; }
+  if(!S.onGround&&next<WPS.length){ const w=WPS[next], d=gcKm(S.lat,S.lon,w[1],w[2])/1.852; if(d<1.0&&!(next===WPS.length-1)){ const L=navLog(), sim=(simMs-tLeg)/60000; flash(`Verticale ${w[0]} · branche ${Math.round(sim)} min (prévu ${Math.round(L.legs[next-1].t)} min) · prochain cap ${r0(L.legs[next].cm)}°`,'am'); tLeg=simMs; next++; } }
+  if(S.onGround&&next===1) tLeg=simMs; },1000);
+let shown=false; setInterval(()=>{ if(typeof MI!=='undefined'&&MI&&MI.wps===WPS&&document.getElementById('menu').hidden){ if(!shown){ shown=true; setTimeout(open,1500); } } else shown=false; },800);
 })();

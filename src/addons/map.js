@@ -39,7 +39,7 @@ function toggle(v){ build(); ST.on=v===undefined?!ST.on:!!v; W.hidden=!ST.on; co
 // trace parcourue
 setInterval(()=>{ try{ if(!MI||(typeof paused!=='undefined'&&paused)) return; const t=ST.track, p=[S.lat,S.lon]; const l=t[t.length-1]; if(!l||gcKm(l[0],l[1],p[0],p[1])>0.02){ t.push(p); if(t.length>4000) t.splice(0,t.length-4000); } }catch(e){} },1000);
 function dest(){ try{ return MI&&MI.dest&&APTS[MI.dest]?MI.dest:null; }catch(e){ return null; } }
-function routePts(){ try{ if(window.FPLN&&FPLN.pts&&FPLN.pts.length>1) return FPLN.pts; }catch(e){} const d=dest(); if(!d) return null; const s=MI.start?MI.start():null; return s?[[s.lat,s.lon,''],[APTS[d].lat,APTS[d].lon,d]]:null; }
+function routePts(){ try{ if(MI&&MI.wps&&MI.wps.length>1) return MI.wps.map(w=>[w[1],w[2],w[0]]); }catch(e){} try{ if(window.FPLN&&FPLN.pts&&FPLN.pts.length>1) return FPLN.pts; }catch(e){} const d=dest(); if(!d) return null; const s=MI.start?MI.start():null; return s?[[s.lat,s.lon,''],[APTS[d].lat,APTS[d].lon,d]]:null; }
 function draw(){ if(!ST.on||!W||W.hidden) return; const r=cv.getBoundingClientRect(), dpr=Math.min(2,devicePixelRatio||1), Wd=Math.round(r.width*dpr), Hd=Math.round(r.height*dpr); if(!Wd) return;
   if(cv.width!==Wd||cv.height!==Hd){ cv.width=Wd; cv.height=Hd; } g.setTransform(dpr,0,0,dpr,0,0); const w=r.width, h=r.height;
   W.querySelectorAll('[data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===ST.mode));
