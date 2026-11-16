@@ -151,7 +151,46 @@ function s76(){ const g=new T.Group(), L={}, W=mat(0xf4f5f6), Nv=mat(0x13294b), 
   const bl=rotor(4,6.705,0.4,Dk,1.5,0.1,0.32); g.add(bl); g.userData.blades=bl; g.add(disc(6.705,1.5,0.1));
   lights(g,L,{s:1.8,port:[-1.1,0.2,-0.5],tail:[0,2.0,8.4],bcn:[0,1.3,2.8],bcn2:[0,-1.0,0],land:[0,-0.95,-4.4]}); return {g,L}; }
 
-const BUILD={a320,lj60,h125,r44,s76};
+
+/* ---------------- Boeing 777-300ER ----------------
+   long. 73,86 m · envergure 64,80 m (saumons inclinés) · fuselage Ø 6,20 m · haut. 18,5 m · voie 10,97 m · empattement 31,22 m
+   flèche 31,6° · GE90-115B (soufflante 3,25 m) · trains principaux à 6 roues. Livrée : couleurs seules, sans logo ni inscription. */
+function b777(){ const g=new T.Group(), L={}, LV=window.LIVERY||'', W=mat(0xf4f6f8), Wg=mat(0xd0d5da), Gy=mat(0x9aa3ab), Dk=mat(0x1c2126), Tyre=mat(0x111316), Hub=mat(0xb9c0c6), Mt=mat(0x8c939a);
+  const st=[[-36.93,.06,.06,-.6],[-36.6,.75,.75,-.55],[-36.0,1.45,1.5,-.45],[-35.0,2.12,2.22,-.3],[-34.0,2.56,2.66,-.18],[-33.0,2.86,2.96,-.08],[-31.5,3.05,3.15,0],[-30,3.1,3.2,0],
+    [20,3.1,3.2,0],[23,2.95,2.98,.25],[26,2.55,2.5,.7],[29,2.0,1.9,1.2],[32,1.4,1.25,1.7],[34.5,.85,.75,2.1],[36.3,.4,.4,2.35],[36.93,.25,.25,2.4]].map(([z,w,h,y])=>({z,w,h,y}));
+  const belly=LV==='uu'?0xeef1f3:0xe3e7ea;
+  g.add(new T.Mesh(loft(st,40,(z,a)=>{ const ca=Math.cos(a); if(z>-34.7&&z<-32.8&&ca>0.36&&ca<0.86) return GLASS; if(ca<-0.55&&z>-28&&z<20) return belly; return 0xf4f6f8; }),VC()));
+  // hublots et 5 paires de portes
+  const wg=new T.BoxGeometry(0.06,0.4,0.26), win=new T.InstancedMesh(wg,mat(WIN),200), m4=new T.Matrix4(); let k=0;
+  for(let z=-29.2;z<19.5;z+=0.53){ if([-30.5,-19,-4.2,8,18.6].some(d=>Math.abs(z-d)<0.75)) continue; [-1,1].forEach(s=>{ if(k<200){ m4.makeTranslation(s*2.96,0.95,z); win.setMatrixAt(k++,m4); } }); } win.count=k; g.add(win);
+  [-30.5,-19,-4.2,8,18.6].forEach(z=>[-1,1].forEach(s=>{ const d=new T.Mesh(new T.BoxGeometry(0.05,1.95,1.07),mat(0xe1e5e9)); d.position.set(s*2.98,0.35,z); g.add(d); }));
+  // voilure : dièdre 6°, flèche de bord d'attaque ≈ 33°, cassure de bord de fuite, saumon incliné
+  const dh=Math.tan(6*D), wy=x=>-2.3+(x-3)*dh, le=x=>-9.0+(x-3)*Math.tan(33*D);
+  pair(wing([{x:0.8,y:wy(3),z:-9.4,c:14,t:.14},{x:3,y:wy(3),z:le(3),c:13,t:.14},{x:11,y:wy(11),z:le(11),c:7.6,t:.12},{x:30.6,y:wy(30.6),z:le(30.6),c:2.4,t:.1},{x:32.4,y:wy(32.4)+0.1,z:le(30.6)+2.0,c:0.6,t:.09}]),Wg,g);
+  pair(wing([{x:0.5,y:1.6,z:27.5,c:7.5,t:.11},{x:10.75,y:2.6,z:33.5,c:2.4,t:.09}]),Wg,g);
+  // dérive en sections, colorées par la livrée (bandes)
+  const fin=[], N=14; for(let i=0;i<N;i++){ const f=i/(N-1); fin.push({x:0,y:2.6+f*10.6,z:23.5+f*9.5,c:11-f*7.4,t:.11-f*.02}); }
+  const fg=wing(fin), R=8, fc=[], cc=new T.Color(); const finCol=f=>LV==='af'?(f>0.12&&f<0.34?0x0b2a6f:f>0.38&&f<0.5?0xd51d2a:0xf4f6f8):LV==='uu'?(f<0.45?0x169a52:f<0.55?0xf4f6f8:0x0d6f94):0xc5ccd2;
+  for(let i=0;i<N;i++){ cc.set(finCol(i/(N-1))); for(let j=0;j<R;j++) fc.push(cc.r,cc.g,cc.b); }
+  fg.setAttribute('color',new T.Float32BufferAttribute(fc,3)); g.add(new T.Mesh(fg,VC()));
+  // GE90-115B sous l'aile : nacelle ≈ 7,3 m, Ø ≈ 4 m, garde au sol ≈ 0,75 m
+  const Nc=LV==='uu'?mat(0xf4f6f8):W;
+  [-1,1].forEach(s=>{ const e=new T.Group(); e.position.set(s*9.75,-2.6,0);
+    e.add(lathe([[1.72,-12.65],[1.94,-12.5],[2.0,-12.0],[2.0,-10.4],[1.86,-8.6],[1.5,-6.7],[1.12,-5.7]],Nc,32));
+    e.add(lathe([[1.7,-12.66],[1.9,-12.6],[1.94,-12.5]],Mt,32));
+    const fan=new T.Mesh(new T.CircleGeometry(1.62,28),Dk); fan.position.z=-12.35; e.add(fan); e.add(lathe([[0.001,-12.45],[0.4,-12.1],[0.55,-11.9]],Mt,16));
+    e.add(lathe([[1.12,-5.75],[0.85,-4.7],[0.0,-3.4]],Gy,20));
+    e.add(new T.Mesh(wing([{x:0,y:1.55,z:-10.2,c:6.4,t:.08},{x:0,y:2.3,z:-7.8,c:5.6,t:.08}]),W)); g.add(e); });
+  // trains : avant 2 roues, principaux 2 × 6 roues (bogies), voie 10,97 m, empattement 31,22 m
+  const gear=new T.Group(), Gd=-5.3, zn=-28.7, zm=zn+31.22;
+  gear.add(strut([0,-2.6,zn],[0,Gd+0.6,zn],0.16,Mt)); [-0.36,0.36].forEach(x=>gear.add(wheel(x,Gd+0.6,zn,0.6,0.38,Tyre,Hub)));
+  [-1,1].forEach(s=>{ const x=s*5.49; gear.add(strut([x,wy(5.5)-0.2,zm-0.4],[x,Gd+0.75,zm],0.24,Mt)); gear.add(strut([x,Gd+0.7,zm-1.6],[x,Gd+0.7,zm+1.6],0.12,Mt));
+    [-1.45,0,1.45].forEach(dz=>[-0.72,0.72].forEach(dx=>gear.add(wheel(x+dx,Gd+0.66,zm+dz,0.66,0.48,Tyre,Hub)))); });
+  g.add(gear); g.userData.gear=gear;
+  lights(g,L,{s:4,port:[-32.4,wy(32.4)+0.1,le(30.6)+2.3],tail:[0,2.4,36.95],bcn:[0,3.25,-5],bcn2:[0,-3.25,-2],land:[0,-3.1,-28.4]});
+  return {g,L}; }
+
+const BUILD={a320,lj60,h125,r44,s76,b777};
 const _bm=buildModel;
 buildModel=function(key){ const f=BUILD[key]; if(!f) return _bm(key); const {g,L}=f(); Object.values(L).forEach(o=>{ o.visible=false; g.add(o); }); g.userData.L=L; g.userData.real=true; return g; };
 // train rentré en vol, rotor arrière qui tourne

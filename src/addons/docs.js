@@ -75,7 +75,7 @@ D.fpl={t:'Plan de vol OACI (FPL) déposé',cat:'Plan de vol',gen(c){ const r=rou
   return {txt:`FORMULAIRE DE PLAN DE VOL OACI (case par case)
  7  IDENTIFICATION ............ ${cs}
  8  RÈGLES / TYPE DE VOL ...... ${c.fw?'I / S (IFR, régulier)':'V / G (VFR, aviation générale)'}
- 9  TYPE / TURBULENCE ......... ${c.type} / ${c.k==='a320'?'M':'L'}
+ 9  TYPE / TURBULENCE ......... ${c.type} / ${AL(c.k)?'M':'L'}
 10  ÉQUIPEMENT ................ ${c.fw?'SDE2E3FGHIJ1RWXY / LB1':'S / C'}
 13  DÉPART / HEURE ............ ${c.dep} ${c.etd}
 15  VITESSE / NIVEAU / ROUTE .. ${c.fw?'N0450F350':'N0110VFR'} ${r.slice(1,-1).map(p=>p[0]).join(' DCT ')}
@@ -85,7 +85,7 @@ D.fpl={t:'Plan de vol OACI (FPL) déposé',cat:'Plan de vol',gen(c){ const r=rou
 
 MESSAGE ATS :
 (FPL-${cs}-${c.fw?'IS':'VG'}
--${c.type}/${c.k==='a320'?'M':'L'}-${c.fw?'SDE2E3FGHIJ1RWXY/LB1':'S/C'}
+-${c.type}/${AL(c.k)?'M':'L'}-${c.fw?'SDE2E3FGHIJ1RWXY/LB1':'S/C'}
 -${c.dep}${c.etd}
 -${c.fw?'N0450F350':'N0110VFR'} ${r.slice(1,-1).map(p=>p[0]).join(' DCT ')}
 -${c.dest}${eet} ${c.altn}
@@ -233,8 +233,8 @@ Distance ${F0(L.dist||0)} km · vitesse sol ${W.gs||'—'} kt · temps ${Math.fl
 DÉCISION DU COMMANDANT : bloc ${F0(L.block||0)} ${u} — motif du supplément : ${L.extra?'météo / attente prévue':'néant'}.
 Contrôle en vol : carburant restant à chaque point du log (OFP) ; écart > 5 % → analyse (fuite ?).`}; }};
 D.perf={t:'Performances décollage et atterrissage (TODC)',cat:'Masse, centrage, carburant',fw:1,gen(c){ const L=c.L; return {txt:`CARTE DE DONNÉES DE DÉCOLLAGE / ATTERRISSAGE [ESTIMÉ — formules simplifiées]
-${c.dep} RWY ${c.dep==='KJFK'?'31L':'27L'} · masse ${F0(L.tow||0)} kg · volets ${c.k==='a320'?'1+F':'8°'} · centrage ${L.cg!=null?L.cg.toFixed(1)+' %':'—'}
-  V1 ${L.v1||'—'} kt   VR ${L.vr||'—'} kt   V2 ${L.v2||'—'} kt   THS ${L.trim||'—'}   poussée ${c.k==='a320'?'TOGA (ou FLEX)':'T/O'}
+${c.dep} RWY ${c.dep==='KJFK'?'31L':'27L'} · masse ${F0(L.tow||0)} kg · volets ${AL(c.k)?'1+F':'8°'} · centrage ${L.cg!=null?L.cg.toFixed(1)+' %':'—'}
+  V1 ${L.v1||'—'} kt   VR ${L.vr||'—'} kt   V2 ${L.v2||'—'} kt   THS ${L.trim||'—'}   poussée ${AL(c.k)?'TOGA (ou FLEX)':'T/O'}
 ${c.dest} · masse à l'atterrissage ${F0(L.lw||0)} kg · volets FULL
   VLS ${L.vls||'—'} kt   VAPP ${L.vapp||'—'} kt   autofrein MED
 Saisie dans le MCDU (PERF TAKE OFF / APPR) et sur le FCU. Vérification croisée CDB / OPL obligatoire.`}; }};
@@ -266,7 +266,7 @@ EXPLOITANT : AIR TRAJECTOIRES   VOL ${c.flt}   ${c.reg}   ${c.dep} → ${c.dest}
 ÉQUIPAGE
   Commandant de bord ......... ${cr.cdb||'Claire Martin'}
   ${c.fw||c.k==='s76'||c.k==='lj60'?`Officier pilote de ligne .... ${cr.opl||'Thomas Leroy'}`:''}
-  ${c.fw&&c.k==='a320'?`Chef de cabine ............. ${cr.cc||'Sarah Benali'}
+  ${c.fw&&AL(c.k)?`Chef de cabine ............. ${cr.cc||'Sarah Benali'}
   ${cr.g2||'Steward'} ................... ${cr.pnc2||'Hugo Petit'}
   ${cr.g3||'Hôtesse'} ................... ${cr.pnc3||'Léa Moreau'}
   ${cr.g4||'Hôtesse'} ................... ${cr.pnc4||'Inès Faure'}`:''}
@@ -275,7 +275,7 @@ PASSAGERS : ${cr.pax!=null?cr.pax:(c.L.pax||0)}
 ${pax.length?'LISTE NOMINATIVE\n'+pax.map((x,i)=>`  ${L_(i+1,3)}. ${x}`).join('\n'):'(liste nominative : voir système de départ)'}
 
 Saisie dans « Feuille d'équipage » de l'Atelier des systèmes (modifiable).`}; }};
-D.checklist={t:'Check-lists normales',cat:'Appareil et équipage',gen(c){ const fw=c.k==='a320';
+D.checklist={t:'Check-lists normales',cat:'Appareil et équipage',gen(c){ const fw=AL(c.k);
   return {txt:fw?`A320 — CHECK-LISTS NORMALES (lecture « challenge / response »)
 
 BEFORE START

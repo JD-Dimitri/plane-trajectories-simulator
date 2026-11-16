@@ -27,9 +27,9 @@ const INFO={
  vemd:['VEMD — écran moteur','Paramètres de la turbine (premier limiteur, température, couple), carburant et messages de panne.'],
  radio:['Radio / GPS','Fréquences radio (COM) et de navigation (NAV), code du transpondeur (XPDR) et destination GPS.']};
 function rects(){ const cv=$('ckc'); if(!cv||view!=='ck') return []; const r=cv.getBoundingClientRect(); if(r.height<20) return []; const W=r.width,H=r.height, out=[];
-  if(ACK==='a320'||ACK==='lj60'){ const s=Math.min(H*0.66,W/5.7), gap=(W-5*s)/6, y0=H*0.08, X=i=>gap+i*(s+gap);
+  if(AL()||ACK==='lj60'){ const s=Math.min(H*0.66,W/5.7), gap=(W-5*s)/6, y0=H*0.08, X=i=>gap+i*(s+gap);
     out.push(['pfd',X(0),y0,s,s],['nd',X(1),y0,s,s],['nd2',X(3),y0,s,s],['pfd2',X(4),y0,s,s]);
-    if(ACK==='a320'){ const sc=Math.min(s,(H-y0-10)/2); out.push(['ewd',X(2)+(s-sc)/2,y0,sc,sc],['sd',X(2)+(s-sc)/2,y0+sc+4,sc,sc]); } else out.push(['ewd',X(2),y0,s,s]); }
+    if(AL()){ const sc=Math.min(s,(H-y0-10)/2); out.push(['ewd',X(2)+(s-sc)/2,y0,sc,sc],['sd',X(2)+(s-sc)/2,y0+sc+4,sc,sc]); } else out.push(['ewd',X(2),y0,s,s]); }
   else { const r=Math.min(H*0.21,W/22), row1=H*0.08+r*1.15, row2=row1+r*2.35, G=(k,cx,cy,rr)=>out.push([k,cx-rr*1.25,cy-rr*1.25,rr*2.5,rr*2.5]);
     const six=(cx,sf)=>{ G('asi'+sf,cx-r*2.3,row1,r); G('adi'+sf,cx,row1,r*1.1); G('alt'+sf,cx+r*2.3,row1,r); G('vsi'+sf,cx-r*2.3,row2,r); G('hsi'+sf,cx,row2,r*1.1); G((ACK==='s76'?'ra':'nr')+sf,cx+r*2.3,row2,r); };
     six(W*0.72,'');

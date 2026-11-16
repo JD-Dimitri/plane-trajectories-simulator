@@ -35,7 +35,7 @@ PT.el=function(sel){ if(!sel) return null; let all=[]; try{ all=[...document.que
   if(sel.startsWith('[data-pd')){ const p=all.find(e=>e.closest('#ped')); if(p) return p; } return all.find(e=>e.closest('#ovh'))||all[0]; };
 PT.where=sel=>{ if(/^#atc/.test(sel||'')) return 'Panneau Radio (bouton « Radio »)'; if(/^#f-/.test(sel||'')) return 'Bandeau FCU (au-dessus des écrans)'; const m=/data-(sw|pd|f)="([^"]+)"/.exec(sel||''); if(!m) return ''; const d=defOf(m[1],m[2]);
   return m[1]==='sw'?`Panneau plafond${d?' › '+d.sec:''}`:m[1]==='pd'?`${A.kind==='fw'?'Pédestal':'Console'}${d?' › '+d.sec:''}`:'Bandeau FCU (au-dessus des écrans)'; };
-PT.help=sel=>{ const m=/data-(sw|pd|f)="([^"]+)"/.exec(sel||''); return m&&typeof H320!=='undefined'&&ACK==='a320'&&H320[m[2]]?H320[m[2]]:''; };
+PT.help=sel=>{ const m=/data-(sw|pd|f)="([^"]+)"/.exec(sel||''); return m&&typeof H320!=='undefined'&&AL()&&H320[m[2]]?H320[m[2]]:''; };
 const SCRN={pfd:'Écran PFD (pilotage : assiette, vitesse, altitude)',nd:'Écran ND (navigation : route, carte)',ewd:'Écran moteurs (E/WD : N1, EGT, N2, volets)',sd:'Écran systèmes (SD : électricité, APU, carburant)',panel:'Planche de bord'};
 PT.scrName=k=>SCRN[k]||SCRN.panel;
 /* ---------- sous-étapes numérotées d'une étape ---------- */
@@ -45,9 +45,9 @@ PT.subs=function(st){ const out=(st.items||[]).map((it,j)=>{ let ok=false; try{ 
 PT.current=subs=>subs.find(s=>!s.ok&&!s.final)||subs[subs.length-1];
 /* ---------- géométrie des écrans du cockpit (même calcul que drawCockpit) ---------- */
 PT.scrRect=function(k){ const cv=$('ckc'); if(!cv||view!=='ck') return null; const r=cv.getBoundingClientRect(); if(r.height<20) return null; const W=r.width,H=r.height;
-  if(ACK==='a320'||ACK==='lj60'){ const s=Math.min(H*0.66,W/5.7), gap=(W-5*s)/6, y0=H*0.08, X=i=>gap+i*(s+gap); let x,y,w,h;
+  if(AL()||ACK==='lj60'){ const s=Math.min(H*0.66,W/5.7), gap=(W-5*s)/6, y0=H*0.08, X=i=>gap+i*(s+gap); let x,y,w,h;
     if(k==='pfd'){ x=X(0); y=y0; w=h=s; } else if(k==='nd'){ x=X(1); y=y0; w=h=s; }
-    else if(k==='ewd'||k==='sd'){ if(ACK==='a320'){ const sc=Math.min(s,(H-y0-10)/2); x=X(2)+(s-sc)/2; y=k==='ewd'?y0:y0+sc+4; w=h=sc; } else { x=X(2); y=y0; w=h=s; } }
+    else if(k==='ewd'||k==='sd'){ if(AL()){ const sc=Math.min(s,(H-y0-10)/2); x=X(2)+(s-sc)/2; y=k==='ewd'?y0:y0+sc+4; w=h=sc; } else { x=X(2); y=y0; w=h=s; } }
     else { x=4; y=4; w=W-8; h=H-8; }
     return {left:r.left+x,top:r.top+y,width:w,height:h}; }
   return {left:r.left+W*0.08,top:r.top+6,width:W*0.84,height:H-12}; };

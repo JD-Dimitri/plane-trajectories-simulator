@@ -211,7 +211,7 @@ function tick(){ const N=SND.n, P=SND.P; if(!SND.ready) return; const c=SND.ctx;
     if(starting&&n2raw>0.12&&n2raw<0.7&&t-(ST['ign'+i]||0)>0.65){ ST['ign'+i]=t; click(0.7,'eng'); }
     if(starting&&n2raw>0.26&&!ST.lit[i]){ ST.lit[i]=true; burst('brown',1.2,'lowpass',180,0.9*lv,'eng',null,0.08,0.8); }
     if(!starting&&!run) ST.lit[i]=false;
-    if(run&&!ST.engRun[i]){ ST.engRun[i]=true; if(fw&&ACK==='a320'&&!ST.firstEng&&S.onGround){ ST.firstEng=true; setTimeout(()=>ptuBark('ck'),2500); } }
+    if(run&&!ST.engRun[i]){ ST.engRun[i]=true; if(fw&&AL()&&!ST.firstEng&&S.onGround){ ST.firstEng=true; setTimeout(()=>ptuBark('ck'),2500); } }
     if(!run&&ST.engRun[i]){ ST.engRun[i]=false; burst('brown',3,'lowpass',300,0.4*lv,'eng',null,0.01,0.7,60); }
     const fwK=fw?1:0.7;
     set(e.roarG.gain,(run?0.03+0.55*Math.pow(n1,2.4):0.0)*lv*fwK,0.15); set(e.roarF.frequency,300+3600*n1*n1,0.2);
@@ -234,7 +234,7 @@ function tick(){ const N=SND.n, P=SND.P; if(!SND.ready) return; const c=SND.ctx;
     if(crank&&t-(ST.crk||0)>0.23){ ST.crk=t; burst('brown',0.12,'lowpass',260,0.5,'eng',null,0.005); } }
   else { set(p.g.gain,0,0.2); set(p.g2.gain,0,0.2); }
   // ---------- APU (A320) ----------
-  const a=P.apu; if(ACK==='a320'&&full){ const want=SYS.apuMaster&&(SYS.apuStart||SYS.apuAvail)?1:0; ST.apuN+=(want-ST.apuN)*dt/(want?20:12); if(SYS.apuMaster&&!ST.apuM){ clunk(0.35,'env'); } ST.apuM=!!SYS.apuMaster;
+  const a=P.apu; if(AL()&&full){ const want=SYS.apuMaster&&(SYS.apuStart||SYS.apuAvail)?1:0; ST.apuN+=(want-ST.apuN)*dt/(want?20:12); if(SYS.apuMaster&&!ST.apuM){ clunk(0.35,'env'); } ST.apuM=!!SYS.apuMaster;
     const n=ST.apuN, lv=(walk?2.2/(1+Math.hypot(GD.walk.x,GD.walk.z-24)/10):ck?0.25:0.9); set(a.o.frequency,300+5200*n,0.3); set(a.f.frequency,600+5600*n,0.3); set(a.g.gain,n>0.02?0.05*n*lv:0,0.3); set(a.nG.gain,n>0.02?0.16*n*n*lv:0,0.3); }
   else { set(a.g.gain,0,0.2); set(a.nG.gain,0,0.2); }
   // ---------- aérodynamique ----------
@@ -257,20 +257,20 @@ function tick(){ const N=SND.n, P=SND.P; if(!SND.ready) return; const c=SND.ctx;
     if(fw&&SYS.spdbrk==='ARMED') setTimeout(()=>{ say('pnf','Spoilers',{sub:'Copilote : spoilers sortis'}); burst('brown',1.5,'lowpass',160,0.6,'aero'); },700); }
   ST.ground=S.onGround;
   // ---------- train, volets, hydraulique ----------
-  if(S.gear!==ST.gear){ if(fw||ACK==='s76') gearCycle(S.gear,ACK==='a320'?10:ACK==='lj60'?7:8);
+  if(S.gear!==ST.gear){ if(fw||ACK==='s76') gearCycle(S.gear,AL()?10:ACK==='lj60'?7:8);
     if(fw&&!S.gear&&air&&SND.opt.callouts) setTimeout(()=>say('pnf','Gear up',{sub:'Copilote : train rentré'}),600);
-    if(fw&&S.gear&&air&&SND.opt.callouts) setTimeout(()=>say('pnf','Gear down, three green',{sub:'Copilote : train sorti, trois vertes'}),(ACK==='a320'?10:7)*1000);
+    if(fw&&S.gear&&air&&SND.opt.callouts) setTimeout(()=>say('pnf','Gear down, three green',{sub:'Copilote : train sorti, trois vertes'}),(AL()?10:7)*1000);
     ST.gear=S.gear; }
   if(S.flap!==ST.flap&&(SND.quiet||0)>performance.now()){ ST.flap=S.flap; }   // mise en place de la mission : pas d'annonce
-  if(S.flap!==ST.flap){ if(fw) flapRun(Math.abs(S.flap-ST.flap)*(ACK==='a320'?7:5)); if(fw&&SND.opt.callouts&&A.flaps[S.flap]) say('pnf',(S.flap?'Flaps '+A.flaps[S.flap].n:'Flaps zero'),{sub:'Copilote : volets '+A.flaps[S.flap].n}); ST.flap=S.flap; }
+  if(S.flap!==ST.flap){ if(fw) flapRun(Math.abs(S.flap-ST.flap)*(AL()?7:5)); if(fw&&SND.opt.callouts&&A.flaps[S.flap]) say('pnf',(S.flap?'Flaps '+A.flaps[S.flap].n:'Flaps zero'),{sub:'Copilote : volets '+A.flaps[S.flap].n}); ST.flap=S.flap; }
   if(SND.T.hyd&&t>SND.T.hyd){ set(P.hyd.gain,0,0.2); SND.T.hyd=0; } if(SND.T.flp&&t>SND.T.flp){ set(P.flp.gain,0,0.4); SND.T.flp=0; }
   // ---------- poste : alimentation, ventilation, climatisation ----------
-  const pax=(ACK==='a320'||ACK==='lj60');
+  const pax=(AL()||ACK==='lj60');
   set(P.hum.gain,pw&&fw?0.006:0,0.4); set(P.hum2.gain,pw&&fw?0.002:0,0.4); set(P.fan.gain,pw?(fw?0.07:0.03):0,0.6);
-  const packs=ACK==='a320'?(typeof E320!=='undefined'&&(E320.packs[0]||E320.packs[1])):(pw&&(S.eng[0]||S.eng[1]));
+  const packs=AL()?(typeof E320!=='undefined'&&(E320.packs[0]||E320.packs[1])):(pw&&(S.eng[0]||S.eng[1]));
   set(P.pack.gain,packs?0.09:0,1);
   // passagers (A320 : 150 à 180 personnes derrière la porte blindée)
-  if(ACK==='a320'&&SND.opt.pax&&full&&ck){ const loud=S.onGround?(gs<1?0.06:0.035):(cas>200?0.02:0.03); set(P.pax.gain,loud,1); P.paxV.forEach(g=>set(g.gain,R()*0.9,0.08)); }
+  if(AL()&&SND.opt.pax&&full&&ck){ const loud=S.onGround?(gs<1?0.06:0.035):(cas>200?0.02:0.03); set(P.pax.gain,loud,1); P.paxV.forEach(g=>set(g.gain,R()*0.9,0.08)); }
   else set(P.pax.gain,0,0.6);
   // ---------- météo ----------
   const W=(ST.wxT&&t-ST.wxT<2)?ST.wx:(ST.wx=wxHere(),ST.wxT=t,ST.wx); const wet=W.rain>0.05;
@@ -280,13 +280,13 @@ function tick(){ const N=SND.n, P=SND.P; if(!SND.ready) return; const c=SND.ctx;
   set(P.owind.gain,cl(wv/30,0,1)*(walk?0.6:ck?0.12:0.4),0.5); set(P.owindF.frequency,250+wv*25,0.5);
   if(W.ts&&t>ST.thunT){ ST.thunT=t+12+R()*30; const d=cl(W.thDist*(0.6+R()*0.8),0.4,30); lightning(d); setTimeout(()=>{ if(SND.on) thunder(d,'wx'); },Math.min(25,d/0.343)*1000); }
   // essuie-glaces (A320 : sélecteur WIPER)
-  const wip=ACK==='a320'&&pw&&SYS.wiper&&SYS.wiper!=='OFF'; if(wip&&t>ST.wipT){ const fast=SYS.wiper==='FAST'; wiper(fast,t); ST.wipT=t+(fast?0.7:1.3); }
+  const wip=AL()&&pw&&SYS.wiper&&SYS.wiper!=='OFF'; if(wip&&t>ST.wipT){ const fast=SYS.wiper==='FAST'; wiper(fast,t); ST.wipT=t+(fast?0.7:1.3); }
   // turbulence : secousses, craquements de la cellule
   const turb=(typeof WXR!=='undefined'?WXR.turb:0)+(gl&&air?cl((W.gust-15)/40,0,0.4):0)+(W.cloud&&air?0.08:0);
   if(air&&turb>0.06&&t>ST.turbT){ ST.turbT=t+cl(1.6-turb*1.5,0.25,2)*(0.5+R()); thump(cl(turb,0.1,1)*0.8,'aero'); if(R()<0.4) burst('pink',0.4,'bandpass',300+R()*500,0.12*turb,'ck',null,0.05,6); if(R()<0.25) click(0.6,'ck'); }
   // ---------- environnement d'aéroport ----------
   const onApt=S.onGround&&ra<60;
-  set(P.apt.gain,onApt?(walk?0.18:0.05):0,1); set(P.gpu.gain,onApt&&walk&&ACK==='a320'&&!ST.apuN?0.05/(1+dist/12):0,0.6);
+  set(P.apt.gain,onApt?(walk?0.18:0.05):0,1); set(P.gpu.gain,onApt&&walk&&AL()&&!ST.apuN?0.05/(1+dist/12):0,0.6);
   if(onApt&&t>ST.jetT){ ST.jetT=t+50+R()*70; if(ST.jetT>0) distantJet(); }
   if(onApt&&walk&&t>ST.beepT){ ST.beepT=t+25+R()*40; beeper(); }
   const night=(typeof SKY!=='undefined'&&SKY.u.night.value>0.5);
@@ -302,12 +302,12 @@ function tick(){ const N=SND.n, P=SND.P; if(!SND.ready) return; const c=SND.ctx;
 }
 
 function alerts(ad,ra,vs,cas,air,pw,t){ const fw=A.kind==='fw';
-  if(ACK==='a320'&&typeof S320!=='undefined'&&pw){ if(S320.mw&&t-ST.mwT>0.36){ ST.mwT=t; crc(); } if(S320.mc&&!ST.mc) singleChime(); ST.mc=!!S320.mc; }
-  if(S.stall&&air&&t-ST.stallT>1.4){ ST.stallT=t; if(ACK==='a320'){ cricket(); setTimeout(()=>say('ac','Stall, stall',{urgent:true}),280); } else if(fw){ shaker('alert',1.4); } else horn('alert',1); }
+  if(AL()&&typeof S320!=='undefined'&&pw){ if(S320.mw&&t-ST.mwT>0.36){ ST.mwT=t; crc(); } if(S320.mc&&!ST.mc) singleChime(); ST.mc=!!S320.mc; }
+  if(S.stall&&air&&t-ST.stallT>1.4){ ST.stallT=t; if(AL()){ cricket(); setTimeout(()=>say('ac','Stall, stall',{urgent:true}),280); } else if(fw){ shaker('alert',1.4); } else horn('alert',1); }
   let ovs=false; try{ ovs=overspeed(); }catch(e){}
-  if(ovs&&t-ST.ovsT>(ACK==='a320'?0.36:1)){ ST.ovsT=t; if(ACK==='a320') crc(); else if(fw) clacker('alert',1); else horn('alert',0.5); }
+  if(ovs&&t-ST.ovsT>(AL()?0.36:1)){ ST.ovsT=t; if(AL()) crc(); else if(fw) clacker('alert',1); else horn('alert',0.5); }
   // pilote automatique : déconnexion
-  if(ST.ap&&!AP.on&&air){ if(ACK==='a320') cavalry(); else if(fw){ const tt=now(); [0,0.25,0.5].forEach(d=>{ tone(880,0.12,0.12,'alert','sine',tt+d); tone(660,0.12,0.12,'alert','sine',tt+d+0.12); }); } }
+  if(ST.ap&&!AP.on&&air){ if(AL()) cavalry(); else if(fw){ const tt=now(); [0,0.25,0.5].forEach(d=>{ tone(880,0.12,0.12,'alert','sine',tt+d); tone(660,0.12,0.12,'alert','sine',tt+d+0.12); }); } }
   ST.ap=!!AP.on;
   // alerte d'altitude (C-chord) : à l'approche de l'altitude sélectionnée, train et volets rentrés
   if(fw&&air&&!S.gear&&S.flap===0&&AP.alt){ const d=Math.abs(S.alt/FT-AP.alt), band=d<250?'cap':d<750?'near':'far';
@@ -315,9 +315,9 @@ function alerts(ad,ra,vs,cas,air,pw,t){ const fw=A.kind==='fw';
   // klaxon bas régime rotor (H125 / R44)
   if((ACK==='h125'||ACK==='r44')&&air&&S.nr<0.95&&ra>3&&t-ST.horn>0.9){ ST.horn=t; horn('alert',0.85); }
   // annonces radiosonde (avions)
-  if(fw&&air&&vs<-100){ const da=200, CO=ACK==='a320'?[[2500,'twenty five hundred'],[1000,'one thousand'],[500,'five hundred'],[400,'four hundred'],[da+100,'hundred above'],[da,'minimum'],[100,'one hundred'],[50,'fifty'],[40,'forty'],[30,'thirty'],[20,'twenty'],[10,'ten']]
+  if(fw&&air&&vs<-100){ const da=200, CO=AL()?[[2500,'twenty five hundred'],[1000,'one thousand'],[500,'five hundred'],[400,'four hundred'],[da+100,'hundred above'],[da,'minimum'],[100,'one hundred'],[50,'fifty'],[40,'forty'],[30,'thirty'],[20,'twenty'],[10,'ten']]
       :[[2500,'two thousand five hundred'],[1000,'one thousand'],[500,'five hundred'],[da+100,'approaching minimums'],[da,'minimums'],[100,'one hundred'],[50,'fifty'],[40,'forty'],[30,'thirty'],[20,'twenty'],[10,'ten']];
-    for(const [h,w] of CO){ if(ra<=h&&ST.ra>h&&!ST.co[h]){ ST.co[h]=1; let word=w; if(ACK==='a320'&&h===20&&(S.thr||0)>0.05) word='retard, retard'; if(ACK==='a320'&&h===10&&(S.thr||0)>0.05) continue;
+    for(const [h,w] of CO){ if(ra<=h&&ST.ra>h&&!ST.co[h]){ ST.co[h]=1; let word=w; if(AL()&&h===20&&(S.thr||0)>0.05) word='retard, retard'; if(AL()&&h===10&&(S.thr||0)>0.05) continue;
         say('ac',word,{urgent:h<=50}); if(h===1000&&SND.opt.callouts) setTimeout(()=>say('pnf','Stabilized',{sub:'Copilote : approche stabilisée'}),1300); break; } } }
   if(ra>2700||(vs>500&&air)) ST.co={};
   ST.ra=ra; }
@@ -336,7 +336,7 @@ function phases(ad,ra,vs,cas,air,t){ const fw=A.kind==='fw', K=ST.tko, L=(typeof
     if(cas<70&&!ST.k70){ ST.k70=1; say('pnf','Seventy knots',{sub:'Copilote : 70 nœuds'}); } }
   if(air){ ST.decel=0; ST.k70=0; }
   // phases cabine (A320 seulement : PNC et passagers)
-  if(ACK!=='a320') return; const fl=S.alt/FT; let ph=ST.ph;
+  if(!AL()) return; const fl=S.alt/FT; let ph=ST.ph;
   if(S.onGround&&S.V<1&&!(S.eng[0]||S.eng[1])) ph=ph==='landed'||ph==='taxiIn'?'arrived':ph||'pre';
   if(S.onGround&&S.V>2&&!air&&(ph==='pre'||ph==='')) ph='taxiOut';
   if(air&&(ph==='taxiOut'||ph==='pre'||ph===''||ph==='lineup')) ph='climb';
@@ -361,12 +361,12 @@ function paEvent(ph,prev){ const dest=MI.dest&&APTS[MI.dest]?APTS[MI.dest]:null,
 /* événements liés aux étapes du parcours guidé (au sol, avant le vol) */
 function stepHooks(t){ if(typeof GD==='undefined'||!GD.on||!GD.steps) return; if(GD.i===ST.gi) return; const prev=ST.gi; ST.gi=GD.i; const s=GD.steps[GD.i]; if(!s||prev<0&&GD.i>0) return; const T=s.t||'';
   if(/Arrivée au parking/.test(T)) setTimeout(vanLeave,400);
-  if(/Monter à bord|poste « cold/.test(T)){ door('ck'); if(ACK==='a320') setTimeout(()=>say('pnc','Bonjour commandant. La cabine est prête, l\'embarquement pourra commencer après vos vérifications.',{sub:'Chef de cabine : bonjour, cabine prête'}),2500); }
-  if(/Before Start/.test(T)&&ACK==='a320'){ setTimeout(()=>{ door('env'); say('sol','Cockpit from ground. All doors closed, ground equipment removed, parking brake set. Ready for start.',{sub:'Mécanicien (interphone) : portes fermées, prêt pour la mise en route'}); },1500); }
+  if(/Monter à bord|poste « cold/.test(T)){ door('ck'); if(AL()) setTimeout(()=>say('pnc','Bonjour commandant. La cabine est prête, l\'embarquement pourra commencer après vos vérifications.',{sub:'Chef de cabine : bonjour, cabine prête'}),2500); }
+  if(/Before Start/.test(T)&&AL()){ setTimeout(()=>{ door('env'); say('sol','Cockpit from ground. All doors closed, ground equipment removed, parking brake set. Ready for start.',{sub:'Mécanicien (interphone) : portes fermées, prêt pour la mise en route'}); },1500); }
   if(/Démarrage du moteur 2/.test(T)) setTimeout(()=>say('sol','Clear to start engine two.',{sub:'Mécanicien : zone dégagée, mise en route moteur 2'}),1200);
   if(/Démarrage du moteur 1/.test(T)) setTimeout(()=>say('sol','Clear to start engine one.',{sub:'Mécanicien : mise en route moteur 1'}),1200);
-  if(/Démarrage des réacteurs|turbine|Démarrage du moteur$/.test(T)&&ACK!=='a320') setTimeout(()=>say('sol','Clear to start.',{sub:'Personnel au sol : zone dégagée'}),1200);
-  if(/roulage sur les vraies voies/.test(T)&&ACK==='a320') setTimeout(()=>say('sol','Disconnecting interphone. Have a good flight!',{sub:'Mécanicien : je me débranche, bon vol !'}),1500); }
+  if(/Démarrage des réacteurs|turbine|Démarrage du moteur$/.test(T)&&!AL()) setTimeout(()=>say('sol','Clear to start.',{sub:'Personnel au sol : zone dégagée'}),1200);
+  if(/roulage sur les vraies voies/.test(T)&&AL()) setTimeout(()=>say('sol','Disconnecting interphone. Have a good flight!',{sub:'Mécanicien : je me débranche, bon vol !'}),1500); }
 
 /* ceintures : « bing-bong » quand la consigne change */
 setInterval(()=>{ if(!SND.ready||!mission()) return; const b=(typeof SYS!=='undefined')?(SYS.belts||SYS.seatbelt||null):null; if(ST.belts!=null&&b!==ST.belts&&$('menu').hidden) cabinChime('ck'); ST.belts=b; },300);

@@ -55,8 +55,8 @@ const SNAME={pfd:'PFD — écran de pilotage',nd:'ND — écran de navigation',e
 const SNAP={};
 setInterval(()=>{ try{ if(view!=='ck'||!$('menu').hidden) return; const cv=$('ckc'), r=cv.getBoundingClientRect(); if(r.height<20) return; const W=r.width,H=r.height, sx=cv.width/W, sy=cv.height/H;
   const take=(k,x,y,w,h)=>{ const c=SNAP[k]||(SNAP[k]=document.createElement('canvas')); c.width=Math.round(w*sx); c.height=Math.round(h*sy); c.getContext('2d').drawImage(cv,x*sx,y*sy,w*sx,h*sy,0,0,c.width,c.height); c.dataset.t=GD.i; };
-  if(ACK==='a320'||ACK==='lj60'){ const s=Math.min(H*0.66,W/5.7), gap=(W-5*s)/6, y0=H*0.08, X=i=>gap+i*(s+gap); take('pfd',X(0),y0,s,s); take('nd',X(1),y0,s,s);
-    if(ACK==='a320'){ const sc=Math.min(s,(H-y0-10)/2); take('ewd',X(2)+(s-sc)/2,y0,sc,sc); take('sd',X(2)+(s-sc)/2,y0+sc+4,sc,sc); } else take('ewd',X(2),y0,s,s); }
+  if(AL()||ACK==='lj60'){ const s=Math.min(H*0.66,W/5.7), gap=(W-5*s)/6, y0=H*0.08, X=i=>gap+i*(s+gap); take('pfd',X(0),y0,s,s); take('nd',X(1),y0,s,s);
+    if(AL()){ const sc=Math.min(s,(H-y0-10)/2); take('ewd',X(2)+(s-sc)/2,y0,sc,sc); take('sd',X(2)+(s-sc)/2,y0+sc+4,sc,sc); } else take('ewd',X(2),y0,s,s); }
   else take('all',W*0.08,6,W*0.84,H-12); }catch(e){} },4000);
 
 function clonePanel(sel,n){ const el=PT.el(sel); if(!el) return null; const blk=el.closest('.sec')||el.closest('.fcu-g,.grp,.fcu')||el.parentElement; if(!blk) return null;
@@ -70,7 +70,7 @@ function visFor(s,st){ const box=document.createElement('div'); box.className='v
     const sn=SNAP[key]; if(sn){ const im=document.createElement('img'); im.className='snap'; im.src=sn.toDataURL(); im.alt='Capture de l\'écran'; box.appendChild(im); const c2=document.createElement('div'); c2.className='cap'; c2.textContent='Capture réelle de cet écran pendant votre vol (étape '+sn.dataset.t+').'; box.appendChild(c2); }
     return box; }
   box.insertAdjacentHTML('beforeend',`<p class="cap">${st.walk?'Action à pied, autour de l\'appareil : suivez les pastilles jaunes du tour avion.':st.calc?'Calcul papier : le détail est dans la page de l\'étape.':'Action de pilotage : manche, palonniers, manettes.'}</p>`); return box; }
-function ensurePanels(){ try{ if(!document.querySelector('#ovh [data-sw]')){ if(ACK==='a320'&&typeof buildA320==='function') buildA320(); else buildOVH(); } }catch(e){} try{ if(!document.querySelector('[data-pd]')) buildPED(); }catch(e){} }
+function ensurePanels(){ try{ if(!document.querySelector('#ovh [data-sw]')){ if(AL()&&typeof buildA320==='function') buildA320(); else buildOVH(); } }catch(e){} try{ if(!document.querySelector('[data-pd]')) buildPED(); }catch(e){} }
 function open(i,j){ ensurePanels(); const steps=(window.BR&&BR.steps)||GD.steps; const st=steps&&steps[i]; if(!st) return; let subs=[]; try{ subs=PT.subs(st); }catch(e){ subs=(st.items||[]).map((it,k)=>({n:k+1,l:it[0],sel:it[3],scr:it[4]})); }
   subs.forEach((s,k)=>{ const it=(st.items||[])[k]; if(!s.sel&&!s.final&&it&&/^#mcdu/.test(it[3]||'')){ s.sel=it[3]; s.where='Pédestal › MCDU (clavier du FMS)'; } });
   const N=subs.length; let m=$('vism'); if(m) m.remove(); m=document.createElement('div'); m.id='vism';

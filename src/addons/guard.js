@@ -7,7 +7,7 @@
 const ad=()=>{ try{ return airdata(); }catch(e){ return {alt:S.alt/FT,cas:0,gs:0}; } };
 const air=()=>!S.onGround, A_=()=>ad().alt, V=()=>ad().cas, fw=()=>A.kind==='fw';
 const fail=k=>!!(window.FAIL&&FAIL[k]);
-const VFE={a320:{'1':230,'2':200,'3':185,'FULL':177},lj60:{'8':250,'20':200,'40':150}};
+const VFE={a320:{'1':230,'2':200,'3':185,'FULL':177},b777:{'1':255,'5':235,'15':215,'20':195,'25':185,'30':170},lj60:{'8':250,'20':200,'40':150}};
 const R=[];   // {ids, bad(next,el), y (titre, texte jaune), r (conséquences), no (impossible : pas de forçage), fx (effet supplémentaire)}
 const rule=(ids,bad,y,r,o)=>R.push(Object.assign({ids:[].concat(ids),bad,y,r},o||{}));
 /* ---- train ---- */
@@ -19,7 +19,7 @@ rule(['gearL','b-gear'],n=>n===false&&!air()&&fw(),['Rentrer le train au sol est
 const vfeBad=n=>{ const t=VFE[ACK]; if(!t||!air()) return false; const name=typeof n==='number'?(A.flaps[n]||{}).n:n; return t[name]!=null&&V()>t[name]+3; };
 rule(['flapL','b-flap'],vfeBad,['Vitesse trop élevée pour ce braquage de volets',n=>{ const name=typeof n==='number'?(A.flaps[n]||{}).n:n; return `Volets ${name} : vitesse maximale ${VFE[ACK][name]} kt (VFE). Vous êtes à ${Math.round(V())} kt : réduisez d'abord la vitesse, puis sortez les volets un cran à la fois.`; }],
   ()=>['Dépassement de la VFE : efforts excessifs sur les volets et leurs rails — inspection structurelle obligatoire après le vol.','Alarme « OVERSPEED » ; l\'avion cabre brusquement (augmentation soudaine de portance).','Risque de blocage ou d\'asymétrie des volets : roulis non commandé.']);
-rule(['flapL','b-flap'],n=>{ const name=typeof n==='number'?(A.flaps[n]||{}).n:n; return air()&&String(name)==='0'&&S.flap>0&&V()<(ACK==='a320'?195:150)&&aglFt()<4000; },
+rule(['flapL','b-flap'],n=>{ const name=typeof n==='number'?(A.flaps[n]||{}).n:n; return air()&&String(name)==='0'&&S.flap>0&&V()<(AL()?195:150)&&aglFt()<4000; },
   ['Rentrer les volets trop tôt',()=>`Les volets se rentrent par étapes, une fois la vitesse « F » puis « S » atteinte (≈ 210 kt sur A320). Vous n'êtes qu'à ${Math.round(V())} kt.`],
   ()=>['La portance chute d\'un coup : l\'avion s\'enfonce.','Près du sol, risque de décrochage (alarme « STALL ») et de perte de hauteur dangereuse.']);
 /* ---- pressurisation, oxygène ---- */
@@ -50,17 +50,17 @@ rule(['thrSel'],n=>n==='REV'&&air(),['Inverseurs de poussée en vol','Les invers
 /* ---- électricité, systèmes ---- */
 ['bat1','bat2'].forEach(id=>rule(id,n=>n===false&&air()&&fw(),['Batterie hors circuit en vol','Les batteries restent sur AUTO pendant tout le vol : elles sont le dernier secours électrique.'],
   ()=>['Si les génératrices tombent ensuite, plus de secours immédiat : écrans noirs jusqu\'à la sortie de l\'éolienne de secours (RAT).','Perte de la recharge et de la surveillance batterie.']));
-['gen1','gen2','apuGen'].forEach(id=>rule(id,n=>n===false&&air()&&ACK==='a320'&&!fail(id),['Génératrice coupée en vol sans panne','Une génératrice ne se coupe que sur procédure (panne, surchauffe IDG).'],
+['gen1','gen2','apuGen'].forEach(id=>rule(id,n=>n===false&&air()&&AL()&&!fail(id),['Génératrice coupée en vol sans panne','Une génératrice ne se coupe que sur procédure (panne, surchauffe IDG).'],
   ()=>['Une source électrique en moins : délestage automatique d\'équipements (cabine, office).','Si la seconde génératrice tombe : configuration de secours (ELEC EMER CONFIG).']));
 ['idg1','idg2'].forEach(id=>rule(id,n=>n===true&&!fail('idg1'),['Déconnecter l\'IDG sans panne','La déconnexion de l\'IDG est irréversible en vol : elle ne se fait que sur alarme IDG (pression ou température d\'huile).'],
   ()=>['La génératrice correspondante est perdue jusqu\'à la maintenance au sol (réenclenchement uniquement moteur arrêté).','Exploitation suivante possiblement interdite (MEL).']));
 ['ir1','ir2','ir3'].forEach(id=>rule(id,n=>n==='OFF'&&air(),['Éteindre une centrale inertielle en vol','Les IR restent sur NAV pendant tout le vol ; l\'alignement n\'est possible qu\'avion immobile au sol.'],
   ()=>['L\'écran correspondant perd attitude, cap et position (drapeaux rouges ATT, HDG).','Impossible de la réaligner en vol : au mieux le mode ATT, avec un cap à entrer à la main.']));
-['fpL1','fpL2','fpC1','fpC2','fpR1','fpR2'].forEach(id=>rule(id,n=>n===false&&air()&&ACK==='a320',['Couper une pompe carburant en vol','Les pompes restent sur AUTO ; on ne les coupe que sur procédure (fuite, déséquilibre).'],
+['fpL1','fpL2','fpC1','fpC2','fpR1','fpR2'].forEach(id=>rule(id,n=>n===false&&air()&&AL(),['Couper une pompe carburant en vol','Les pompes restent sur AUTO ; on ne les coupe que sur procédure (fuite, déséquilibre).'],
   ()=>['Si les deux pompes d\'un réservoir sont coupées, le moteur est alimenté par gravité : risque d\'extinction en altitude.','Le carburant de ce réservoir n\'est plus utilisé : déséquilibre et carburant inutilisable.']));
-['elac1','elac2','sec1','sec2','sec3','fac1','fac2'].forEach(id=>rule(id,n=>n===false&&air()&&ACK==='a320',['Couper un calculateur de commandes de vol','ELAC, SEC et FAC restent en marche ; on ne les réinitialise que sur procédure ECAM.'],
+['elac1','elac2','sec1','sec2','sec3','fac1','fac2'].forEach(id=>rule(id,n=>n===false&&air()&&AL(),['Couper un calculateur de commandes de vol','ELAC, SEC et FAC restent en marche ; on ne les réinitialise que sur procédure ECAM.'],
   ()=>['Perte d\'une partie des commandes de vol et de leurs redondances.','Avec deux ELAC coupés : loi de pilotage « alternate », les protections (décrochage, survitesse, inclinaison) disparaissent.']));
-['hydG','hydY','hydB'].forEach(id=>rule(id,n=>n===false&&air()&&ACK==='a320',['Couper une pompe hydraulique en vol','Les pompes hydrauliques alimentent gouvernes, train, freins et volets : on ne les coupe que sur fuite ou surchauffe.'],
+['hydG','hydY','hydB'].forEach(id=>rule(id,n=>n===false&&air()&&AL(),['Couper une pompe hydraulique en vol','Les pompes hydrauliques alimentent gouvernes, train, freins et volets : on ne les coupe que sur fuite ou surchauffe.'],
   ()=>['Perte de pression du circuit concerné : gouvernes, volets, train ou freins associés moins efficaces ou perdus.','Distance d\'atterrissage augmentée.']));
 rule(['xpdr'],n=>n==='STBY'&&air(),['Transpondeur en veille en vol','Le transpondeur reste sur AUTO / ON pendant tout le vol.'],
   ()=>['Le contrôle ne voit plus votre identification ni votre altitude sur le radar.','Le TCAS des autres avions ne vous détecte plus : risque de collision.']);
@@ -108,11 +108,11 @@ function show(rl,n,el,apply){ clear(); try{ SND.play('caution'); }catch(e){} fra
     dlg.className='r'; dlg.innerHTML=`<div class="k">⛔ Conséquences de votre décision</div><h3>${rl.y[0]}</h3><ul>${cons.map(c=>`<li>${c}</li>`).join('')}</ul><div class="b"><button type="button" data-k>J'ai compris</button></div>`;
     dlg.querySelector('[data-k]').onclick=clear; }; }
 function check(id,n,el,apply){ if(pass||expected(el)) return false; const rl=R.find(r=>r.ids.includes(id)&&(()=>{ try{ return r.bad(n,el); }catch(e){ return false; } })()); if(!rl) return false; show(rl,n,el,apply); return true; }
-addEventListener('click',e=>{ if(pass) return; const el=e.target.closest('button[data-sw],button[data-pd],#b-gear,#b-flap'); if(!el) return;
+addEventListener('click',e=>{ if(pass||window.MANON) return; const el=e.target.closest('button[data-sw],button[data-pd],#b-gear,#b-flap'); if(!el) return;
   let id, n; if(el.id==='b-gear'){ id='b-gear'; n=!S.gear; } else if(el.id==='b-flap'){ id='b-flap'; n=S.flap>=A.flaps.length-1?0:S.flap+1; }
   else if(el.dataset.sw){ id=el.dataset.sw; n=!SYS[id]; if(el.dataset.t==='pb'&&el.dataset.dl==='OFF') n=!n; }   // boutons « cockpit sombre » : voyant OFF allumé = système coupé else { id=el.dataset.pd; n=id==='pbrake'?!S.pbrake:!(typeof pedGet==='function'?pedGet(id):SYS[id]); }
   if(check(id,n,el,()=>el.click())){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
-addEventListener('change',e=>{ if(pass) return; const el=e.target; if(el.tagName!=='SELECT') return; const id=el.dataset.sw||el.dataset.pd; if(!id) return; const n=id==='gearL'?el.value==='DOWN':el.value;
+addEventListener('change',e=>{ if(pass||window.MANON) return; const el=e.target; if(el.tagName!=='SELECT') return; const id=el.dataset.sw||el.dataset.pd; if(!id) return; const n=id==='gearL'?el.value==='DOWN':el.value;
   if(check(id,n,el,()=>{ el.value=typeof n==='boolean'?(n?'DOWN':'UP'):n; el.dispatchEvent(new Event('change',{bubbles:true})); })){ e.stopImmediatePropagation(); try{ ovhSync(); pedSync(); a320Sync(); }catch(x){} } },true);
 // raccourci clavier G (train)
 addEventListener('keydown',e=>{ if(pass||e.repeat) return; if((e.key==='g'||e.key==='G')&&!/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||'')){ const b=$('b-gear'); if(b&&check('b-gear',!S.gear,b,()=>{ pass=true; toggleGear(); pass=false; })){ e.stopImmediatePropagation(); e.preventDefault(); } } },true);

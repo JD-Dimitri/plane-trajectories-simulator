@@ -104,7 +104,7 @@ const _sm=startMission; startMission=function(){ BB.i=-1; BB.m0=0; BB.gmin=0; BB
    (sinon les actions restantes, non exécutables en vol, bloquaient l'étape pendant tout le vol). */
 (function(){ const _fly=flyFW; flyFW=function(dt){ const st=GD.steps[GD.i]||{};
   if(S.onGround&&st.fly==='takeoff'&&!GD.landed){ const ready=AUTO.stage!=='read'&&(st.items||[]).every(it=>{ try{ return !it[2]||/train|gear|volets|flaps|\bAP|pilote|en vol/i.test(it[0])||it[1](); }catch(e){ return true; } });
-    if(!ready){ DIR.pitch=DIR.roll=DIR.yaw=null; S.thr=0; if(ACK==='a320'&&SYS.thrSel!=='IDLE'){ SYS.thrSel='IDLE'; } S.brake=S.V>0.5; return; } S.brake=false; }
+    if(!ready){ DIR.pitch=DIR.roll=DIR.yaw=null; S.thr=0; if(AL()&&SYS.thrSel!=='IDLE'){ SYS.thrSel='IDLE'; } S.brake=S.V>0.5; return; } S.brake=false; }
   return _fly(dt); };
   /* garde-fou : en vol, une commande de poste (interrupteur / pédestal) restée non faite plus de 12 s est exécutée */
   let sig='', t0=0; setInterval(()=>{ if(!AUTO.on||!GD.on||AUTO.paused||paused||AUTO.stage!=='act'||S.onGround) { sig=''; return; } const st=GD.steps[GD.i]; if(!st) return;

@@ -468,14 +468,15 @@ function buildModel(key){ const a=AC[key], g=new THREE.Group(), W=new THREE.Mesh
 
 /* ====================== état, commandes, pilote automatique ====================== */
 const IN={pitch:0,roll:0,yaw:0,thrD:0,collD:0, kb:{}, pad:{pitch:0,roll:0,yaw:0,thr:null}, tL:{x:0,y:0}, tR:{x:0,y:0}};
+function AL(k){ if(k===undefined) k=ACK; return k==='a320'||k==='b777'; }   // avions de ligne (A320, 777)
 let ACK='a320', A=AC.a320, MI=MISSIONS['jfk-cdg'];
 const S={};          // état de l'appareil
 const AP={on:false,ath:false,lat:'HDG',hdg:0,alt:5000,spd:250,vs:1800,gamHold:0,althold:false,hold:null};
 const SYS={};        // état des interrupteurs (plafonnier)
 let simMs=Date.now(), paused=false, rate=1, view='ck', crashed=null;
 function resetState(){ const st=MI.start(); Object.assign(S,{lat:st.lat,lon:st.lon,alt:st.elev,psi:st.hdg*D2R,th:0,ph:0,gam:0,V:0,ve:0,vn:0,vu:0,
-  onGround:true,thr:0,coll:0,flap:A.kind==='fw'?(ACK==='a320'?1:1):0,gear:true,brake:false,stall:false,spoil:false,eng:[true,true],nr:1});
-  crashed=null; AP.on=false; AP.ath=false; AP.hdg=st.hdg; AP.alt=A.kind==='fw'?(ACK==='a320'?5000:7000):1500; AP.spd=A.kind==='fw'?250:90; AP.lat='HDG'; AP.althold=false; AP.gamHold=0; AP.hold=null;
+  onGround:true,thr:0,coll:0,flap:A.kind==='fw'?(AL()?1:1):0,gear:true,brake:false,stall:false,spoil:false,eng:[true,true],nr:1});
+  crashed=null; AP.on=false; AP.ath=false; AP.hdg=st.hdg; AP.alt=A.kind==='fw'?(AL()?5000:7000):1500; AP.spd=A.kind==='fw'?250:90; AP.lat='HDG'; AP.althold=false; AP.gamHold=0; AP.hold=null;
   PATCH.lat=999; patchUpdate(S.lat,S.lon); }
 /* ---- avions : point-masse 3 axes + loi de pilotage ---- */
 function fwStep(dt){ const a=A, st=S, rho=isaRho(st.alt), sig=rho/1.225, fl=a.flaps[st.flap];
@@ -505,7 +506,7 @@ function fwStep(dt){ const a=A, st=S, rho=isaRho(st.alt), sig=rho/1.225, fl=a.fl
     const IL=AP.on&&AP.appr?ilsDev():null; if(!AP.appr) AP.gsCap=false;
     if(IL&&IL.d<40000&&(AP.gsCap||IL.gs>-0.25)){ AP.gsCap=true; const hh=st.alt-elevAt(st.lat,st.lon); gamT=hh<15?-1.1*D2R:-(3+clamp(IL.gs*2,-2.5,3))*D2R; if(hh<15&&AP.ath){ AP.ath=false; st.thr=0; flash('RETARD','am'); } AP.gamHold=st.gam; }
     else if(AP.on&&AP.raVs!=null){ gamT=Math.asin(clamp(AP.raVs*FT/60/Vc,-0.3,0.3)); AP.gamHold=st.gam; }   // ordre de résolution TCAS suivi (type AP/FD TCAS) [SIMULÉ]
-    else if(AP.on){ const altE=AP.alt*FT-(ACK==='a320'&&MI?altInd('L'):st.alt), vsMax=(AP.vs||1800)*FT/60, vs0=clamp(altE*0.08,-vsMax,vsMax), casN=casFromTas(st.V,st.alt)/KT, vmx=a.Vmo||340, vs=vs0<0?vs0*clamp((vmx-5-casN)/12,0,1):vs0; gamT=Math.asin(clamp(vs/Vc,-0.3,0.3)); /* protection vitesse : la descente se réduit à l'approche de la VMO */ AP.gamHold=st.gam; }
+    else if(AP.on){ const altE=AP.alt*FT-(AL()&&MI?altInd('L'):st.alt), vsMax=(AP.vs||1800)*FT/60, vs0=clamp(altE*0.08,-vsMax,vsMax), casN=casFromTas(st.V,st.alt)/KT, vmx=a.Vmo||340, vs=vs0<0?vs0*clamp((vmx-5-casN)/12,0,1):vs0; gamT=Math.asin(clamp(vs/Vc,-0.3,0.3)); /* protection vitesse : la descente se réduit à l'approche de la VMO */ AP.gamHold=st.gam; }
     else { if(Math.abs(pin)>0.04) AP.gamHold=clamp(st.gam+pin*(lawNow(a)==='fbw'?0.06:0.08),-0.35,0.45); gamT=AP.gamHold; }
     const CLreq=W*Math.cos(st.gam)/(Math.max(0.2,Math.cos(st.ph))*q*a.S), alphaReq=clamp((CLreq-CL0)/a.CLa,-0.1,(CLmax-CL0)/a.CLa);
     let thT=gamT+alphaReq;
@@ -618,7 +619,7 @@ function drawPFD(g,x,y,w,h,ad,style,flag){ screen(g,x,y,w,h); if(!hasPower()) re
   const hy=y+h*0.88, hw=aw*1.1; g.fillStyle='#2b3138'; g.fillRect(cx-hw/2,hy-h*0.05,hw,h*0.1); g.save(); g.beginPath(); g.rect(cx-hw/2,hy-h*0.05,hw,h*0.1); g.clip();
   for(let d=-40;d<=40;d+=5){ const hd=Math.round(ad.hdg/5)*5+d, xx=cx+(hd-ad.hdg)*hw/60; g.strokeStyle='#fff'; g.beginPath(); g.moveTo(xx,hy-h*0.05); g.lineTo(xx,hy-h*0.05+(hd%10?5:9)); g.stroke(); if(hd%10===0) txt(g,String(wrap360(hd)/10|0).padStart(2,'0'),xx,hy+h*0.015,'#fff',h*0.04,'center'); }
   g.restore(); g.fillStyle=COL.yel; g.fillRect(cx-1,hy-h*0.06,2,h*0.06);
-  const IL=MI.destRw&&ACK!=='a320'?ilsDev():null; if(IL&&IL.d<40000&&Math.abs(IL.loc)<10){ g.fillStyle=COL.mag; const lx=cx+clamp(IL.loc/2.5,-1,1)*aw*0.4, gy=cy+clamp(IL.gs/0.7,-1,1)*ah*0.4; g.beginPath(); g.moveTo(lx,cy+ah/2-14); g.lineTo(lx-6,cy+ah/2-8); g.lineTo(lx,cy+ah/2-2); g.lineTo(lx+6,cy+ah/2-8); g.fill(); g.beginPath(); g.moveTo(cx+aw/2-12,gy); g.lineTo(cx+aw/2-6,gy-6); g.lineTo(cx+aw/2,gy); g.lineTo(cx+aw/2-6,gy+6); g.fill(); txt(g,'ILS '+MI.destRw,cx-aw/2+4,cy-ah/2+12,COL.mag,h*0.04); }
+  const IL=MI.destRw&&!AL()?ilsDev():null; if(IL&&IL.d<40000&&Math.abs(IL.loc)<10){ g.fillStyle=COL.mag; const lx=cx+clamp(IL.loc/2.5,-1,1)*aw*0.4, gy=cy+clamp(IL.gs/0.7,-1,1)*ah*0.4; g.beginPath(); g.moveTo(lx,cy+ah/2-14); g.lineTo(lx-6,cy+ah/2-8); g.lineTo(lx,cy+ah/2-2); g.lineTo(lx+6,cy+ah/2-8); g.fill(); g.beginPath(); g.moveTo(cx+aw/2-12,gy); g.lineTo(cx+aw/2-6,gy-6); g.lineTo(cx+aw/2,gy); g.lineTo(cx+aw/2-6,gy+6); g.fill(); txt(g,'ILS '+MI.destRw,cx-aw/2+4,cy-ah/2+12,COL.mag,h*0.04); }
   // FMA (Airbus) / modes (Collins)
   if(style==='airbus'){ const cols=[AP.ath?'SPEED':(S.thr>0.95?'MAN TOGA':''),AP.on?(AP.appr?'G/S':Math.abs(AP.alt*FT-S.alt)<30?'ALT':'V/S'):'',AP.on?(AP.appr?'LOC':AP.lat):'',(AP.on?'AP1':'')+(AP.ath?'\nA/THR':'')];
     cols.forEach((c,i)=>{ const xx=x+w*(0.12+i*0.22); c.split('\n').forEach((l,j)=>txt(g,l,xx,y+h*(0.05+j*0.05),i===3?COL.wh:COL.grn,h*0.045,'center')); if(i) { g.strokeStyle='#555'; g.beginPath(); g.moveTo(x+w*(0.01+i*0.22),y+2); g.lineTo(x+w*(0.01+i*0.22),y+h*0.11); g.stroke(); } }); }
@@ -659,7 +660,7 @@ function hsiRound(g,cx,cy,r,ad){ bezel(g,cx,cy,r); g.save(); g.translate(cx,cy);
   if(ad.brg!=null){ g.rotate(ad.brg*D2R); g.strokeStyle=COL.mag; g.lineWidth=3; g.beginPath(); g.moveTo(0,-r*0.5); g.lineTo(0,r*0.5); g.stroke(); g.beginPath(); g.moveTo(0,-r*0.55); g.lineTo(-6,-r*0.42); g.lineTo(6,-r*0.42); g.fillStyle=COL.mag; g.fill(); }
   g.restore(); g.fillStyle='#ffb020'; g.beginPath(); g.moveTo(cx,cy-r*0.98); g.lineTo(cx-6,cy-r*0.85); g.lineTo(cx+6,cy-r*0.85); g.fill(); g.strokeStyle='#fff'; g.lineWidth=2; g.beginPath(); g.moveTo(cx,cy-r*0.2); g.lineTo(cx,cy+r*0.25); g.moveTo(cx-r*0.18,cy); g.lineTo(cx+r*0.18,cy); g.stroke(); }
 /* ---- écrans spécifiques ---- */
-function engData(){ const t=S.thr; return {n1:20+t*72, egt:390+t*480, n2:58+t*41, ff:A===AC.a320?(320+t*2600):(110+t*900)}; }
+function engData(){ const t=S.thr; return {n1:20+t*72, egt:390+t*480, n2:58+t*41, ff:AL()?(320+t*2600):(110+t*900)}; }
 function drawEWD(g,x,y,w,h){ screen(g,x,y,w,h); if(!hasPower()) return; const e=engData();
   [0,1].forEach(i=>{ const cx=x+w*(0.27+i*0.32), on=S.eng[i]||(S.n2&&S.n2[i]>0.05), sp=S.eng[i]?1:(S.n2?S.n2[i]:0); e.n1=S.eng[i]?20+S.thr*72:sp*19; e.egt=S.eng[i]?390+S.thr*480:sp*640; e.n2=S.eng[i]?58+S.thr*41:sp*58; arcGauge(g,cx,y+h*0.2,h*0.13,on?e.n1:0,0,110,'N1','%',[[95,110,COL.red]]); arcGauge(g,cx,y+h*0.47,h*0.1,on?e.egt:0,0,1100,'EGT','°C',[[915,1100,COL.red]]);
     txt(g,on?e.n2.toFixed(1):'XX',cx,y+h*0.64,on?COL.grn:COL.am,h*0.05,'center'); txt(g,on?fmt(e.ff,0):'XX',cx,y+h*0.71,on?COL.grn:COL.am,h*0.05,'center'); });
@@ -696,18 +697,18 @@ function radioBlock(g,x,y,w,h,title){ g.fillStyle='#16191c'; g.fillRect(x,y,w,h)
   if(title) txt(g,title,x+w/2,y+h-6,'#8a949c',10,'center','500 '); }
 function overspeed(){ const ad=airdata(); return A.kind==='fw'?(ad.cas>A.Vmo+4||ad.M>A.Mmo+0.01):(ad.cas>A.Vne); }
 /* ---- mise en page de chaque poste (disposition réelle simplifiée) ---- */
-function drawCockpit(){ if(!ckSize()) return; const g=CK.g, W=CK.w, H=CK.h, ad=airdata(), night=SKY.u.night.value>0.5, k=ACK;
+function drawCockpit(){ if(!ckSize()) return; const g=CK.g, W=CK.w, H=CK.h, ad=airdata(), night=SKY.u.night.value>0.5, k=AL()?'a320':ACK;
   const pan={a320:'#5b6670',lj60:'#3b3f44',s76:'#2a2d30',h125:'#262a2e',r44:'#2b2b2b'}[k];
   const grd=g.createLinearGradient(0,0,0,H); grd.addColorStop(0,'#1a1d20'); grd.addColorStop(0.07,night?'#15181b':pan); grd.addColorStop(1,night?'#0c0e10':pan); g.fillStyle=grd; g.fillRect(0,0,W,H);
   if(night && SYS.dome!=='OFF'){ g.fillStyle='rgba(255,170,90,0.07)'; g.fillRect(0,0,W,H); }
   const flag=SYS.ir1==='OFF'||!irOK()||!hasPower();
-  if(k==='a320'||k==='lj60'){ const s=Math.min(H*0.66,W/5.7), gap=(W-5*s)/6, y0=H*0.08;
+  if(AL(k)||k==='lj60'){ const s=Math.min(H*0.66,W/5.7), gap=(W-5*s)/6, y0=H*0.08;
     const X=i=>gap+i*(s+gap);
-    drawPFD(g,X(0),y0,s,s,ad,k==='a320'?'airbus':'collins',flag); drawND(g,X(1),y0,s,s,ad,k==='a320'?'airbus':'collins');
-    if(k==='a320'){ const sc=Math.min(s,(H-y0-10)/2); drawEWD(g,X(2)+(s-sc)/2,y0,sc,sc); drawSD(g,X(2)+(s-sc)/2,y0+sc+4,sc,sc); }
+    drawPFD(g,X(0),y0,s,s,ad,AL(k)?'airbus':'collins',flag); drawND(g,X(1),y0,s,s,ad,AL(k)?'airbus':'collins');
+    if(AL(k)){ const sc=Math.min(s,(H-y0-10)/2); drawEWD(g,X(2)+(s-sc)/2,y0,sc,sc); drawSD(g,X(2)+(s-sc)/2,y0+sc+4,sc,sc); }
     else { drawEngLJ(g,X(2),y0,s,s); const r=Math.min((H-y0-s-14)/2,s/7); if(r>14){ dial(g,X(2)+s*0.2,y0+s+r+6,r,{min:0,max:400,a0:-90,a1:250,val:ad.cas,label:'KT',step:50}); adiRound(g,X(2)+s*0.5,y0+s+r+6,r,ad,false); dial(g,X(2)+s*0.8,y0+s+r+6,r,{min:0,max:1000,a0:-90,a1:270,val:ad.alt%1000,label:'ALT',step:100,dig:fmt(ad.alt,0)}); } }
-    drawND(g,X(3),y0,s,s,ad,k==='a320'?'airbus':'collins'); drawPFD(g,X(4),y0,s,s,ad,k==='a320'?'airbus':'collins',false);
-    txt(g,k==='a320'?'CAPT':'PILOTE',X(0)+s/2,y0+s+12,'#c9d1d8',11,'center','500 '); txt(g,k==='a320'?'F/O':'COPILOTE',X(4)+s/2,y0+s+12,'#c9d1d8',11,'center','500 ');
+    drawND(g,X(3),y0,s,s,ad,AL(k)?'airbus':'collins'); drawPFD(g,X(4),y0,s,s,ad,AL(k)?'airbus':'collins',false);
+    txt(g,AL(k)?'CAPT':'PILOTE',X(0)+s/2,y0+s+12,'#c9d1d8',11,'center','500 '); txt(g,AL(k)?'F/O':'COPILOTE',X(4)+s/2,y0+s+12,'#c9d1d8',11,'center','500 ');
   } else { const r=Math.min(H*0.21,W/22), row1=H*0.08+r*1.15, row2=row1+r*2.35;
     const six=(cx)=>{ dial(g,cx-r*2.3,row1,r,{min:0,max:A.Vne+30,a0:-90,a1:250,val:Math.max(0,ad.cas),label:'KT',step:20,lab:2,arcs:[[0,A.Vne*0.8,'#2fbf55'],[A.Vne*0.8,A.Vne,'#e6c229'],[A.Vne,A.Vne+30,COL.red]]});
       adiRound(g,cx,row1,r*1.1,ad,flag); dial(g,cx+r*2.3,row1,r,{min:0,max:1000,a0:-90,a1:270,val:wrap360(ad.alt/1000*360)/360*1000,v2:(ad.alt%10000)/10,label:'ALT FT',step:100,lab:2,lf:v=>v/100,dig:fmt(ad.alt,0)});
@@ -726,7 +727,7 @@ function drawCockpit(){ if(!ckSize()) return; const g=CK.g, W=CK.w, H=CK.h, ad=a
 
 /* ====================== FCU / pilote auto (HTML) ====================== */
 function buildFCU(){ const f=$('fcu'); f.hidden=false;
-  if(ACK==='a320'){ f.innerHTML=`<div class="w"><i>SPD</i><span class="num" id="f-spd"></span><span><button data-f="spd-">−</button><button data-f="spd+">+</button></span></div>
+  if(AL()){ f.innerHTML=`<div class="w"><i>SPD</i><span class="num" id="f-spd"></span><span><button data-f="spd-">−</button><button data-f="spd+">+</button></span></div>
     <div class="w"><i>HDG</i><span class="num" id="f-hdg"></span><span><button data-f="hdg-">−</button><button data-f="hdg+">+</button></span></div>
     <button class="pb" data-f="nav" title="NAV : route orthodromique vers la destination">NAV</button>
     <button class="pb" data-f="ap" title="Pilote automatique 1 (touche A)">AP1</button><button class="pb" data-f="ath" title="Automanette">A/THR</button>
@@ -793,8 +794,8 @@ const OVH={
   secs:[[['CONSOLE / PLANCHE (pas de plafonnier)',[['bat1','MASTER BAT','tog',1],['alt1','ALT','tog',1],['clutch','CLUTCH','knob',['ENGAGE','DISENGAGE']],['navLt','NAV LTS','tog'],['beacon','STROBE','tog'],['landL','LDG LT','knob',['OFF','ON']],['mag','MAGNETOS','knob',['BOTH','L','R','OFF']],['dome','PANEL LT','knob',['OFF','DIM','BRT']]]]]]}
 };
 function sysDefaults(){ for(const k in SYS) delete SYS[k];
-  Object.assign(SYS,{ir1:ACK==='lj60'?'ON':'NAV',ir2:'NAV',ir3:'NAV',strobe:ACK==='a320'?'AUTO':'OFF',beacon:true,navLt:ACK==='a320'?'1':true,landL:'OFF',nose:'OFF',belts:'ON',nosmk:ACK==='a320'?'AUTO':'ON',dome:'OFF',ecl1:'FLY',ecl2:'FLY',fuelSO:'OPEN',rbrake:'OFF',fsv1:'OPEN',fsv2:'OPEN',clutch:'ENGAGE',mag:'BOTH',apuAvail:false,apuStart:false});
-  if(ACK!=='a320') Object.assign(SYS,{bat1:true,gen1:true,gen2:true,alt1:true,horn:true}); }   // A320 : boutons « cockpit sombre » éteints = normal
+  Object.assign(SYS,{ir1:ACK==='lj60'?'ON':'NAV',ir2:'NAV',ir3:'NAV',strobe:AL()?'AUTO':'OFF',beacon:true,navLt:AL()?'1':true,landL:'OFF',nose:'OFF',belts:'ON',nosmk:AL()?'AUTO':'ON',dome:'OFF',ecl1:'FLY',ecl2:'FLY',fuelSO:'OPEN',rbrake:'OFF',fsv1:'OPEN',fsv2:'OPEN',clutch:'ENGAGE',mag:'BOTH',apuAvail:false,apuStart:false});
+  if(!AL()) Object.assign(SYS,{bat1:true,gen1:true,gen2:true,alt1:true,horn:true}); }   // A320 : boutons « cockpit sombre » éteints = normal
 function buildOVH(){ const d=OVH[ACK], c=$('ovh-c'); $('ovh-t').textContent=d.t; $('ovh-s').textContent=d.src; c.style.gridTemplateColumns=`repeat(${d.cols},minmax(0,1fr))`;
   c.innerHTML=d.secs.map(col=>'<div style="display:flex;flex-direction:column;gap:8px">'+col.map(([title,items])=>`<div class="sec"><h4>${title}</h4><div class="row">${items.map(sw).join('')}</div></div>`).join('')+'</div>').join('');
   c.querySelectorAll('[data-sw]').forEach(el=>{ const id=el.dataset.sw;
@@ -911,7 +912,7 @@ function taxiAuto(dt){ const R=TX.route; if(!TX.auto||!R||!S.onGround) return fa
   let turn=0; if(TX.idx<P.length-2){ const q1=enOf(C,P[TX.idx+1],la,lo), q2=enOf(C,P[TX.idx+2],la,lo); turn=Math.abs(wrapPi(Math.atan2(q2[0]-q1[0],q2[1]-q1[1])-Math.atan2(q1[0]-A0[0],q1[1]-A0[1])))*(Math.hypot(q1[0],q1[1])<60?1:0); }
   const vT=(dEnd<150?6:(turn>0.6||Math.abs(err)>0.35)?9:18)*KT; S.V+=clamp(vT-S.V,-1.6*dt,0.7*dt); S.thr=S.V<vT?0.22:0.02; S.pbrake=false; S.psi=wrapPi(S.psi); return true; }
 /* ---- intégration ---- */
-function setStandFromGN(code,rw){ const k=bestGate(code,rw,ACK==='a320'?32:20); if(k==null) return null; const p=GN[code].p[k], n=GN[code].n[p[1]];
+function setStandFromGN(code,rw){ const k=bestGate(code,rw,AL()?32:20); if(k==null) return null; const p=GN[code].p[k], n=GN[code].n[p[1]];
   return {lat:n[0],lon:n[1],hdg:p[2],elev:APTS[code].elev,gate:p[0].replace(/_/g,' '),node:p[1],gi:k}; }
 Object.keys(GN).forEach(buildTaxiways);
 function groundMove(dt){ move(S.V*Math.cos(S.psi)*dt,S.V*Math.sin(S.psi)*dt); S.alt=elevAt(S.lat,S.lon); S.th+=(0-S.th)*Math.min(1,dt*2); S.ph=0; S.gam=0; }
@@ -959,7 +960,7 @@ function lsCalc(){ const w=WB[ACK], L=LS; const tripH=L.dist/1.852/w.gs+0.25, tr
   L.cgOK=w.mac?(L.cg>=w.cgLim[0]&&L.cg<=w.cgLim[1]):(L.arm>=w.armLim[0]&&L.arm<=w.armLim[1]);
   L.ok={zfw:L.zfw<=w.mzfw,tow:L.tow<=w.mtow,lw:L.lw<=w.mlw,fuel:!L.short,cg:L.cgOK};
   // vitesses (A320 / LJ60) — formules simplifiées pédagogiques [ESTIMÉ], pas les tables constructeur
-  if(A.kind==='fw'){ const t=L.tow/1000, l=L.lw/1000; if(ACK==='a320'){ L.vr=Math.round(118+(t-50)*1.25); L.v1=L.vr-3; L.v2=L.vr+5; L.vls=vlsNow(L.lw); L.vapp=L.vls+5; L.trim=(2.5-(L.cg-25)*0.12).toFixed(1); }
+  if(A.kind==='fw'){ const t=L.tow/1000, l=L.lw/1000; if(AL()){ L.vr=Math.round(118+(t-50)*1.25); L.v1=L.vr-3; L.v2=L.vr+5; L.vls=vlsNow(L.lw); L.vapp=L.vls+5; L.trim=(2.5-(L.cg-25)*0.12).toFixed(1); }
     else { L.vr=Math.round(118+(t-8)*6); L.v1=L.vr-4; L.v2=L.vr+8; L.vls=vlsNow(L.lw); L.vapp=L.vls+5; L.trim=(6.0-(L.cg-22)*0.1).toFixed(1); } }
   return L; }
 /* VLS = 1,23 × vitesse de décrochage du modèle à la masse actuelle (cohérent avec la simulation) [CALCULÉ] */
@@ -996,22 +997,22 @@ function buildMarkers(){ if(GD.markers){ MODEL.remove(GD.markers); } GD.markers=
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),depthTest:false})); s.scale.setScalar(A.kind==='fw'?1.4:0.8); s.position.set(p[0],-A.yOff+(A.kind==='fw'?2.4:1.9),p[1]); s.userData.i=i; GD.markers.add(s); });
   MODEL.add(GD.markers); }
 /* ---- systèmes : alimentation, centrales, moteurs, rotor ---- */
-function hasPower(){ if(!MI.full) return true; if(ACK==='a320') return !SYS.bat1||!SYS.bat2||(SYS.extPwr&&SYS.extAvail)||SYS.apuAvail||S.eng[0]||S.eng[1];
+function hasPower(){ if(!MI.full) return true; if(AL()) return !SYS.bat1||!SYS.bat2||(SYS.extPwr&&SYS.extAvail)||SYS.apuAvail||S.eng[0]||S.eng[1];
   if(ACK==='lj60') return !!(SYS.batt1||SYS.batt2); return !!SYS.bat1; }
 function irOK(){ return !MI.full || A.kind==='rw' || (SYS.irAl||0)>=1; }   // hélicoptères : horizon à gyroscope électrique, pas de centrale à aligner
 function engStep(dt){ if(!S.n2) S.n2=[S.eng[0]?1:0,S.eng[1]?1:0]; const pw=hasPower();
   // centrales inertielles (A320) : durée réelle d'alignement ≈ 6 min à l'équateur → ≈ 10 min au-delà de 45° de latitude [RÉFÉRENCÉ : retours d'exploitation A320, ordre de grandeur]
-  if(ACK==='a320'&&MI.full){ const Tal=60*(6+4*Math.min(1,Math.abs(S.lat)/45)); if(pw&&SYS.ir1==='NAV'&&SYS.ir2==='NAV'&&SYS.ir3==='NAV'&&S.onGround&&S.V<0.5) SYS.irAl=Math.min(1,(SYS.irAl||0)+dt/Tal); else if(SYS.ir1==='OFF') SYS.irAl=0; SYS.irMin=Math.ceil((1-(SYS.irAl||0))*Tal/60); }
+  if(AL()&&MI.full){ const Tal=60*(6+4*Math.min(1,Math.abs(S.lat)/45)); if(pw&&SYS.ir1==='NAV'&&SYS.ir2==='NAV'&&SYS.ir3==='NAV'&&S.onGround&&S.V<0.5) SYS.irAl=Math.min(1,(SYS.irAl||0)+dt/Tal); else if(SYS.ir1==='OFF') SYS.irAl=0; SYS.irMin=Math.ceil((1-(SYS.irAl||0))*Tal/60); }
   if(ACK==='lj60'&&MI.full){ if(pw&&SYS.ir1==='ON') SYS.irAl=Math.min(1,(SYS.irAl||0)+dt/20); else SYS.irAl=0; }
   if(!MI.full){ S.nr=S.eng[0]||S.eng[1]?1:S.nr; return; }
   for(let i=0;i<2;i++){ if(A.kind==='rw'&&!A.twin&&i===1) break;
     let canStart=false, keep=true;
-    if(ACK==='a320'){ canStart=pw&&SYS.engMode==='IGN START'&&SYS['master'+(i+1)]&&((SYS.apuAvail&&SYS.apuBl)||S.eng[1-i]); keep=!!SYS['master'+(i+1)]; }
+    if(AL()){ canStart=pw&&SYS.engMode==='IGN START'&&SYS['master'+(i+1)]&&((SYS.apuAvail&&SYS.apuBl)||S.eng[1-i]); keep=!!SYS['master'+(i+1)]; }
     else if(ACK==='lj60'){ canStart=pw&&SYS['start'+(i+1)]&&SYS['thr'+(i+1)]!=='CUTOFF'; keep=SYS['thr'+(i+1)]!=='CUTOFF'; }
     else if(ACK==='s76'){ canStart=pw&&SYS['start'+(i+1)]&&SYS['ecl'+(i+1)]!=='OFF'&&SYS['fsv'+(i+1)]==='OPEN'; keep=SYS['ecl'+(i+1)]!=='OFF'&&SYS['fsv'+(i+1)]==='OPEN'; }
     else if(ACK==='h125'){ canStart=pw&&SYS.start1&&SYS.fuelSO==='OPEN'; keep=SYS.fuelSO==='OPEN'; }
     else if(ACK==='r44'){ canStart=pw&&SYS.ign==='START'&&SYS.mix==='RICH'; keep=SYS.mix==='RICH'&&SYS.ign!=='OFF'&&SYS.ign!=='START'?true:SYS.mix==='RICH'&&SYS.ign!=='OFF'; }
-    if(!S.eng[i]){ if(canStart){ S.n2[i]=Math.min(1,S.n2[i]+dt/(ACK==='r44'?4:ACK==='a320'?45:30)); if(S.n2[i]>=1){ S.eng[i]=true; flash((A.twin||A.kind==='fw'?'MOTEUR '+(i+1):'MOTEUR')+' STABILISÉ','am'); if(ACK!=='a320'&&ACK!=='r44') SYS['start'+(i+1)]=false; } }
+    if(!S.eng[i]){ if(canStart){ S.n2[i]=Math.min(1,S.n2[i]+dt/(ACK==='r44'?4:AL()?45:30)); if(S.n2[i]>=1){ S.eng[i]=true; flash((A.twin||A.kind==='fw'?'MOTEUR '+(i+1):'MOTEUR')+' STABILISÉ','am'); if(!AL()&&ACK!=='r44') SYS['start'+(i+1)]=false; } }
       else S.n2[i]=Math.max(0,S.n2[i]-dt/20); }
     else if(!keep){ S.eng[i]=false; flash('MOTEUR '+(i+1)+' COUPÉ','am'); } }
   if(ACK==='r44'&&SYS.ign==='START'&&S.eng[0]){ SYS.ign='BOTH'; pedSync(); }
@@ -1023,7 +1024,7 @@ function engStep(dt){ if(!S.n2) S.n2=[S.eng[0]?1:0,S.eng[1]?1:0]; const pw=hasPo
     if(!run && !S.onGround) tgt=clamp(0.92+(-S.vu)/80,0.7,1.05);   // autorotation : le flux d'air entretient le rotor
     S.nr+=(tgt-S.nr)*Math.min(1,dt*(tgt>S.nr?0.09:0.05)); }
   // carburant
-  let ff=0; const e=engData(); if(A.kind==='fw'){ for(let i=0;i<2;i++) if(S.eng[i]) ff+=(ACK==='a320'?(260+Math.pow(S.thr,1.4)*2300):(55+S.thr*380)); }
+  let ff=0; const e=engData(); if(A.kind==='fw'){ for(let i=0;i<2;i++) if(S.eng[i]) ff+=(AL()?(260+Math.pow(S.thr,1.4)*2300):(55+S.thr*380)); }
   else { const n=(S.eng[0]?1:0)+(A.twin&&S.eng[1]?1:0); ff=n*(WB[ACK].burn/(A.twin?2:1))*(0.55+0.6*S.coll); }
   S.ff=ff; S.fuel=Math.max(0,(S.fuel??WB[ACK].fuelMax*0.8)-ff*dt/3600); if(S.fuel<=0&&(S.eng[0]||S.eng[1])){ S.eng=[false,false]; flash('PANNE SÈCHE','red'); }
   S.mass=(LS.zfw||WB[ACK].dow+600)+S.fuel; }
@@ -1041,7 +1042,7 @@ const PED={
 function buildPED(){ const d=PED[ACK]; let el=$('ped'); if(!el){ el=document.createElement('aside'); el.id='ped'; el.className='panel'; document.body.appendChild(el); }
   el.innerHTML=`<div class="hd"><b>${A.kind==='fw'?'PÉDESTAL':'CONSOLE / COMMANDES'}</b><span class="tag">SIMULÉ</span><span style="flex:1"></span><button type="button" id="ped-x">✕</button></div>`+
    d.map(([t,items])=>`<div class="sec"><h4>${t}</h4><div class="row">${items.map(([id,l,ty,o])=>ty==='knob'?`<label class="sw knob">${l}<select data-pd="${id}">${o.map(v=>`<option>${v}</option>`).join('')}</select></label>`:ty==='btn'?`<div class="sw"><button type="button" data-pd="${id}" data-t="btn" class="pbs"><span class="d">START</span></button>${l}</div>`:`<div class="sw tog"><button type="button" data-pd="${id}" data-t="tog"></button><span class="st" data-pst="${id}"></span>${l}</div>`).join('')}</div></div>`).join('')+
-   (ACK==='a320'?`<div class="sec"><h4>MCDU · FMS (simplifié)</h4><pre id="mcdu" class="num" style="margin:0;background:#050505;color:#5df2a2;padding:6px;border-radius:4px;font-size:11px;line-height:1.35;min-height:84px"></pre><button type="button" id="mcdu-init" style="margin-top:5px">Saisir INIT / PERF depuis le devis</button></div>`:'');
+   (AL()?`<div class="sec"><h4>MCDU · FMS (simplifié)</h4><pre id="mcdu" class="num" style="margin:0;background:#050505;color:#5df2a2;padding:6px;border-radius:4px;font-size:11px;line-height:1.35;min-height:84px"></pre><button type="button" id="mcdu-init" style="margin-top:5px">Saisir INIT / PERF depuis le devis</button></div>`:'');
   el.querySelectorAll('[data-pd]').forEach(c=>{ const id=c.dataset.pd;
     if(c.tagName==='SELECT') c.onchange=()=>{ pedSet(id,c.value); };
     else c.onclick=()=>{ if(c.dataset.t==='btn'){ SYS[id]=!SYS[id]; } else pedSet(id,!pedGet(id)); pedSync(); }; });
@@ -1070,7 +1071,7 @@ function commonFirst(){ return [
  {ph:'Cockpit',t:'Monter à bord : poste « cold & dark »',txt:'Le poste est entièrement éteint : pas d\'alimentation électrique, centrales arrêtées, moteurs à l\'arrêt, frein de parc serré. Prenez place (le commandant de bord d\'un avion est à gauche, celui d\'un hélicoptère à droite).',items:[['Installé en poste',()=>view==='ck',()=>{ setView('ck'); }]]}]; }
 function stepsFor(){ const L=LS, k=ACK, W=WB[k]; const C=commonFirst(); let P=[];
  const air=()=>!S.onGround, alt=(ft)=>()=>S.alt/FT>ft+elevAt(S.lat,S.lon)/FT;
- if(k==='a320') P=[
+ if(AL(k)) P=[
   {ph:'Cockpit',t:'Alimentation : batteries',txt:'Panneau ELEC (plafonnier) : BAT 1 et BAT 2 sur AUTO (voyant OFF éteint). Vérifiez la tension (> 25,5 V) sur l\'afficheur BAT du panneau ELEC. Comme sur l\'avion réel, les six écrans restent noirs sur batteries seules au sol : ils s\'allument avec le groupe de parc ou la génératrice APU.',items:[['BAT 1 AUTO',notS('bat1'),setS('bat1',false),'[data-sw="bat1"]'],['BAT 2 AUTO',notS('bat2'),setS('bat2',false),'[data-sw="bat2"]']]},
   {ph:'Cockpit',t:'Alimentation sol ou APU',txt:'Groupe de parc (EXT PWR) s\'il est branché, puis démarrage de l\'APU : MASTER SW puis START. L\'APU est disponible en environ 1 minute (« APU AVAIL »).',items:[['APU MASTER SW ON',on('apuMaster'),setS('apuMaster',true),'[data-sw="apuMaster"]'],['APU START',()=>SYS.apuStart||SYS.apuAvail,setS('apuStartBtn',true),'[data-sw="apuStartBtn"]'],['APU AVAIL',()=>SYS.apuAvail,()=>{SYS.apuAvail=true;SYS.apuStart=false;}]]},
   {ph:'Cockpit',t:'Centrales inertielles (ADIRS)',txt:'Les trois IR sur NAV. L\'alignement dure environ 6 min à l\'équateur et 10 min au-delà de 45° de latitude, avion immobile (≈ 9,6 min à JFK) : durée réelle. Utilisez l\'accélération du temps (×16, permise à l\'arrêt) pour patienter. Sans alignement, PFD et ND affichent des drapeaux.',items:[['IR 1, 2, 3 sur NAV',()=>SYS.ir1==='NAV'&&SYS.ir2==='NAV'&&SYS.ir3==='NAV',()=>{SYS.ir1=SYS.ir2=SYS.ir3='NAV'; buildOVH();},'[data-sw="ir1"]'],['Alignement terminé',irOK,()=>{SYS.irAl=1;}]]},
@@ -1128,7 +1129,7 @@ function calcHTML(kind){ const L=lsCalc(), w=WB[ACK], ok=b=>b?'<b style="color:#
    ${r('<b>Centrage</b>',w.mac?L.cg.toFixed(1)+' % CMA':L.arm.toFixed(2)+' m',w.mac?`limites ${w.cgLim[0]}–${w.cgLim[1]} % ${ok(L.ok.cg)}`:`limites ${w.armLim[0]}–${w.armLim[1]} m ${ok(L.ok.cg)}`)}</table><p class="hint">Centrage simplifié par stations (bras de levier [ESTIMÉ]). Moment = masse × bras ; centre de gravité = Σ moments ÷ Σ masses.</p>`;
  if(kind==='fuel') return `<table>${r('Roulage',kg(w.taxi))}${r(`Étape : ${fmt(L.dist,0)} km à ${w.gs} kt ≈ ${L.tripH.toFixed(2)} h × ${fmt(w.burn,0)} kg/h`,kg(L.trip))}${r('Réserve de route 5 %',kg(L.cont))}${r('Dégagement',kg(w.alt))}${r('Réserve finale 30 min',kg(w.res30))}${r('Supplément commandant',`<input type="number" min="0" step="100" value="${L.extra}" data-ls="extra">`)}
    <tr><td colspan="3"><hr></td></tr>${r('<b>Carburant nécessaire</b>',kg(L.need))}${r('Capacité maximale',kg(w.fuelMax),ok(L.ok.fuel))}${r('<b>Carburant bloc retenu</b>',kg(L.block))}</table>${L.short?`<p style="color:#ffb020"><b>Vol impossible sans escale</b> : il manque ${kg(L.need-w.fuelMax)}. En réalité : escale technique, ou réduction de la charge marchande, ou appareil à plus grand rayon d'action. Pour que le vol complet reste démonstratif, le simulateur ajoute <b>fictivement</b> le carburant manquant (comme des réservoirs supplémentaires d'un A321LR) [HYPOTHÈSE pédagogique].</p>`:''}`;
- if(kind==='perf') return A.kind==='fw'?`<table>${r('TOW',kg(L.tow))}${r('V1 (décision)',L.v1+' kt')}${r('VR (rotation)',L.vr+' kt')}${r('V2 (sécurité au décollage)',L.v2+' kt')}${r('Volets',ACK==='a320'?'1+F':'8°')}${ACK==='a320'?r('Plan horizontal (THS)',L.trim+' UP'):''}</table><p class="hint">Formules linéaires simplifiées [ESTIMÉ] : les vraies vitesses viennent des tables / du calculateur de performances du constructeur selon la piste, la température, le vent et la pente.</p>`:'';
+ if(kind==='perf') return A.kind==='fw'?`<table>${r('TOW',kg(L.tow))}${r('V1 (décision)',L.v1+' kt')}${r('VR (rotation)',L.vr+' kt')}${r('V2 (sécurité au décollage)',L.v2+' kt')}${r('Volets',AL()?'1+F':'8°')}${AL()?r('Plan horizontal (THS)',L.trim+' UP'):''}</table><p class="hint">Formules linéaires simplifiées [ESTIMÉ] : les vraies vitesses viennent des tables / du calculateur de performances du constructeur selon la piste, la température, le vent et la pente.</p>`:'';
  const ad=airdata(), d=MI.dest?gcKm(S.lat,S.lon,APTS[MI.dest].lat,APTS[MI.dest].lon):0, eta=ad.gs>30?d/1.852/ad.gs:null;
  if(kind==='after') return `<table>${r('Carburant à bord',kg(S.fuel))}${r('Débit actuel',fmt(S.ff,0)+' kg/h')}${r('Distance restante',fmt(d,0)+' km')}${r('Temps estimé',eta?eta.toFixed(2)+' h':'—')}${r('Carburant estimé à l\'arrivée',eta?kg(S.fuel-eta*w.burn):'—',eta&&S.fuel-eta*w.burn<w.res30?'<b style="color:#ff4a3d">sous la réserve</b>':'')}</table>`;
  if(kind==='cruise'){ const used=(LS.block||0)-S.fuel, plannedUsed=LS.trip*(1-d/Math.max(1,LS.dist)); return `<table>${r('Carburant utilisé (réel)',kg(used))}${r('Carburant prévu au même point',kg(plannedUsed))}${r('Écart',kg(used-plannedUsed),used-plannedUsed>LS.cont?'<b style="color:#ffb020">au-delà de la réserve de route</b>':'')}${r('Restant',kg(S.fuel))}${r('Arrivée estimée (UTC)',eta?new Date(simMs+eta*3600e3).toISOString().slice(11,16):'—')}</table>`; }
@@ -1178,7 +1179,7 @@ function lineUp(code,rw){ const r=rwStart(code,rw); const p=offsetLL(r.lat,r.lon
 function startFull(){ GD.on=true; GD.i=0; GD.seen=new Set(); GD.walkInit=false; GD.brief=GD.lsOK=GD.fuelOK=GD.bugs=GD.cruiseSeen=false; GD.sig='';
   lsInit(); S.fuel=LS.block; S.mass=LS.zfw+S.fuel; coldDark(); buildMarkers(); buildPED(); $('ped').hidden=true; showRoute(null); TX.auto=false; GD.stands={}; GD.steps=stepsFor(); buildGuideUI(); goStep(0); }
 function coldDark(){ S.eng=[false,false]; S.n2=[0,0]; S.nr=0; S.thr=0; S.coll=0; S.pbrake=true; S.flap=0; S.gear=true; AP.on=AP.ath=false; AP.appr=false;
-  if(ACK==='a320') Object.assign(SYS,{bat1:true,bat2:true,ir1:'OFF',ir2:'OFF',ir3:'OFF',navLt:'OFF',strobe:'OFF',beacon:false,belts:'OFF',nosmk:'OFF',apuMaster:false,apuBl:false,apuAvail:false,engMode:'NORM',master1:false,master2:false,thrSel:'IDLE',abrk:'OFF',spdbrk:'RET',xpdr:'STBY',fmsInit:false,irAl:0});
+  if(AL()) Object.assign(SYS,{bat1:true,bat2:true,ir1:'OFF',ir2:'OFF',ir3:'OFF',navLt:'OFF',strobe:'OFF',beacon:false,belts:'OFF',nosmk:'OFF',apuMaster:false,apuBl:false,apuAvail:false,engMode:'NORM',master1:false,master2:false,thrSel:'IDLE',abrk:'OFF',spdbrk:'RET',xpdr:'STBY',fmsInit:false,irAl:0});
   else if(ACK==='lj60') Object.assign(SYS,{batt1:false,batt2:false,genL:false,genR:false,ir1:'OFF',navLt:false,beacon:false,strobe:'OFF',thr1:'CUTOFF',thr2:'CUTOFF',ignL:false,start1:false,start2:false,irAl:0});
   else if(ACK==='s76') Object.assign(SYS,{bat1:false,gen1:false,gen2:false,navLt:false,beacon:false,ecl1:'OFF',ecl2:'OFF',fsv1:'OPEN',fsv2:'OPEN',rbrake:'ON',start1:false,start2:false});
   else if(ACK==='h125') Object.assign(SYS,{bat1:false,gen1:false,navLt:false,beacon:false,fuelSO:'CLOSED',rbrake:'ON',twist:'IDLE',start1:false});
@@ -1397,7 +1398,7 @@ function mcduHTML(){ const k=(t,d)=>`<button type="button" data-mk="${d||t}">${t
    <div class="mfk">${['DIR','PROG','PERF','INIT','DATA','F-PLN','RAD NAV','FUEL PRED','SEC F-PLN','ATC COMM','MCDU MENU','AIRPORT','◀','▲','▼','▶'].map(t=>k(t)).join('')}</div>
    <div class="mkb">${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(c=>k(c)).join('')}${k('/')}${k('SP',' ')}${k('OVFY')}${k('CLR')}</div><div class="mnum">${'123456789.0'.split('').map(c=>k(c)).join('')}${k('+/-','-')}</div>
    <button type="button" id="mcdu-init" class="wide" title="Remplit automatiquement INIT A/B et PERF depuis le devis de masse">Saisir INIT / PERF depuis le devis</button></div>`; }
-function mcduBind(root){ root.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>mcduKey(b.dataset.mk)); const mi=$('mcdu-init'); if(mi) mi.onclick=()=>{ SYS.fmsInit=true; const f=S320.mcdu.f; f.from='KJFK'; f.to=MI.dest||'LFPG'; f.crz=350; f.ci=30; f.zfw=LS.zfw; f.zfwcg=LS.cg; f.block=LS.block; f.v1=LS.v1; f.vr=LS.vr; f.v2=LS.v2; f.flx=45; f.ths=LS.trim; f.flaps=1; flash('FMS : INIT / PERF saisis','am'); mcduDraw(); }; }
+function mcduBind(root){ root.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>mcduKey(b.dataset.mk)); const mi=$('mcdu-init'); if(mi) mi.onclick=()=>{ SYS.fmsInit=true; const f=S320.mcdu.f; f.from=(()=>{ try{ const s=MI.start(); let bk='KJFK',bd=1e9; for(const k in APTS){ const a=APTS[k]; if(a.heli||!(a.rw||[]).length) continue; const d=gcKm(s.lat,s.lon,a.lat,a.lon); if(d<bd){ bd=d; bk=k; } } return bk; }catch(e){ return 'KJFK'; } })(); f.to=MI.dest||'LFPG'; f.crz=350; f.ci=30; f.zfw=LS.zfw; f.zfwcg=LS.cg; f.block=LS.block; f.v1=LS.v1; f.vr=LS.vr; f.v2=LS.v2; f.flx=45; f.ths=LS.trim; f.flaps=1; flash('FMS : INIT / PERF saisis','am'); mcduDraw(); }; }
 function fplan(){ const a=APTS.KJFK, b=APTS[MI.dest||'LFPG'], N=8, out=[['KJFK31L',0]]; for(let i=1;i<N;i++){ const f=i/N, la=a.lat+(b.lat-a.lat)*f+Math.sin(Math.PI*f)*9, lo=a.lon+(b.lon-a.lon)*f; out.push([`${Math.round(la)}N${String(Math.abs(Math.round(lo))).padStart(3,'0')}W`.replace(/(\d+)W$/,(m,x)=>lo>=0?x+'E':x+'W'),gcKm(a.lat,a.lon,la,lo)]); } out.push([(MI.dest||'LFPG')+(MI.destRw||''),gcKm(a.lat,a.lon,b.lat,b.lon)]); return out; }
 function mcduKey(k){ const M=S320.mcdu, f=M.f; if(!hasPower()){ return; }
   const pages={INIT:'INIT',PERF:'PERF','F-PLN':'FPLN',PROG:'PROG','FUEL PRED':'FUEL','RAD NAV':'RAD',DATA:'DATA',DIR:'DIR','MCDU MENU':'MENU','SEC F-PLN':'SEC','ATC COMM':'ATC',AIRPORT:'FPLN'};
@@ -1407,7 +1408,7 @@ function mcduKey(k){ const M=S320.mcdu, f=M.f; if(!hasPower()){ return; }
   else if(k==='CLR'){ M.sp=M.sp?M.sp.slice(0,-1):''; } else if(k==='OVFY'){ M.sp+='Δ'; }
   else if(/^[LR][1-6]$/.test(k)){ const v=M.sp.trim(), num=parseFloat(v.replace(',', '.')), ok=()=>{ M.sp=''; };
     const set={INIT:{L1:()=>{ if(/^[A-Z]{4}\/[A-Z]{4}$/.test(v)){ [f.from,f.to]=v.split('/'); ok(); } else M.sp='FORMAT ERROR'; },L5:()=>{ if(num>=0&&num<=999){ f.ci=num; ok(); } },L6:()=>{ const n=parseInt(v.replace('FL','')); if(n>=100&&n<=398){ f.crz=n; AP.alt=n*100; ok(); } else M.sp='ENTRY OUT OF RANGE'; }},
-      INITB:{R1:()=>{ const [z,c]=v.split('/'); if(+z>30&&+z<70){ f.zfw=+z*1000; if(c) f.zfwcg=+c; ok(); } else M.sp='ENTRY OUT OF RANGE'; },R2:()=>{ if(num>0&&num<=19){ f.block=num*1000; ok(); } else M.sp='ENTRY OUT OF RANGE'; }},
+      INITB:{R1:()=>{ const [z,c]=v.split('/'); if(+z>20&&+z<=WB[ACK].mzfw/1000+1){ f.zfw=+z*1000; if(c) f.zfwcg=+c; ok(); } else M.sp='ENTRY OUT OF RANGE'; },R2:()=>{ if(num>0&&num<=WB[ACK].fuelMax/1000){ f.block=num*1000; ok(); } else M.sp='ENTRY OUT OF RANGE'; }},
       PERF:{L1:()=>{ if(num>90&&num<180){ f.v1=num; ok(); } },L2:()=>{ if(num>90&&num<180){ f.vr=num; ok(); } },L3:()=>{ if(num>90&&num<190){ f.v2=num; ok(); } },R3:()=>{ const [fl,t]=v.split('/'); if(+fl>=0&&+fl<=3){ f.flaps=+fl; if(t) f.ths=t; ok(); } },R4:()=>{ if(num>=0&&num<=70){ f.flx=num; ok(); } }}};
     const fn=(set[M.page]||{})[k]; if(fn&&v) fn(); else if(M.page==='DIR'&&k==='L1'){ AP.lat='NAV'; flash('DIR TO '+(MI.dest||''),'am'); } SYS.fmsInit=!!(f.zfw&&f.block&&f.v1&&f.vr&&f.v2)||SYS.fmsInit; }
   else if(k.length<=2&&M.sp.length<22){ if(/ERROR|RANGE/.test(M.sp)) M.sp=''; M.sp+=k; }
@@ -1429,7 +1430,7 @@ function mcduDraw(){ const el=$('mcdu'); if(!el) return; const M=S320.mcdu, f=M.
   const lines=(P[M.page]||P.INIT).slice(0,11); el.innerHTML=lines.map((l,i)=>`<span class="${i===0?'mt':i%2?'ml':'mv'}">${l}</span>`).join('\n')+'\n<span class="msp">'+(M.sp||' ')+'</span>'; }
 /* ---- systèmes ---- */
 const E320={duct:[0,0],packs:[false,false],G:0,B:0,Y:0,ac1:'',ac2:'',acEss:'',anyAC:false};
-function sys320(dt){ if(ACK!=='a320') return; const on1=S.eng[0], on2=S.eng[1], gnd=S.onGround;
+function sys320(dt){ if(!AL()) return; const on1=S.eng[0], on2=S.eng[1], gnd=S.onGround;
   // électricité
   const batOK=(!SYS.bat1&&!FAIL.bat1)||!SYS.bat2, ext=SYS.extPwr&&SYS.extAvail, apuG=SYS.apuAvail&&!SYS.apuGen, g1=on1&&!SYS.gen1&&!SYS.idg1&&!FAIL.gen1&&!SYS.gen1line, g2=on2&&!SYS.gen2&&!SYS.idg2&&!FAIL.gen2;
   E320.ac1=g1?'GEN 1':(!SYS.btie&&(ext?'EXT PWR':apuG?'APU GEN':g2?'GEN 2':''))||''; E320.ac2=g2?'GEN 2':(!SYS.btie&&(ext?'EXT PWR':apuG?'APU GEN':g1?'GEN 1':''))||'';
@@ -1583,20 +1584,20 @@ function ewdAlerts(g,x,y,w,h){ const W=S320.warns.filter(w=>w.l>=2), memo=[]; co
   let k=0; W.slice(0,3).forEach(al=>{ txt(g,al.t,x+8,yy(k++),al.l===3?COL.red:COL.am,h*0.038); (al.a||'').split('\n').filter(Boolean).slice(0,2).forEach(s=>txt(g,s,x+12,yy(k++),COL.cy,h*0.034)); });
   memo.slice(0,5-k).forEach(m=>txt(g,m[0],x+w*0.06,yy(k++),m[1],h*0.038)); }
 /* ---- branchements sur le simulateur existant ---- */
-const _drawND=drawND; drawND=function(g,x,y,w,h,ad,style){ if(ACK!=='a320') return _drawND(g,x,y,w,h,ad,style); drawND320(g,x,y,w,h,ad,x<CK.w/2?'L':'R'); };
-const _drawPFD=drawPFD; drawPFD=function(g,x,y,w,h,ad,style,flag){ _drawPFD(g,x,y,w,h,ad,style,flag); if(ACK==='a320'&&!flag) pfdOverlay(g,x,y,w,h,x<CK.w/2?'L':'R'); };
-const _drawSD=drawSD; drawSD=function(g,x,y,w,h){ if(ACK!=='a320') return _drawSD(g,x,y,w,h); drawSD320(g,x,y,w,h); };
-const _drawEWD=drawEWD; drawEWD=function(g,x,y,w,h){ if(ACK!=='a320') return _drawEWD(g,x,y,w,h); _drawEWD(g,x,y,w,h); if(!hasPower()) return; g.fillStyle='#000'; g.fillRect(x+2,y+h*0.775,w-4,h*0.22); ewdAlerts(g,x,y,w,h); };
-const _buildOVH=buildOVH; buildOVH=function(){ const box=$('ovh'); box.classList.toggle('a320',ACK==='a320'); if(ACK!=='a320'){ const f=$('fcu'); f.classList.remove('fcu320'); return _buildOVH(); } buildA320(); };
-const _ovhSync=ovhSync; ovhSync=function(){ if(ACK!=='a320') return _ovhSync(); a320Sync(); $('ovh').classList.toggle('night',SKY.u.night.value>0.5); };
-const _buildFCU=buildFCU; buildFCU=function(){ if(ACK!=='a320'){ $('fcu').classList.remove('fcu320'); return _buildFCU(); } buildFCU320(); };
-const _sysDefaults=sysDefaults; sysDefaults=function(){ _sysDefaults(); if(ACK==='a320'){ a320Defaults(); S320.page='auto'; S320.mcdu={page:'INIT',sp:'',f:{}}; S320.cautAck.clear(); S320.warnAck.clear(); S320.toCfg=null; E320.ctr=undefined; E320.cab=undefined; E320.batDrain=0; } };
-const _coldDark=coldDark; coldDark=function(){ _coldDark(); if(ACK==='a320'){ Object.assign(SYS,{hydB:false,extPwr:false,extAvail:true,gen1:false,gen2:false,apuGen:false,rcdr:false}); S.pushed=false; E320.cab=0; E320.ctr=undefined; buildA320(); } };
-const _buildPED=buildPED; buildPED=function(){ _buildPED(); if(ACK==='a320'){ const p=$('ped'); p.innerHTML=`<div class="hd"><b>PÉDESTAL</b><span class="tag">SIMULÉ</span><span style="flex:1"></span><button type="button" id="ped-x">✕</button></div><p class="hint">Le pédestal complet de l'A320 (2 MCDU, panneau ECAM, radios, manettes, trims, transpondeur…) est dans <b>Plafonnier → onglet Pédestal</b>.</p><button type="button" id="ped-go">Ouvrir le pédestal complet</button>`; $('ped-x').onclick=()=>{ p.hidden=true; $('b-ped').classList.remove('on'); }; $('ped-go').onclick=()=>{ p.hidden=true; ovhPinned=true; $('ovh').hidden=false; a320Tab('ped'); }; } };
-const _pedSync=pedSync; pedSync=function(){ _pedSync(); if(ACK==='a320') a320Sync(); };
-const _highlight=highlight; highlight=function(selc,soft){ if(ACK==='a320'&&selc){ const el=document.querySelector('#ovh '+selc)||document.querySelector(selc); if(el&&el.closest('#ovh')){ const z=el.closest('.zone320'); if(z) a320Tab(z.dataset.zone); ovhPinned=true; $('ovh').hidden=false; $('b-ovh').classList.add('on'); document.querySelectorAll('.hl').forEach(e=>e.classList.remove('hl')); const t=el.closest('.sw')||el; t.classList.add('hl'); if(!soft) t.scrollIntoView({block:'nearest',behavior:'smooth'}); setTimeout(()=>t.classList.remove('hl'),6000); return; } } return _highlight(selc,soft); };
-const _hasPower=hasPower; hasPower=function(){ if(ACK!=='a320'||!MI.full) return _hasPower(); return !!(E320.anyAC||(!SYS.bat1||!SYS.bat2)); };
-function a320Tick(){ if(ACK!=='a320') return; if(!$('ovh').hidden) a320Sync(); else { const f=$('fcu'); if(f&&f.classList.contains('fcu320')) { f.querySelectorAll('.mw').forEach(b=>b.classList.toggle('on',!!S320.mw&&(performance.now()%1000<600))); f.querySelectorAll('.mc').forEach(b=>b.classList.toggle('on',!!S320.mc)); } } }
+const _drawND=drawND; drawND=function(g,x,y,w,h,ad,style){ if(!AL()) return _drawND(g,x,y,w,h,ad,style); drawND320(g,x,y,w,h,ad,x<CK.w/2?'L':'R'); };
+const _drawPFD=drawPFD; drawPFD=function(g,x,y,w,h,ad,style,flag){ _drawPFD(g,x,y,w,h,ad,style,flag); if(AL()&&!flag) pfdOverlay(g,x,y,w,h,x<CK.w/2?'L':'R'); };
+const _drawSD=drawSD; drawSD=function(g,x,y,w,h){ if(!AL()) return _drawSD(g,x,y,w,h); drawSD320(g,x,y,w,h); };
+const _drawEWD=drawEWD; drawEWD=function(g,x,y,w,h){ if(!AL()) return _drawEWD(g,x,y,w,h); _drawEWD(g,x,y,w,h); if(!hasPower()) return; g.fillStyle='#000'; g.fillRect(x+2,y+h*0.775,w-4,h*0.22); ewdAlerts(g,x,y,w,h); };
+const _buildOVH=buildOVH; buildOVH=function(){ const box=$('ovh'); box.classList.toggle('a320',AL()); if(!AL()){ const f=$('fcu'); f.classList.remove('fcu320'); return _buildOVH(); } buildA320(); };
+const _ovhSync=ovhSync; ovhSync=function(){ if(!AL()) return _ovhSync(); a320Sync(); $('ovh').classList.toggle('night',SKY.u.night.value>0.5); };
+const _buildFCU=buildFCU; buildFCU=function(){ if(!AL()){ $('fcu').classList.remove('fcu320'); return _buildFCU(); } buildFCU320(); };
+const _sysDefaults=sysDefaults; sysDefaults=function(){ _sysDefaults(); if(AL()){ a320Defaults(); S320.page='auto'; S320.mcdu={page:'INIT',sp:'',f:{}}; S320.cautAck.clear(); S320.warnAck.clear(); S320.toCfg=null; E320.ctr=undefined; E320.cab=undefined; E320.batDrain=0; } };
+const _coldDark=coldDark; coldDark=function(){ _coldDark(); if(AL()){ Object.assign(SYS,{hydB:false,extPwr:false,extAvail:true,gen1:false,gen2:false,apuGen:false,rcdr:false}); S.pushed=false; E320.cab=0; E320.ctr=undefined; buildA320(); } };
+const _buildPED=buildPED; buildPED=function(){ _buildPED(); if(AL()){ const p=$('ped'); p.innerHTML=`<div class="hd"><b>PÉDESTAL</b><span class="tag">SIMULÉ</span><span style="flex:1"></span><button type="button" id="ped-x">✕</button></div><p class="hint">Le pédestal complet de l'A320 (2 MCDU, panneau ECAM, radios, manettes, trims, transpondeur…) est dans <b>Plafonnier → onglet Pédestal</b>.</p><button type="button" id="ped-go">Ouvrir le pédestal complet</button>`; $('ped-x').onclick=()=>{ p.hidden=true; $('b-ped').classList.remove('on'); }; $('ped-go').onclick=()=>{ p.hidden=true; ovhPinned=true; $('ovh').hidden=false; a320Tab('ped'); }; } };
+const _pedSync=pedSync; pedSync=function(){ _pedSync(); if(AL()) a320Sync(); };
+const _highlight=highlight; highlight=function(selc,soft){ if(AL()&&selc){ const el=document.querySelector('#ovh '+selc)||document.querySelector(selc); if(el&&el.closest('#ovh')){ const z=el.closest('.zone320'); if(z) a320Tab(z.dataset.zone); ovhPinned=true; $('ovh').hidden=false; $('b-ovh').classList.add('on'); document.querySelectorAll('.hl').forEach(e=>e.classList.remove('hl')); const t=el.closest('.sw')||el; t.classList.add('hl'); if(!soft) t.scrollIntoView({block:'nearest',behavior:'smooth'}); setTimeout(()=>t.classList.remove('hl'),6000); return; } } return _highlight(selc,soft); };
+const _hasPower=hasPower; hasPower=function(){ if(!AL()||!MI.full) return _hasPower(); return !!(E320.anyAC||(!SYS.bat1||!SYS.bat2)); };
+function a320Tick(){ if(!AL()) return; if(!$('ovh').hidden) a320Sync(); else { const f=$('fcu'); if(f&&f.classList.contains('fcu320')) { f.querySelectorAll('.mw').forEach(b=>b.classList.toggle('on',!!S320.mw&&(performance.now()%1000<600))); f.querySelectorAll('.mc').forEach(b=>b.classList.toggle('on',!!S320.mc)); } } }
 
 /* ======================================================================
    MODE PÉDAGOGIQUE AUTOMATIQUE (« apprendre par l'observation ») :
@@ -1637,15 +1638,15 @@ function fafOf(code,rw,km){ const r=rwStart(code,rw); const p=offsetLL(r.lat,r.l
 function flyFW(dt){ const L=LS, st=GD.steps[GD.i]||{}, agl=(S.alt-elevAt(S.lat,S.lon))/FT, cas=casFromTas(S.V,S.alt)/KT;
   DIR.pitch=null; DIR.roll=null; DIR.yaw=null;
   if(S.onGround){ if(TX.auto) return;
-    if(st.fly==='takeoff'&&nearRunway(S.lat,S.lon)&&!GD.landed){ S.pbrake=false; if(ACK==='a320'){ SYS.thrSel='TOGA'; } S.thr=1; DIR.pitch=cas>(L.vr||A.Vr)?-0.0:0; if(cas>(L.vr||A.Vr)){ DIR.rot=true; } if(DIR.rot) DIR.pitch=S.th<12*D2R?1:0; }
+    if(st.fly==='takeoff'&&nearRunway(S.lat,S.lon)&&!GD.landed){ S.pbrake=false; if(AL()){ SYS.thrSel='TOGA'; } S.thr=1; DIR.pitch=cas>(L.vr||A.Vr)?-0.0:0; if(cas>(L.vr||A.Vr)){ DIR.rot=true; } if(DIR.rot) DIR.pitch=S.th<12*D2R?1:0; }
     else if(GD.landed||(st.fly==='land'||st.fly==='taxiIn')){ S.thr=0; AP.ath=false; if(S.V>9*KT){ S.brake=!(SYS.abrk==='LO'||SYS.abrk==='MED')||S.V<30*KT; } else if(!GD.taxiInStarted&&st.fly==='taxiIn'){ GD.taxiInStarted=true; } }
     return; }
   DIR.rot=false;
   const dest=MI.dest, rw=MI.destRw, faf=fafOf(dest,rw,22), dF=gcKm(S.lat,S.lon,faf.lat,faf.lon), dT=gcKm(S.lat,S.lon,APTS[dest].lat,APTS[dest].lon);
   // après décollage
   if(agl>50&&S.gear&&!AP.appr){ S.gear=false; pedSync(); flash('Train rentré','am'); }
-  if(agl>400&&!AP.on&&!AP.appr){ AP.alt=ACK==='a320'?35000:41000; AP.vs=2500; AP.lat='NAV'; AP.on=true; flash('AP engagé','am'); }
-  if(agl>1500&&!AP.ath&&ACK==='a320'&&!AP.appr){ SYS.thrSel='CL'; AP.ath=true; AP.spd=250; }
+  if(agl>400&&!AP.on&&!AP.appr){ AP.alt=AL()?35000:41000; AP.vs=2500; AP.lat='NAV'; AP.on=true; flash('AP engagé','am'); }
+  if(agl>1500&&!AP.ath&&AL()&&!AP.appr){ SYS.thrSel='CL'; AP.ath=true; AP.spd=250; }
 
   if(cas>180&&S.flap>0&&!AP.appr&&dT>60){ S.flap=0; pedSync(); }
   if(S.alt/FT>10000&&SYS.landL==='ON') SYS.landL='OFF';
@@ -1657,7 +1658,7 @@ function flyFW(dt){ const L=LS, st=GD.steps[GD.i]||{}, agl=(S.alt-elevAt(S.lat,S
   // approche : cap vers le FAF puis capture ILS
   if(dT<160&&!AP.appr){ AP.lat='HDG'; AP.hdg=dF>3?brg(S.lat,S.lon,faf.lat,faf.lon):faf.hdg; if(dF<4||(ilsDev().d<26000&&Math.abs(ilsDev().loc)<6)){ AP.appr=true; flash('LOC / G/S capturés','am'); } }
   if(AP.appr){ const d=ilsDev().d/1000; if(d<30&&S.flap<1) S.flap=1; if(d<24&&S.flap<2) S.flap=2; if(d<17&&!S.gear){ S.gear=true; flash('Train sorti','am'); } if(d<14&&S.flap<3) S.flap=3; if(d<11&&S.flap<4) S.flap=A.flaps.length-1;
-    if(ACK==='a320'){ SYS.spdbrk='ARMED'; SYS.landL='ON'; } AP.ath=true; AP.spd=S.flap>=A.flaps.length-1?vlsNow(S.mass)+5:Math.max(vlsNow(S.mass)+30,170); pedSync(); }
+    if(AL()){ SYS.spdbrk='ARMED'; SYS.landL='ON'; } AP.ath=true; AP.spd=S.flap>=A.flaps.length-1?vlsNow(S.mass)+5:Math.max(vlsNow(S.mass)+30,170); pedSync(); }
   // Learjet 60 : pas d'automanette — le « pilote » du mode automatique gère la poussée à la main pour tenir la vitesse visée
   if(ACK==='lj60'&&agl>400&&!(AP.appr&&agl<15)){ const vt=Math.min(tasFromCas(AP.spd*KT,S.alt),0.78*sos(S.alt)); S.thr=clamp(S.thr+clamp((vt-S.V)*0.06,-0.4,0.4)*dt,0.03,1); }
   // accélération du temps en croisière
@@ -1752,7 +1753,7 @@ const QB={
 };
 const QTH=[['tout','Toutes les questions'],['proc','Procédures'],['wb','Masse et centrage'],['fuel','Carburant'],['nav','Navigation, approche'],['ground','Roulage, aéroport'],['ac','Appareil sélectionné']];
 const QZ={list:[],i:0,score:0,answered:false};
-function qPool(th){ const ac={a320:['a320'],lj60:['lj60'],s76:['heli','s76'],h125:['heli','h125'],r44:['heli','r44']}[ACK]||[];
+function qPool(th){ const ac={a320:['a320'],b777:['a320'],lj60:['lj60'],s76:['heli','s76'],h125:['heli','h125'],r44:['heli','r44']}[ACK]||[];
   if(th==='ac') return ac.flatMap(k=>QB[k]); if(th==='tout') return [...QB.proc,...QB.wb,...QB.fuel,...QB.nav,...QB.ground,...ac.flatMap(k=>QB[k])]; return QB[th]||[]; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function qcmOpen(th,n){ let el=$('qcm'); if(!el){ el=document.createElement('aside'); el.id='qcm'; el.className='panel'; document.body.appendChild(el); }
@@ -1789,15 +1790,15 @@ const aglFt=()=>(S.alt-elevAt(S.lat,S.lon))/FT;
 function dispPower(d){ if(E320.anyAC) return true; const bat=!SYS.bat1||!SYS.bat2; if(!bat) return false;
   if(S.onGround&&S.V<50*KT) return false;
   if(d==='PFD1'||d==='EWD') return true; if(d==='ND1'||d==='MCDU1') return !!E320.emerGen; return false; }
-const _hasPwrX=hasPower; hasPower=function(){ if(CUR_DISP&&ACK==='a320') return dispPower(CUR_DISP); return _hasPwrX(); };
+const _hasPwrX=hasPower; hasPower=function(){ if(CUR_DISP&&AL()) return dispPower(CUR_DISP); return _hasPwrX(); };
 const _screenX=screen; screen=function(g,x,y,w,h){ _screenX(g,x,y,w,h); if(WX_HOOK){ const f=WX_HOOK; WX_HOOK=null; if(hasPower()&&irOK()) f(); } };
 const _pfdX=drawPFD; drawPFD=function(g,x,y,w,h,ad,style,flag){ const side=x<CK.w/2?'L':'R'; CUR_DISP=side==='L'?'PFD1':'PFD2';
-  try{ _pfdX(g,x,y,w,h,ad,style,flag); if(ACK==='a320'&&hasPower()) pfdExtras(g,x,y,w,h,ad,side); } finally{ CUR_DISP=null; } };
+  try{ _pfdX(g,x,y,w,h,ad,style,flag); if(AL()&&hasPower()) pfdExtras(g,x,y,w,h,ad,side); } finally{ CUR_DISP=null; } };
 const _ndX=drawND; drawND=function(g,x,y,w,h,ad,style){ const side=x<CK.w/2?'L':'R'; CUR_DISP=side==='L'?'ND1':'ND2';
-  if(ACK==='a320') WX_HOOK=()=>wxDraw(g,x,y,w,h,ad,side);
-  try{ _ndX(g,x,y,w,h,ad,style); if(ACK==='a320'&&hasPower()&&irOK()) ndExtras(g,x,y,w,h,ad,side); } finally{ CUR_DISP=null; WX_HOOK=null; } };
+  if(AL()) WX_HOOK=()=>wxDraw(g,x,y,w,h,ad,side);
+  try{ _ndX(g,x,y,w,h,ad,style); if(AL()&&hasPower()&&irOK()) ndExtras(g,x,y,w,h,ad,side); } finally{ CUR_DISP=null; WX_HOOK=null; } };
 const _ewdX=drawEWD; drawEWD=function(g,x,y,w,h){ CUR_DISP='EWD'; try{ _ewdX(g,x,y,w,h); } finally{ CUR_DISP=null; } };
-const _sdX=drawSD; drawSD=function(g,x,y,w,h){ CUR_DISP='SD'; try{ _sdX(g,x,y,w,h); if(ACK==='a320'&&hasPower()&&(S320.page==='auto'?S320.autoPage:S320.page)==='WHEEL'&&typeof BRX!=='undefined'){ g.fillStyle='#000'; g.fillRect(x+w*0.08,y+h*0.86,w*0.84,h*0.1); txt(g,'BRK °C',x+w*0.1,y+h*0.91,COL.wh,h*0.04); BRX.T.forEach((T,i)=>txt(g,String(Math.round(T)),x+w*(0.34+i*0.17),y+h*0.91,T>300?COL.am:COL.grn,h*0.045,'center')); txt(g,'ACCU '+(E320.G>1500?'':BRX.acc),x+w*0.9,y+h*0.83,COL.grn,h*0.032,'right'); } } finally{ CUR_DISP=null; } };
+const _sdX=drawSD; drawSD=function(g,x,y,w,h){ CUR_DISP='SD'; try{ _sdX(g,x,y,w,h); if(AL()&&hasPower()&&(S320.page==='auto'?S320.autoPage:S320.page)==='WHEEL'&&typeof BRX!=='undefined'){ g.fillStyle='#000'; g.fillRect(x+w*0.08,y+h*0.86,w*0.84,h*0.1); txt(g,'BRK °C',x+w*0.1,y+h*0.91,COL.wh,h*0.04); BRX.T.forEach((T,i)=>txt(g,String(Math.round(T)),x+w*(0.34+i*0.17),y+h*0.91,T>300?COL.am:COL.grn,h*0.045,'center')); txt(g,'ACCU '+(E320.G>1500?'':BRX.acc),x+w*0.9,y+h*0.83,COL.grn,h*0.032,'right'); } } finally{ CUR_DISP=null; } };
 const _mcduDX=mcduDraw; mcduDraw=function(){ CUR_DISP='MCDU1'; try{ _mcduDX(); } finally{ CUR_DISP=null; } };
 const _mcduKX=mcduKey; mcduKey=function(k){ CUR_DISP='MCDU1'; try{ _mcduKX(k); } finally{ CUR_DISP=null; } };
 
@@ -1805,7 +1806,7 @@ const _mcduKX=mcduKey; mcduKey=function(k){ CUR_DISP='MCDU1'; try{ _mcduKX(k); }
    Titres ECAM conformes à la nomenclature Airbus publique ; actions reformulées et abrégées [ESTIMÉ]. */
 const DOTS=(a,b)=>'- '+a+' '+'.'.repeat(Math.max(2,19-a.length-b.length))+' '+b;
 const P=(...l)=>l.map(x=>Array.isArray(x)?DOTS(x[0],x[1]):x).join('\n');
-function driftDown(){ if(AP.on&&AP.alt>(ACK==='a320'?22000:25000)){ AP.alt=ACK==='a320'?22000:25000; AP.vs=1000; flash('Descente « drift down » vers FL'+AP.alt/100,'am'); } }
+function driftDown(){ if(AP.on&&AP.alt>(AL()?22000:25000)){ AP.alt=AL()?22000:25000; AP.vs=1000; flash('Descente « drift down » vers FL'+AP.alt/100,'am'); } }
 function emerDescent(){ if(!S.onGround){ AP.on=true; AP.alt=Math.min(AP.alt,10000); AP.vs=4000; AP.lat=AP.lat||'NAV'; if(A.kind==='fw'){ pedSet('spdbrk','FULL'); AP.ath=true; AP.spd=Math.min(A.Vmo-15,330); simAfter(420,()=>{ if(S.alt/FT<11000) pedSet('spdbrk','RET'); },'sb'); } flash('DESCENTE D\'URGENCE vers 10 000 ft','red'); } }
 const FAILS=[
  {id:'eng1',g:'Moteurs',n:'Extinction moteur 1',l:2,t:'ENG 1 FAIL',a:P(['THR LEVER 1','IDLE'],['ENG MASTER 1','OFF'],['ATC','NOTIFY'],'- LAND ASAP'),ac:'fw2',atc:['pan','engine one failure','panne du moteur 1'],fix:()=>{ pedSet('master1',false); driftDown(); }},
@@ -1849,7 +1850,7 @@ const FAILS=[
  {id:'genGA1',g:'Électricité',n:'Panne génératrice 2',l:0,ac:'ga2',fix:()=>{}},
  {id:'door',g:'Train · freins',n:'Porte de soute avant non verrouillée',l:2,t:'DOOR FWD CARGO',a:P(['CAB DIFF PR','CHECK'],['MAX FL','100 (IF ABNORMAL)']),ac:'a320',fix:()=>{}}
 ];
-function failAvail(f){ if(f.ac==='ga') return !!DCX[ACK]; if(f.ac==='ga2') return !!DCX[ACK]&&DCX[ACK].gens.length>1; return f.ac==='all'||(f.ac==='fw'&&A.kind==='fw')||(f.ac==='fw2'&&A.kind==='fw')||(f.ac==='a320'&&ACK==='a320')||(f.ac==='rw1'&&A.kind==='rw'&&!A.twin)||(f.ac==='rw2'&&A.kind==='rw'&&A.twin); }
+function failAvail(f){ if(f.ac==='ga') return !!DCX[ACK]; if(f.ac==='ga2') return !!DCX[ACK]&&DCX[ACK].gens.length>1; return f.ac==='all'||(f.ac==='fw'&&A.kind==='fw')||(f.ac==='fw2'&&A.kind==='fw')||(f.ac==='a320'&&AL())||(f.ac==='rw1'&&A.kind==='rw'&&!A.twin)||(f.ac==='rw2'&&A.kind==='rw'&&A.twin); }
 const FX={fixAt:{}, rnd:null};
 function failSet(id,on){ const f=FAILS.find(x=>x.id===id); if(!f) return;
   if(on){ if(FAIL[id]) return; FAIL[id]=true; flash('PANNE : '+f.n,'red');
@@ -1863,7 +1864,7 @@ function failSet(id,on){ const f=FAILS.find(x=>x.id===id); if(!f) return;
     if(id==='hydGY'){ delete FAIL.hydG; delete FAIL.hydY; }
     if(id==='adr1'||id==='pitot') delete FAIL.adr1sw; if(id==='ir1') delete FAIL.ir1sw; if(id==='cargoSmk') delete FAIL.cargoAgent; if(id==='avioSmk') delete FAIL.smkDone;
     const k=/[12]$/.test(id)?id.slice(-1):null;
-    if(['eng1','eng2','fire1','fire2','oil1','dualEng','engH','engH2'].includes(id)){ const ks=id==='dualEng'?['1','2']:id==='engH'||id==='engH2'?['1']:[k]; ks.forEach(c=>{ delete FAIL['dead'+c]; const i=+c-1; if(!S.onGround||A.kind==='rw'){ S.eng[i]=true; if(S.n2) S.n2[i]=1; if(ACK==='a320'){ SYS['master'+c]=true; SYS['fire'+c]=false; } } }); flash('Instructeur : moteur rétabli','am'); }
+    if(['eng1','eng2','fire1','fire2','oil1','dualEng','engH','engH2'].includes(id)){ const ks=id==='dualEng'?['1','2']:id==='engH'||id==='engH2'?['1']:[k]; ks.forEach(c=>{ delete FAIL['dead'+c]; const i=+c-1; if(!S.onGround||A.kind==='rw'){ S.eng[i]=true; if(S.n2) S.n2[i]=1; if(AL()){ SYS['master'+c]=true; SYS['fire'+c]=false; } } }); flash('Instructeur : moteur rétabli','am'); }
     if(id==='apuFire'){ SYS.fireA=false; SYS.agA=false; } }
   failUI(); }
 /* effets physiques (appelé à chaque sous-pas) */
@@ -1875,7 +1876,7 @@ function failStep(dt){ if(!MI) return;
   for(const c of ['1','2']){ if(FAIL['fire'+c]){ S320.fireTest['fire'+c]=performance.now()+400; if(SYS['fire'+c]&&(SYS['ag'+c+'1']||SYS['ag'+c+'2'])){ FX['x'+c]=(FX['x'+c]||0)+dt; if(FX['x'+c]>8){ delete FAIL['fire'+c]; FX['x'+c]=0; flash('Feu moteur '+c+' éteint','am'); failUI(); } } } }
   if(FAIL.apuFire){ S320.fireTest.fireA=performance.now()+400; SYS.apuAvail=false; SYS.apuStart=false; if(SYS.fireA&&SYS.agA){ FX.xa=(FX.xa||0)+dt; if(FX.xa>5){ delete FAIL.apuFire; FX.xa=0; flash('Feu APU éteint','am'); failUI(); } } }
   if(FAIL.fuelLeak) S.fuel=Math.max(0,(S.fuel||0)-0.85*dt);
-  if(ACK==='a320'){ if(FAIL.fpL&&!SYS.xfeed&&S.ff>0) E320.imb=Math.min(4000,(E320.imb||0)+S.ff*dt/3600); else if(E320.imb) E320.imb=Math.max(0,E320.imb-(SYS.xfeed?S.ff*dt/3600:0)); }
+  if(AL()){ if(FAIL.fpL&&!SYS.xfeed&&S.ff>0) E320.imb=Math.min(4000,(E320.imb||0)+S.ff*dt/3600); else if(E320.imb) E320.imb=Math.max(0,E320.imb-(SYS.xfeed?S.ff*dt/3600:0)); }
   if(FAIL.cargoAgent){ FX.ca=(FX.ca||0)+dt; if(FX.ca>60){ delete FAIL.cargoSmk; delete FAIL.cargoAgent; FX.ca=0; flash('Fumée soute : agent efficace','am'); failUI(); } }
   if(FAIL.smkDone){ FX.sm=(FX.sm||0)+dt; if(FX.sm>90){ delete FAIL.avioSmk; delete FAIL.smkDone; FX.sm=0; flash('Fumée avionique dissipée','am'); failUI(); } }
   if(FAIL.brk&&!S.onGround&&S.gear) { /* refroidissement ventilé train sorti */ }
@@ -1917,14 +1918,14 @@ function altFr(){ const a=S.alt/FT; return a>18000?'niveau '+Math.round(a/100):M
 function standTxt(){ const s=GD.stands&&GD.stands[ATC.dep]; return s&&s.gate?'stand '+s.gate:'on the apron'; }
 function routeNames(kind){ let R=TX.route&&TX.route.kind===kind?TX.route:null; if(!R&&MI.full&&A.kind==='fw'){ try{ R=kind==='out'?taxiOutRoute():taxiInRoute(); }catch(e){} } const nm=R?R.names.filter(n=>/^[A-Z][A-Z0-9]{0,3}$/.test(n)):[]; return nm.join(', '); }
 const via=k=>{ const n=routeNames(k); return n?' via '+n:''; };
-function radioPowered(){ return ACK==='a320'?!!E320.dc:hasPower(); }
-function tunedF(){ return ACK==='a320'?(SYS.rmpAct||0):ATC.f; }
-function hears(st){ if(!st) return false; const s=STN[st]; if(!radioPowered()) return false; if(s.dl) return true; if(Math.abs(tunedF()-s.f)>0.004) return false; return ACK!=='a320'||(SYS.acpVhf1||0)>0; }
-function atcTune(st){ const f=STN[st].f; if(ACK==='a320'){ SYS.rmpStby=SYS.rmpAct; SYS.rmpAct=f; if(!(SYS.acpVhf1>0)) SYS.acpVhf1=6; SYS.rmpSel='VHF1'; if(!$('ovh').hidden) a320Sync(); } else ATC.f=f; ATC.ver++; }
+function radioPowered(){ return AL()?!!E320.dc:hasPower(); }
+function tunedF(){ return AL()?(SYS.rmpAct||0):ATC.f; }
+function hears(st){ if(!st) return false; const s=STN[st]; if(!radioPowered()) return false; if(s.dl) return true; if(Math.abs(tunedF()-s.f)>0.004) return false; return !AL()||(SYS.acpVhf1||0)>0; }
+function atcTune(st){ const f=STN[st].f; if(AL()){ SYS.rmpStby=SYS.rmpAct; SYS.rmpAct=f; if(!(SYS.acpVhf1>0)) SYS.acpVhf1=6; SYS.rmpSel='VHF1'; if(!$('ovh').hidden) a320Sync(); } else ATC.f=f; ATC.ver++; }
 const X=o=>Object.assign({type:'req',trig:()=>true,skip:()=>false},o);
 function qnhOf(c){ const m=WXS.met[c]; return m?m.qnh:1013; }
 function qnhTxt(c){ const m=WXS.met[c]; return m&&m.inHg?'altimeter '+m.inHg.toFixed(2):'QNH '+qnhOf(c); }
-function atcSeqFW(dep,dest){ const fl=ACK==='a320'?350:410, K=dep==='KJFK'?{del:'JFK_DEL',gnd:'JFK_GND',twr:'JFK_TWR',dp:'NY_DEP',ctr:'ZNY',atis:'JFK_ATIS'}:{del:'CDG_DEL',gnd:'CDG_GND',twr:'CDG_TWR2',dp:'CDG_DEP',ctr:'PARIS',atis:'CDG_ATIS'},
+function atcSeqFW(dep,dest){ const fl=AL()?350:410, K=dep==='KJFK'?{del:'JFK_DEL',gnd:'JFK_GND',twr:'JFK_TWR',dp:'NY_DEP',ctr:'ZNY',atis:'JFK_ATIS'}:{del:'CDG_DEL',gnd:'CDG_GND',twr:'CDG_TWR2',dp:'CDG_DEP',ctr:'PARIS',atis:'CDG_ATIS'},
     Kd=dest==='KJFK'?{gnd:'JFK_GND',twr:'JFK_TWR',app:'NY_APP',ctr:'ZNY',atis:'JFK_ATIS'}:{gnd:'CDG_GND',twr:'CDG_TWR',app:'CDG_APP',ctr:'PARIS',atis:'CDG_ATIS'}, rwD=dep==='KJFK'?'31L':'27L', rwA=MI.destRw||null, cs=CSN,
     dD=()=>gcKm(S.lat,S.lon,APTS[dep].lat,APTS[dep].lon), dA=()=>gcKm(S.lat,S.lon,APTS[dest].lat,APTS[dest].lon), air=()=>!S.onGround, east=dep==='KJFK';
   const rwyEn=rwA?'ILS approach runway '+rwA:'the ILS approach', rwyFr=rwA?'l\'ILS piste '+rwA:'l\'ILS', s=[];
@@ -1983,15 +1984,15 @@ function atcStart(){ schedReset(); RNG.seed(hashStr((selMI||'')+ACK+(window.SCN_
   ATC.dep=nearestApt(S.lat,S.lon); ATC.dest=MI.dest; for(const k in FAIL) delete FAIL[k]; E320.imb=0; E320.emer=false;
   if(ATC.dest&&APTS[ATC.dest]){ ATC.seq=A.kind==='fw'?atcSeqFW(ATC.dep,ATC.dest):atcSeqRW(ATC.dep,ATC.dest); }
   if(!MI.full&&A.kind==='fw'){ ATC.seq=ATC.seq.filter(x=>!['atis','clr','taxi','twrH'].includes(x.k)); }
-  const first=ATC.seq[0]; if(first&&!MI.full){ if(ACK==='a320') atcTune(first.st); else ATC.f=STN[first.st].f; }
-  if(ACK==='a320'&&!MI.full){ const q=Math.round(qnhAt(S.lat,S.lon)); Object.assign(SYS,{xpdr:'AUTO',tcas:'TA/RA',wxSys:'1',pws:'AUTO',wxTilt:-1.5,xpdrCode:ATC.sq,baroL:q,baroR:q,abrk:'MAX'}); }
+  const first=ATC.seq[0]; if(first&&!MI.full){ if(AL()) atcTune(first.st); else ATC.f=STN[first.st].f; }
+  if(AL()&&!MI.full){ const q=Math.round(qnhAt(S.lat,S.lon)); Object.assign(SYS,{xpdr:'AUTO',tcas:'TA/RA',wxSys:'1',pws:'AUTO',wxTilt:-1.5,xpdrCode:ATC.sq,baroL:q,baroR:q,abrk:'MAX'}); }
   TCAS.list.forEach(t=>t.m&&(t.m.visible=false)); TCAS.list=[]; TCAS.ra=null; TCAS.scen=false; TCAS.scenDone=false; AP.raVs=null; AP.wxOff=0; WXR.dev=0; wxBuild(); failUI(); atcUI(); }
 /* ---- émission / réception ---- */
 let AUD=null;
 function squelch(){ if(!ATC.snd) return; try{ AUD=AUD||new (window.AudioContext||window.webkitAudioContext)(); const n=AUD.createBufferSource(), b=AUD.createBuffer(1,AUD.sampleRate*0.11,AUD.sampleRate), d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
-  const gn=AUD.createGain(); gn.gain.value=0.05*((ACK==='a320'?SYS.acpVhf1:6)||0)/10; const f=AUD.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800; n.buffer=b; n.connect(f); f.connect(gn); gn.connect(AUD.destination); n.start(); }catch(e){} }
+  const gn=AUD.createGain(); gn.gain.value=0.05*((AL()?SYS.acpVhf1:6)||0)/10; const f=AUD.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800; n.buffer=b; n.connect(f); f.connect(gn); gn.connect(AUD.destination); n.start(); }catch(e){} }
 let TTSX=null;
-function speak(en,rateV){ if(!ATC.voice) return; if(TTSX){ TTSX.speak(en.replace(/\bFL(\d+)/g,'flight level $1').slice(0,1900),{language:'en',rate:rateV||1.05,voice:'glassy'}).catch(()=>{}); return; } if(!window.speechSynthesis) return; try{ const u=new SpeechSynthesisUtterance(en.replace(/\bFL(\d+)/g,'flight level $1').replace(/(\d)\.(\d)/g,'$1 decimal $2')); u.lang='en-US'; u.rate=rateV||1.08; u.volume=Math.min(1,((ACK==='a320'?Math.max(SYS.acpVhf1||0,SYS.loudL==null?0:+SYS.loudL):6)||6)/8); speechSynthesis.speak(u); }catch(e){} }
+function speak(en,rateV){ if(!ATC.voice) return; if(TTSX){ TTSX.speak(en.replace(/\bFL(\d+)/g,'flight level $1').slice(0,1900),{language:'en',rate:rateV||1.05,voice:'glassy'}).catch(()=>{}); return; } if(!window.speechSynthesis) return; try{ const u=new SpeechSynthesisUtterance(en.replace(/\bFL(\d+)/g,'flight level $1').replace(/(\d)\.(\d)/g,'$1 decimal $2')); u.lang='en-US'; u.rate=rateV||1.08; u.volume=Math.min(1,((AL()?Math.max(SYS.acpVhf1||0,SYS.loudL==null?0:+SYS.loudL):6)||6)/8); speechSynthesis.speak(u); }catch(e){} }
 function atcLog(who,st,en,fr){ ATC.log.push({who,st:st?STN[st].n:'',en,fr:fr||'',t:simMs}); if(ATC.log.length>150) ATC.log.shift(); ATC.ver++;
   if(who==='ATC'||who==='CPDLC'||who==='PIL') subtitle((who==='PIL'?'▲ ':'▼ ')+(st?STN[st].n+' — ':'')+en,ATC.fr&&fr?fr:''); }
 function subtitle(a,b){ const el=$('atcsub'); if(!el) return; el.innerHTML='<div>'+esc(a)+'</div>'+(b?'<div style="color:#a9bccc;font-weight:500;font-style:italic">'+esc(b)+'</div>':''); el.hidden=false; clearTimeout(subtitle.t); subtitle.t=setTimeout(()=>{ el.hidden=true; },7500); }
@@ -2032,7 +2033,7 @@ function rbCheck(x,txt){ const u=rbNorm(txt), nums=(u.match(/\d+(\.\d+)?/g)||[])
   return miss; }
 function atcReadback(txt){ const x=curX(); if(!x||ATC.state!=='rb') return;
   if(x.type==='dl'){ atcLog('PIL',x.st,'WILCO','Message CPDLC accepté (WILCO).'); xDone(x); return; }
-  if(x.sq&&ACK==='a320'&&+SYS.xpdrCode!==ATC.sq){ flash('Transpondeur : affichez '+ATC.sq+' avant de collationner','am'); return; }
+  if(x.sq&&AL()&&+SYS.xpdrCode!==ATC.sq){ flash('Transpondeur : affichez '+ATC.sq+' avant de collationner','am'); return; }
   const auto=txt==null, said=auto?x.rb():String(txt).trim(); if(!said){ flash('Tapez ou dictez votre collationnement','am'); return; }
   atcLog('PIL',x.st,said,auto?'Collationnement (copilote radio).':'Votre collationnement.');
   const miss=auto?[]:rbCheck(x,said); ATC.rbErr=miss;
@@ -2041,7 +2042,7 @@ function atcReadback(txt){ const x=curX(); if(!x||ATC.state!=='rb') return;
 function atcEmergency(e){ const [kind,en,fr]=e, cs=CSN(), st=ATC.curSt||(ATC.seq[ATC.i]||{}).st; if(!st) return; const word=kind==='mayday'?'Mayday, mayday, mayday':'Pan pan, pan pan, pan pan';
   ATC.q.push(X({k:'emer',lab:'déclaration d\'urgence',st,emer:1,p:()=>`${word}, ${STN[st].n}, ${cs}, ${en}, ${altTxt()}, request ${kind==='mayday'?'immediate descent and vectors to the nearest suitable airport':'descent'}.`,pf:()=>`${kind==='mayday'?'MAYDAY':'PAN PAN'} : ${fr}.`,
     a:()=>[`${cs}, roger ${kind==='mayday'?'Mayday':'Pan'}, descend at your discretion, squawk ${kind==='mayday'?'7700':ATC.sq}, report intentions.`,`Bien reçu ; descendez à votre convenance${kind==='mayday'?', transpondeur 7700':''}, annoncez vos intentions.`],
-    rb:()=>`Descending, ${kind==='mayday'?'squawk 7700, ':''}${cs}.`,after:()=>{ if(kind==='mayday'&&ACK==='a320') SYS.xpdrCode=7700; }})); ATC.ver++; }
+    rb:()=>`Descending, ${kind==='mayday'?'squawk 7700, ':''}${cs}.`,after:()=>{ if(kind==='mayday'&&AL()) SYS.xpdrCode=7700; }})); ATC.ver++; }
 function atcAssist(k){ ATC.want=k; ATC.assist=true; const p=$('atc'); if(p&&p.hidden&&!AUTO.on) atcOpen(true); }
 function autoRadio(){ return AUTO.on||ATC.co||ATC.assist; }
 /* ---- machine d'état (≈ 5 Hz) ---- */
@@ -2062,9 +2063,9 @@ function atcTick(){ if(!MI||!ATC.seq) return; const now=atcNow(); let x=curX(); 
   // « copilote radio » : mode automatique, aide du guide ou case cochée
   if(autoRadio()&&now>(ATC.nextAuto||0)){ x=curX(); if(x){
       if(ATC.state==='ready'){ if(!STN[x.st].dl&&!hears(x.st)&&x.type!=='ann'&&!STN[x.st].ctaf){ atcTune(x.st); atcLog('SYS',null,`Fréquence ${fq(x.st)} affichée (${STN[x.st].n}).`); ATC.nextAuto=now+1500; }
-        else if(STN[x.st].ctaf&&ACK!=='a320'&&Math.abs(ATC.f-STN[x.st].f)>0.004){ ATC.f=STN[x.st].f; ATC.nextAuto=now+1200; }
+        else if(STN[x.st].ctaf&&!AL()&&Math.abs(ATC.f-STN[x.st].f)>0.004){ ATC.f=STN[x.st].f; ATC.nextAuto=now+1200; }
         else { atcCall(); ATC.nextAuto=now+1200; } }
-      else if(ATC.state==='rb'){ if(x.sq&&ACK==='a320'&&+SYS.xpdrCode!==ATC.sq){ SYS.xpdrCode=ATC.sq; atcLog('SYS',null,'Transpondeur réglé sur '+ATC.sq+'.'); ATC.nextAuto=now+1200; } else { atcReadback(); if(x.after&&!x.ok) x.after(); ATC.nextAuto=now+1600; } }
+      else if(ATC.state==='rb'){ if(x.sq&&AL()&&+SYS.xpdrCode!==ATC.sq){ SYS.xpdrCode=ATC.sq; atcLog('SYS',null,'Transpondeur réglé sur '+ATC.sq+'.'); ATC.nextAuto=now+1200; } else { atcReadback(); if(x.after&&!x.ok) x.after(); ATC.nextAuto=now+1600; } }
       else if(ATC.state==='idle'&&x.type==='ini'&&!hears(x.st)&&!STN[x.st].dl&&ATC.miss>0){ atcTune(x.st); ATC.nextAuto=now+1500; }
       else if(ATC.state==='idle'&&x.type==='atis'&&x.trig()&&!hears(x.st)){ atcTune(x.st); atcLog('SYS',null,`ATIS : ${fq(x.st)} affichée.`); ATC.nextAuto=now+1500; } } }
   if(ATC.assist&&ATC.want&&ATC.done.has(ATC.want)) ATC.assist=false;
@@ -2078,7 +2079,7 @@ const TCAS={list:[],lvl:0,ra:null,raSense:null,raKind:null,raTxt:'',scen:false,s
 /* niveaux de sensibilité TCAS II v7.1 : [alt. max (ft), SL, TA tau s, TA DMOD NM, TA ZTHR ft, RA tau s, RA DMOD NM, RA ZTHR ft, ALIM ft] [RÉFÉRENCÉ FAA 2011] */
 const TCAS_SL=[[1000,2,20,0.30,850,0,0,0,0],[2350,3,25,0.33,850,15,0.20,600,300],[5000,4,30,0.48,850,20,0.35,600,300],[10000,5,40,0.75,850,25,0.55,600,350],[20000,6,45,1.00,850,30,0.80,600,400],[42000,7,48,1.30,850,35,1.10,700,600],[1e9,7,48,1.30,1200,35,1.10,800,700]];
 function tcasSL(){ const ag=aglFt(), h=S.alt/FT; if(ag<1000) return TCAS_SL[0]; if(ag<2350) return TCAS_SL[1]; for(let i=2;i<TCAS_SL.length;i++) if(h<TCAS_SL[i][0]) return TCAS_SL[i]; return TCAS_SL[6]; }
-function tcasOn(){ if(FAIL.tcas) return false; if(ACK==='a320') return SYS.tcas!=='STBY'&&SYS.xpdr!=='STBY'&&radioPowered(); return ACK==='lj60'&&hasPower(); }
+function tcasOn(){ if(FAIL.tcas) return false; if(AL()) return SYS.tcas!=='STBY'&&SYS.xpdr!=='STBY'&&radioPowered(); return ACK==='lj60'&&hasPower(); }
 function ownVel(){ if(A.kind==='fw'){ const v=S.V*Math.cos(S.gam||0); return [v*Math.sin(S.psi),v*Math.cos(S.psi),S.V*Math.sin(S.gam||0)]; } return [S.ve||0,S.vn||0,S.vu||0]; }
 function tcasSpawn(scen){ const own=S.alt/FT, cruise=own>18000; let t;
   if(scen){ const b=S.psi*R2D, d=26*1852, p=offsetLL(S.lat,S.lon,d*Math.cos(b*D2R),d*Math.sin(b*D2R));
@@ -2100,7 +2101,7 @@ function tcasStep(dt){ if(!MI) return; if(!S.onGround) ATC.tAir=(ATC.tAir||0)+dt
     const dzc=dz+vz*Math.min(tau,60); t.r=r; t.dz=dz; t.tau=tau; t.dE=dE; t.dN=dN; t.vz=vz;
     let lvl=(r<6*1852&&Math.abs(dz)<1200)?1:0;
     if(tcasOn()&&hmd<1.6*1852&&!S.onGround){ if(tau<SL[2]&&(Math.abs(dz)<SL[4]||tauV<SL[2])) lvl=2;
-      if(SL[5]&&(ACK!=='a320'||(SYS.tcas==='TA/RA'&&SYS.altRpt!==false))){   /* sans report d'altitude : TA seulement */ const tr=tmod(SL[6]); t.tauRA=tr; if(tr<SL[5]&&(Math.abs(dz)<SL[7]||tauV<SL[5])) lvl=3; } }
+      if(SL[5]&&(!AL()||(SYS.tcas==='TA/RA'&&SYS.altRpt!==false))){   /* sans report d'altitude : TA seulement */ const tr=tmod(SL[6]); t.tauRA=tr; if(tr<SL[5]&&(Math.abs(dz)<SL[7]||tauV<SL[5])) lvl=3; } }
     if(t.lvl===3&&lvl<3&&rd<0&&r<4*1852) lvl=3;   // RA maintenu jusqu'au point de rapprochement
     t.lvl=lvl; t.dzc=dzc; }
   const top=TCAS.list.reduce((m,t)=>Math.max(m,t.lvl||0),0), wasRA=!!TCAS.ra;
@@ -2129,7 +2130,7 @@ function ndGeo(x,y,w,h,ad,side){ const mode=SYS['ndMode'+side]||'ARC', rng=SYS['
   return {mode,rng,rose,plan,cx,cy,r,up:plan?0:ad.hdg,k:r/(rose||plan?rng/2:rng)}; }
 function ndExtras(g,x,y,w,h,ad,side){ const G=ndGeo(x,y,w,h,ad,side);
   if(side==='L'&&FAIL.ir1&&!FAIL.ir1sw){ g.fillStyle='#000'; g.fillRect(x+w*0.4,y+h*0.06,w*0.2,h*0.07); txt(g,'HDG',x+w/2,y+h*0.095,COL.red,h*0.05,'center','700 '); }
-  if(ACK==='a320'&&SYS.tcas!=='STBY'&&FAIL.tcas) txt(g,'TCAS',x+w-6,y+h*0.46,COL.am,h*0.045,'right','700 ');
+  if(AL()&&SYS.tcas!=='STBY'&&FAIL.tcas) txt(g,'TCAS',x+w-6,y+h*0.46,COL.am,h*0.045,'right','700 ');
   if(SYS.wxSys!=='OFF'&&FAIL.wx) txt(g,'WXR FAULT',x+w/2,y+h-26,COL.am,h*0.042,'center','700 ');
   else if(SYS.wxSys!=='OFF'&&!G.plan) txt(g,'TILT '+(SYS.wxTilt>0?'+':'')+(+SYS.wxTilt||0).toFixed(1)+'°  GAIN '+(SYS.wxGain?((SYS.wxGain>0?'+':'')+SYS.wxGain):'CAL'),x+6,y+h-24,COL.cy,h*0.036);
   if(WXR.ws&&SYS.pws==='AUTO') txt(g,'W/S AHEAD',x+w/2,y+h*0.3,COL.red,h*0.065,'center','700 ');
@@ -2149,7 +2150,7 @@ function ndExtras(g,x,y,w,h,ad,side){ const G=ndGeo(x,y,w,h,ad,side);
     if(Math.abs(t.vs/FT*60)>500){ const up=t.vs>0; g.strokeStyle=c; g.beginPath(); g.moveTo(px+s*1.8,py+s); g.lineTo(px+s*1.8,py-s); g.stroke(); g.beginPath(); const ty=up?py-s:py+s; g.moveTo(px+s*1.4,ty+(up?3:-3)); g.lineTo(px+s*1.8,ty); g.lineTo(px+s*2.2,ty+(up?3:-3)); g.stroke(); } }
   g.restore();
   if(TCAS.ra) txt(g,'TCAS RA',x+w-6,y+h-24,COL.red,h*0.05,'right','700 '); else if(thrt) txt(g,'TRAFFIC',x+w-6,y+h-24,COL.am,h*0.045,'right','700 ');
-  if(ACK==='a320'&&SYS.tcas==='TA') txt(g,'TA ONLY',x+6,y+h*0.6,COL.wh,h*0.04); }
+  if(AL()&&SYS.tcas==='TA') txt(g,'TA ONLY',x+6,y+h*0.6,COL.wh,h*0.04); }
 /* PFD : ordre de résolution (zones de vitesse verticale), cisaillement, drapeaux de pannes */
 function pfdExtras(g,x,y,w,h,ad,side){ const cy=y+h*0.48, ah=h*0.6, vx=x+w*0.92, vh2=ah*0.45, Yv=v=>cy-clamp(v/6000,-1,1)*vh2;
   if(TCAS.ra&&TCAS.raKind==='prev'){ g.globalAlpha=0.75; g.fillStyle=COL.red; g.fillRect(vx-3,Yv(-6000),12,Yv(-300)-Yv(-6000)); g.fillRect(vx-3,Yv(6000),12,Yv(300)-Yv(6000)); g.globalAlpha=1; txt(g,'MONITOR V/S',x+w*0.46,y+h*0.25,COL.red,h*0.05,'center','700 '); }
@@ -2192,7 +2193,7 @@ function wxStep(dt){ if(!MI||!WXR.cells.length) return; let turb=0, ice=false; c
   WXR.turb=turb; WXR.ice=ice;   // effets : rafales (GUST) et givrage (ICE) dans systems.js
   if(turb>0.05&&!S.onGround&&A.kind==='rw'){ S.ph+=rndN()*turb*0.01; } }
 function wxTick(){ if(!MI) return; const ag=aglFt(); WXR.ws=false;
-  if(SYS.pws==='AUTO'&&ACK==='a320'&&!S.onGround&&ag<1500&&ag>50&&SYS.wxSys!=='OFF'&&!FAIL.wx) for(const c of WXR.cells){ if(!c.ws||c.d==null) continue; const rel=wrapPi(Math.atan2(c.dE,c.dN)-S.psi)*R2D; if(c.d<5.6&&Math.abs(rel)<30) WXR.ws=true; }
+  if(SYS.pws==='AUTO'&&AL()&&!S.onGround&&ag<1500&&ag>50&&SYS.wxSys!=='OFF'&&!FAIL.wx) for(const c of WXR.cells){ if(!c.ws||c.d==null) continue; const rel=wrapPi(Math.atan2(c.dE,c.dN)-S.psi)*R2D; if(c.d<5.6&&Math.abs(rel)<30) WXR.ws=true; }
   if(WXR.ws&&!WXR.wsW){ flash('W/S AHEAD','am'); } WXR.wsW=WXR.ws;
   if(WXR.turb>0.3&&performance.now()-(WXR.tFlash||0)>15000){ WXR.tFlash=performance.now(); flash('Turbulence dans la cellule orageuse : rafales verticales jusqu\'à '+Math.round(WXR.turb*7.5*2)+' m/s','am'); }
   // évitement automatique (mode auto) : écart de route ±25° si une cellule active barre la route
@@ -2244,20 +2245,20 @@ function atcUI(){ if(!$('atc')){ const d=document.createElement('aside'); d.id='
     const f=document.createElement('aside'); f.id='fail'; f.className='panel'; f.hidden=true; f.setAttribute('aria-label','Poste instructeur : pannes'); document.body.appendChild(f); }
   ATC.ver++; atcRender(true); }
 function atcOpen(on){ const p=$('atc'); if(!p) return; p.hidden=on===undefined?!p.hidden:!on; const b=$('b-atc'); if(b) b.classList.toggle('on',!p.hidden); try{ AUD=AUD||new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} atcRender(true); }
-function atcRender(force){ const p=$('atc'); if(!p||p.hidden) return; if(!force&&p.dataset.v===String(ATC.ver)+':'+Math.round(tunedF()*1000)+(ACK==='a320'?SYS.acpVhf1+':'+SYS.xpdrCode:'')) return;
-  p.dataset.v=String(ATC.ver)+':'+Math.round(tunedF()*1000)+(ACK==='a320'?SYS.acpVhf1+':'+SYS.xpdrCode:'');
+function atcRender(force){ const p=$('atc'); if(!p||p.hidden) return; if(!force&&p.dataset.v===String(ATC.ver)+':'+Math.round(tunedF()*1000)+(AL()?SYS.acpVhf1+':'+SYS.xpdrCode:'')) return;
+  p.dataset.v=String(ATC.ver)+':'+Math.round(tunedF()*1000)+(AL()?SYS.acpVhf1+':'+SYS.xpdrCode:'');
   const prevIn=p.querySelector('#atc-rb'), keep=prevIn?prevIn.value:'', foc=prevIn&&document.activeElement===prevIn, wxOpen=!!(p.querySelector('details.wxp')||{}).open;
   const x=curX(), st=x?x.st:ATC.curSt, S_=st?STN[st]:null, ok=st?hears(st):false, pw=radioPowered();
   const hint=!x?'Aucun échange en attente.':x.type==='atis'&&ATC.state==='idle'?'Écoutez l\'ATIS sur '+fq(x.st)+' (information météo et piste en service)':ATC.state==='wait2'?'Le contrôleur corrige votre collationnement…':ATC.state==='ready'?(x.type==='ann'?'Annonce d\'auto-information à faire':'À vous d\'appeler : '+(x.lab||({clr:'demande de clairance',taxi:'repoussage et roulage',to:'prêt au départ',depIn:'premier contact Départ',appIn:'premier contact Approche',land:'établi, demande d\'atterrissage',taxiIn:'roulage vers le parking'}[x.k]||'premier contact'))):ATC.state==='rb'?(x.type==='dl'?'Message CPDLC : répondre WILCO':'Collationnez le message'+(x.sq?' (transpondeur '+ATC.sq+')':'')):ATC.state==='wait'?'En attente de la réponse…':ATC.state==='okw'?'Le contrôleur vérifie le collationnement…':ATC.state==='nil'?'Pas de réponse…':x.type==='ini'?'Écoute : le contrôleur vous appellera':'En attente des conditions ('+(x.lab||x.k)+')';
   const L=ATC.log.slice(-14).map(m=>`<li class="${m.who}"><span class="w">${m.who==='PIL'?'▲ '+CSN():m.who==='ATC'?'▼ '+m.st:m.who==='CPDLC'?'✉ CPDLC '+m.st:'•'}</span>${esc(m.en)}${ATC.fr&&m.fr&&m.who!=='SYS'?`<span class="fr">${esc(m.fr)}</span>`:''}</li>`).join('');
   p.innerHTML=`<div class="hd"><b>RADIO · CONTRÔLE AÉRIEN</b><span class="tag">SIMULÉ</span><span style="flex:1"></span><button type="button" class="mini" data-a="x">✕</button></div>
    <div class="ast"><div><small>Station</small><b>${S_?S_.n:'—'}</b><span>${S_?(S_.dl?'CPDLC (liaison de données)':fq(st)+' MHz'):''}</span></div>
-     <div><small>VHF 1 active</small><b class="${ok?'ok':'ko'}">${pw?tunedF().toFixed(3):'— (hors tension)'}</b><span>${ACK==='a320'?'vol. ACP '+(SYS.acpVhf1||0)+' · XPDR '+String(SYS.xpdrCode).padStart(4,'0'):'radio de bord'}</span></div></div>
+     <div><small>VHF 1 active</small><b class="${ok?'ok':'ko'}">${pw?tunedF().toFixed(3):'— (hors tension)'}</b><span>${AL()?'vol. ACP '+(SYS.acpVhf1||0)+' · XPDR '+String(SYS.xpdrCode).padStart(4,'0'):'radio de bord'}</span></div></div>
    <p class="ahint">${hint}</p>
-   <div class="abtn"><button type="button" data-a="tune" ${S_&&!S_.dl&&!ok?'':'disabled'}>Régler ${S_&&!S_.dl?fq(st):''}</button><button type="button" data-a="call" ${ATC.state==='ready'?'':'disabled'}>${x&&x.type==='ann'?'Annoncer':'Appeler'}</button><button type="button" data-a="rb" ${ATC.state==='rb'?'':'disabled'}>${x&&x.type==='dl'?'WILCO':'Collationner (copilote)'}</button>${x&&x.sq&&ATC.state==='rb'&&ACK==='a320'?`<button type="button" data-a="sq">XPDR ${ATC.sq}</button>`:''}${x&&x.type==='atis'?'<button type="button" data-a="skip">Passer l\'ATIS</button>':''}</div>
+   <div class="abtn"><button type="button" data-a="tune" ${S_&&!S_.dl&&!ok?'':'disabled'}>Régler ${S_&&!S_.dl?fq(st):''}</button><button type="button" data-a="call" ${ATC.state==='ready'?'':'disabled'}>${x&&x.type==='ann'?'Annoncer':'Appeler'}</button><button type="button" data-a="rb" ${ATC.state==='rb'?'':'disabled'}>${x&&x.type==='dl'?'WILCO':'Collationner (copilote)'}</button>${x&&x.sq&&ATC.state==='rb'&&AL()?`<button type="button" data-a="sq">XPDR ${ATC.sq}</button>`:''}${x&&x.type==='atis'?'<button type="button" data-a="skip">Passer l\'ATIS</button>':''}</div>
    ${ATC.state==='rb'&&x&&x.type!=='dl'?`<div class="arb"><input type="text" id="atc-rb" placeholder="Votre collationnement (anglais ou français)…" aria-label="Collationnement"><button type="button" data-a="rbsend">Envoyer</button><button type="button" data-a="dict" title="Dicter">🎤</button></div><p class="anote">Éléments vérifiés : ${rbNeed(x).map(n=>n.l).join(', ')||'accusé de réception'}. « Collationner » sans texte = copilote radio.</p>`:''}
    <div class="aopt"><label><input type="checkbox" data-o="co" ${ATC.co?'checked':''}>Copilote radio</label><label><input type="checkbox" data-o="fr" ${ATC.fr?'checked':''}>Traduction</label><label><input type="checkbox" data-o="voice" ${ATC.voice?'checked':''}>Voix du contrôleur</label><label><input type="checkbox" data-o="snd" ${ATC.snd?'checked':''}>Souffle radio</label></div>
-   <ol class="atc-log">${L||'<li class="SYS">Journal vide. '+(ACK==='a320'?'Réglez la fréquence sur le RMP (pédestal) ou avec « Régler ».':'')+'</li>'}</ol>
+   <ol class="atc-log">${L||'<li class="SYS">Journal vide. '+(AL()?'Réglez la fréquence sur le RMP (pédestal) ou avec « Régler ».':'')+'</li>'}</ol>
    ${typeof wxPanelHTML==='function'?wxPanelHTML():''}
    <p class="anote">Indicatif fictif ${CSN()}. Fréquences : ${S_&&S_.ref?'[RÉFÉRENCÉ] '+S_.ref:S_&&S_.est?'[ESTIMÉ] fréquence de secteur indicative':'—'}. Phraséologie OACI/FAA usuelle ; ne pas utiliser pour la navigation réelle. Messages pilote : texte (pas de voix d\'équipage).</p>`;
   const ni=p.querySelector('#atc-rb'); if(ni){ ni.value=keep; if(foc) ni.focus(); ni.onkeydown=e=>{ if(e.key==='Enter'){ atcReadback(ni.value); atcRender(true); } }; } if(wxOpen){ const d=p.querySelector('details.wxp'); if(d) d.open=true; } if(typeof wxBind==='function') wxBind(p);
@@ -2273,23 +2274,23 @@ function failOpen(on){ const p=$('fail'); if(!p) return; p.hidden=on===undefined
 function failUI(){ const p=$('fail'); if(!p||p.hidden||!MI) return; const av=FAILS.filter(failAvail), groups=[...new Set(av.map(f=>f.g))];
   const act=av.filter(f=>FAIL[f.id]);
   p.innerHTML=`<div class="hd"><b>POSTE INSTRUCTEUR · PANNES</b><span class="tag">SIMULÉ</span><span style="flex:1"></span><button type="button" class="mini" data-f="x">✕</button></div>
-   <p class="anote">Cochez une panne pour l'injecter immédiatement. ${ACK==='a320'?'Les alarmes apparaissent sur l\'E/WD (ECAM) avec le Master Warning / Caution ; ':''}en mode automatique, la procédure est appliquée seule après quelques secondes pour l'observation. Titres ECAM d'après la nomenclature Airbus publique ; actions reformulées et abrégées [ESTIMÉ] — ce n'est pas un FCOM.</p>
+   <p class="anote">Cochez une panne pour l'injecter immédiatement. ${AL()?'Les alarmes apparaissent sur l\'E/WD (ECAM) avec le Master Warning / Caution ; ':''}en mode automatique, la procédure est appliquée seule après quelques secondes pour l'observation. Titres ECAM d'après la nomenclature Airbus publique ; actions reformulées et abrégées [ESTIMÉ] — ce n'est pas un FCOM.</p>
    <div class="fbar"><button type="button" data-f="rnd">Panne aléatoire (1 à 4 min)</button><button type="button" data-f="tcas">Conflit TCAS maintenant</button><button type="button" data-f="clr">Tout réinitialiser</button>${FX.rnd?'<span class="tag">panne surprise programmée</span>':''}</div>
    ${act.length?`<div class="fact"><b>Pannes actives</b>${act.map(f=>`<div class="fa"><span>${f.n}</span>${f.t?`<code>${f.t}</code>`:''}<button type="button" class="mini" data-fx="${f.id}">Appliquer la procédure</button></div>`).join('')}</div>`:''}
    ${groups.map(gr=>`<h4>${gr}</h4><div class="fg">${av.filter(f=>f.g===gr).map(f=>`<label><input type="checkbox" data-fid="${f.id}" ${FAIL[f.id]?'checked':''}><span>${f.n}${f.t?`<small>${f.t}</small>`:''}</span></label>`).join('')}</div>`).join('')}
-   ${ACK==='a320'?`<h4>Alimentation des écrans (réaliste)</h4><p class="anote">Batteries seules au sol : les six écrans restent noirs. En vol sans AC (ELEC EMER CONFIG) : PFD 1 et E/WD restent alimentés, puis ND 1 et MCDU 1 quand la génératrice de secours (RAT) débite ; PFD 2, ND 2 et SD s'éteignent [ESTIMÉ].</p>`:''}`;
+   ${AL()?`<h4>Alimentation des écrans (réaliste)</h4><p class="anote">Batteries seules au sol : les six écrans restent noirs. En vol sans AC (ELEC EMER CONFIG) : PFD 1 et E/WD restent alimentés, puis ND 1 et MCDU 1 quand la génératrice de secours (RAT) débite ; PFD 2, ND 2 et SD s'éteignent [ESTIMÉ].</p>`:''}`;
   p.querySelectorAll('[data-fid]').forEach(c=>c.onchange=()=>failSet(c.dataset.fid,c.checked));
   p.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{ const f=FAILS.find(x=>x.id===b.dataset.fx); try{ f.fix(); }catch(e){} delete FX.fixAt[f.id]; flash('Procédure appliquée : '+(f.t||f.n),'am'); ovhSync(); pedSync(); failUI(); });
   p.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ const a=b.dataset.f; if(a==='x') failOpen(false);
     else if(a==='clr'){ Object.keys(FAIL).forEach(k=>{ if(FAILS.find(f=>f.id===k)) failSet(k,false); }); for(const k in FAIL) delete FAIL[k]; FX.rnd=null; failUI(); }
     else if(a==='rnd'){ const pool=av.filter(f=>!FAIL[f.id]&&!['wx','gear','brk','engH'].includes(f.id)); const f=pool[Math.floor(rnd()*pool.length)]; if(f){ FX.rnd={id:f.id,at:SIMT+60+rnd()*180}; flash('Panne surprise programmée','am'); failUI(); } }
-    else if(a==='tcas'){ if(S.onGround){ flash('Conflit TCAS : en vol uniquement','am'); return; } if(ACK==='a320'&&SYS.tcas==='STBY'){ SYS.tcas='TA/RA'; SYS.xpdr='AUTO'; } tcasSpawn(true); failOpen(false); } }); }
+    else if(a==='tcas'){ if(S.onGround){ flash('Conflit TCAS : en vol uniquement','am'); return; } if(AL()&&SYS.tcas==='STBY'){ SYS.tcas='TA/RA'; SYS.xpdr='AUTO'; } tcasSpawn(true); failOpen(false); } }); }
 function failTick(){ if(!MI) return; const now=performance.now();
   if(FX.rnd&&SIMT>FX.rnd.at){ const id=FX.rnd.id; FX.rnd=null; failSet(id,true); }
   if(AUTO.on) for(const id in FX.fixAt){ if(SIMT>FX.fixAt[id]){ const f=FAILS.find(x=>x.id===id); delete FX.fixAt[id]; if(f&&FAIL[id]){ try{ f.fix(); }catch(e){} flash('Procédure ECAM appliquée : '+(f.t||f.n),'am'); ovhSync(); pedSync(); failUI(); } } }
   // mode observation : accélération au sol pendant les attentes réelles (alignement IR, démarrages) ; auto-frein armé en descente
   if(window.TREAL){ if(rate!==1&&!window.FF) setRate(1); } else if(AUTO.on&&MI.full&&S.onGround&&!((GD.steps[GD.i]||{}).fly)){ const wait=(SYS.ir1==='NAV'&&(SYS.irAl||0)<1)||SYS.apuStart||(S.n2&&S.n2.some((n,i)=>n>0.01&&n<1&&!S.eng[i])); const want=wait?16:1; if(rate!==want) setRate(want); }
-  if((AUTO.on||ATC.co)&&ACK==='a320'&&!S.onGround&&S.alt/FT<10000&&(S.gam||0)<0&&ATC.flown&&!['LO','MED'].includes(SYS.abrk)){ SYS.abrk='LO'; flash('Auto-frein LO armé','am'); }
+  if((AUTO.on||ATC.co)&&AL()&&!S.onGround&&S.alt/FT<10000&&(S.gam||0)<0&&ATC.flown&&!['LO','MED'].includes(SYS.abrk)){ SYS.abrk='LO'; flash('Auto-frein LO armé','am'); }
   // panneau des pannes : rafraîchir les « pannes actives » quand une panne disparaît d'elle-même
   const sig=Object.keys(FAIL).sort().join(','); if(sig!==FX.sig){ FX.sig=sig; failUI(); } }
 
@@ -2297,14 +2298,14 @@ function failTick(){ if(!MI) return; const now=performance.now();
 const _stepsForX=stepsFor; stepsFor=function(){ const P_=_stepsForX(); if(A.kind!=='fw') return P_;
   const it=(lab,k,sel)=>[lab,()=>ATC.done.has(k),()=>atcAssist(k),sel||null];
   const cock=P_.filter(s=>s.ph==='Cockpit'), bs=cock[cock.length-1];
-  if(bs&&ACK==='a320'){ const qn=()=>Math.round(qnhAt(S.lat,S.lon)); bs.items.unshift(['Calage altimétrique : QNH local affiché (ATIS)',()=>!SYS.baroStdL&&Math.abs((+SYS.baroL||0)-qn())<1,()=>{ SYS.baroL=SYS.baroR=qn(); SYS.baroStdL=SYS.baroStdR=false; try{ fcuSync(); }catch(e){} },null]); }
+  if(bs&&AL()){ const qn=()=>Math.round(qnhAt(S.lat,S.lon)); bs.items.unshift(['Calage altimétrique : QNH local affiché (ATIS)',()=>!SYS.baroStdL&&Math.abs((+SYS.baroL||0)-qn())<1,()=>{ SYS.baroL=SYS.baroR=qn(); SYS.baroStdL=SYS.baroStdR=false; try{ fcuSync(); }catch(e){} },null]); }
   if(bs){ bs.items.unshift(it('Clairance ATC reçue et collationnée (transpondeur réglé)','clr')); bs.txt+=' <br><b>Radio</b> : réglez Clearance Delivery sur le RMP, demandez la clairance IFR, collationnez et affichez le code transpondeur (squawk) attribué.'; }
   for(const s of P_){ const j=s.items.findIndex(x=>/^Itinéraire de roulage reçu/.test(x[0])); if(j>=0){ s.items.splice(j,0,it('Repoussage et roulage autorisés (Sol)','taxi')); s.txt+=' <br><b>Radio</b> : demandez au Sol le repoussage et le roulage ; collationnez l\'itinéraire et le point d\'arrêt.'; }
     const k=s.items.findIndex(x=>/^Alignement sur la piste/.test(x[0])); if(k>=0){ s.items.splice(k,0,it('Autorisation d\'alignement et de décollage (Tour)','to')); }
-    if(s.ph==='Décollage'&&ACK==='a320'){ s.items.unshift(['Transpondeur AUTO, TCAS TA/RA',()=>SYS.xpdr!=='STBY'&&SYS.tcas==='TA/RA',()=>{ SYS.xpdr='AUTO'; SYS.tcas='TA/RA'; ovhSync(); pedSync(); },'[data-sw="tcas"]'],['Radar météo SYS 1, PWS AUTO, tilt −1,5°',()=>SYS.wxSys!=='OFF'&&SYS.pws==='AUTO',()=>{ SYS.wxSys='1'; SYS.pws='AUTO'; SYS.wxTilt=-1.5; ovhSync(); pedSync(); },'[data-sw="wxSys"]']);
+    if(s.ph==='Décollage'&&AL()){ s.items.unshift(['Transpondeur AUTO, TCAS TA/RA',()=>SYS.xpdr!=='STBY'&&SYS.tcas==='TA/RA',()=>{ SYS.xpdr='AUTO'; SYS.tcas='TA/RA'; ovhSync(); pedSync(); },'[data-sw="tcas"]'],['Radar météo SYS 1, PWS AUTO, tilt −1,5°',()=>SYS.wxSys!=='OFF'&&SYS.pws==='AUTO',()=>{ SYS.wxSys='1'; SYS.pws='AUTO'; SYS.wxTilt=-1.5; ovhSync(); pedSync(); },'[data-sw="wxSys"]']);
       s.txt+=' Le TCAS (TA/RA) et le radar météo se règlent au pédestal ; le PWS (cisaillement prédictif) est armé pour le décollage et l\'approche.'; }
     if(s.ph==='Atterrissage'&&MI.full) s.items.unshift(it('Autorisation d\'atterrissage (Tour)','land'));
-    if(s.ph==='Approche'&&ACK==='a320') s.items.unshift(['Auto-frein LO armé (atterrissage)',()=>['LO','MED'].includes(SYS.abrk),()=>pedSet('abrk','LO'),'[data-pd="abrk"]']); }
+    if(s.ph==='Approche'&&AL()) s.items.unshift(['Auto-frein LO armé (atterrissage)',()=>['LO','MED'].includes(SYS.abrk),()=>pedSet('abrk','LO'),'[data-pd="abrk"]']); }
   return P_; };
 
 /* ====================== MÉTÉO RÉELLE : METAR, vent, QNH, ATIS ======================
@@ -2363,12 +2364,12 @@ function transAlt(){ const c=nearestApt(S.lat,S.lon); return c&&c[0]==='L'?5000:
 const _airdataW=airdata; airdata=function(){ const d=_airdataW(); if(!MI) return d; const w=windNow();
   if(A.kind==='fw'){ if(S.onGround){ const va=Math.max(0,S.V+windHead()); d.cas=casFromTas(va,S.alt)/KT; d.gs=S.V/KT; }
     else { const vh=S.V*Math.cos(S.gam||0), gE=vh*Math.sin(S.psi)+w[0], gN=vh*Math.cos(S.psi)+w[1]; d.gs=Math.hypot(gE,gN)/KT; d.trk=wrap360(Math.atan2(gE,gN)*R2D); } }
-  const side=CUR_DISP==='PFD2'?'R':'L'; if(ACK==='a320') d.alt=altInd(side)/FT;
-  if(ACK==='a320'&&CUR_DISP==='PFD1'&&typeof ICE!=='undefined'&&ICE.pitot>0) d.cas=d.cas*(1-0.55*ICE.pitot);   // sonde Pitot CDB givrée : vitesse lue erronée (PFD 1)
+  const side=CUR_DISP==='PFD2'?'R':'L'; if(AL()) d.alt=altInd(side)/FT;
+  if(AL()&&CUR_DISP==='PFD1'&&typeof ICE!=='undefined'&&ICE.pitot>0) d.cas=d.cas*(1-0.55*ICE.pitot);   // sonde Pitot CDB givrée : vitesse lue erronée (PFD 1)
   d.altTrue=S.alt/FT; d.wind=windDirSpd(w); d.qnh=qnhAt(S.lat,S.lon); return d; };
 /* rappel de calage (le PFD réel fait clignoter le calage) et gestion auto en mode observation */
 const BARO={st:'', t:0};
-function baroTick(){ if(!MI||A.kind!=='fw'||ACK!=='a320') return; const ta=transAlt(), h=S.alt/FT, std=SYS.baroStdL, climb=(S.gam||0)>0.005, q=Math.round(qnhAt(S.lat,S.lon));
+function baroTick(){ if(!MI||A.kind!=='fw'||!AL()) return; const ta=transAlt(), h=S.alt/FT, std=SYS.baroStdL, climb=(S.gam||0)>0.005, q=Math.round(qnhAt(S.lat,S.lon));
   let need=''; if(!S.onGround&&climb&&h>ta+300&&!std) need='STD'; else if(!S.onGround&&!climb&&h<ta-300&&std&&AP.alt<ta) need='QNH '+q; else if(S.onGround&&!std&&Math.abs((+SYS.baroL||1013)-q)>1&&ATC.done&&ATC.done.size) need='QNH '+q;
   if(need&&AUTO.on){ if(need==='STD'){ SYS.baroStdL=SYS.baroStdR=true; } else { SYS.baroStdL=SYS.baroStdR=false; SYS.baroL=SYS.baroR=q; } flash('Calage altimétrique : '+need,'am'); if(typeof fcuSync==='function') try{ fcuSync(); }catch(e){} need=''; }
   if(need&&need!==BARO.st&&performance.now()-BARO.t>20000){ BARO.t=performance.now(); flash('Calage altimétrique à afficher : '+need+' (BARO)','am'); } BARO.st=need; }
@@ -2418,12 +2419,12 @@ function gaStep(dt){ const d=DCX[ACK]; if(!d) return; const bat=d.bats.some(k=>S
   if(w&&!EGA.warn) flash((ACK==='r44'?'Voyant ALT':'GEN FAIL')+' : la batterie se décharge','am'); EGA.warn=w; }
 const _hasPwrS=hasPower; hasPower=function(){ if(DCX[ACK]&&MI) return EGA.v>18; return _hasPwrS(); };
 /* A320 en vol libre : mêmes règles qu'en parcours complet (avant : toujours alimenté) */
-const _hasPwrS2=hasPower; hasPower=function(){ if(ACK==='a320'&&MI&&!MI.full&&!CUR_DISP) return !SYS.bat1||!SYS.bat2||(SYS.extPwr&&SYS.extAvail)||SYS.apuAvail||S.eng[0]||S.eng[1]; return _hasPwrS2(); };
+const _hasPwrS2=hasPower; hasPower=function(){ if(AL()&&MI&&!MI.full&&!CUR_DISP) return !SYS.bat1||!SYS.bat2||(SYS.extPwr&&SYS.extAvail)||SYS.apuAvail||S.eng[0]||S.eng[1]; return _hasPwrS2(); };
 const _sysDefS=sysDefaults; sysDefaults=function(){ _sysDefS(); if(ACK==='lj60') Object.assign(SYS,{batt1:true,batt2:true,genL:true,genR:true}); EGA.soc=1; EGA.v=0; EGA.warn=''; };
 /* ---------- 2. A320 : hydraulique → train, volets, freins, loi ---------- */
 const HYX={gearLocked:true,lastFlap:null,law:'fbw'};
-function lawNow(a){ if(ACK!=='a320'||!MI) return a.law; return HYX.law; }
-function hyStep(dt){ if(ACK!=='a320'||!MI) return; const G=E320.G>1500, Y=E320.Y>1500, B=E320.B>1500;
+function lawNow(a){ if(!AL()||!MI) return a.law; return HYX.law; }
+function hyStep(dt){ if(!AL()||!MI) return; const G=E320.G>1500, Y=E320.Y>1500, B=E320.B>1500;
   // loi de commande : alternée si G+Y perdus, si configuration de secours électrique, ou si 2 ADR en panne [RÉFÉRENCÉ, simplifié]
   const altn=(!G&&!Y&&!S.onGround)||E320.emer||(FAIL.adr1&&SYS.adr2); if(altn&&HYX.law==='fbw'&&!S.onGround){ HYX.law='altn'; flash('LOI ALTERNÉE : protections perdues','am'); } else if(!altn&&HYX.law!=='fbw'){ HYX.law='fbw'; }
   // train : extension normale par le circuit vert ; sinon manivelle de secours (gravité)
@@ -2432,27 +2433,27 @@ function hyStep(dt){ if(ACK!=='a320'||!MI) return; const G=E320.G>1500, Y=E320.Y
   if(HYX.lastFlap==null) HYX.lastFlap=S.flap; if(S.flap!==HYX.lastFlap){ if(!G&&!Y&&!S.onGround){ S.flap=HYX.lastFlap; if(performance.now()-(HYX.fw||0)>8000){ HYX.fw=performance.now(); flash('Volets bloqués : circuits VERT et JAUNE perdus','red'); } } else HYX.lastFlap=S.flap; }
   // oxygène passagers
   if(E320.cab>14000&&!SYS.oxyMask){ SYS.oxyMask=true; flash('Masques passagers largués automatiquement (cabine > 14 000 ft)','red'); } }
-function gearUnlocked(){ return ACK==='a320'&&FAIL.gear&&SYS.grav!=='3 TOURS'; }
+function gearUnlocked(){ return AL()&&FAIL.gear&&SYS.grav!=='3 TOURS'; }
 /* efficacité de freinage : normal = vert ; alterné = jaune ; sinon accumulateur (nombre d'applications limité) [RÉFÉRENCÉ, simplifié] */
 const BRX={T:[0,0,0,0],acc:7,last:false,ab:0};
-function brkEff(){ if(ACK!=='a320'||!MI) return 1; if(E320.G>1500) return 1; if(E320.Y>1500) return 0.85; return BRX.acc>0?0.6:0.12; }
+function brkEff(){ if(!AL()||!MI) return 1; if(E320.G>1500) return 1; if(E320.Y>1500) return 0.85; return BRX.acc>0?0.6:0.12; }
 /* ---------- 3. Auto-frein et température des freins ---------- */
-function abrkTarget(st){ if(ACK!=='a320'||!st.onGround) return 0; const v=st.V/KT;
+function abrkTarget(st){ if(!AL()||!st.onGround) return 0; const v=st.V/KT;
   if(SYS.abrk==='MAX'&&v>72&&st.thr<0.1&&!ATC.flown) return 9;             // décollage interrompu (RTO) : freinage maximal
   if(ATC.flown&&st.thr<0.1&&v>5){ if(SYS.abrk==='LO') return 1.7; if(SYS.abrk==='MED') return 3.0; } return 0; }
 function brakeHeat(E){ if(!(E>0)) return; const C=340e3*(FAIL.brk?0.5:1); for(let i=0;i<4;i++) BRX.T[i]+=E/4/(C/4)*(FAIL.brk&&i===2?2:1); }
 function brkStep(dt){ if(!MI) return; const amb=(WXS&&metNear(S.lat,S.lon)[0])?metNear(S.lat,S.lon)[0][1].temp:15; for(let i=0;i<4;i++){ if(BRX.T[i]<amb) BRX.T[i]=amb; const tau=S.onGround?(SYS.brkFan?900:3600):(S.gear?600:2400); BRX.T[i]+=(amb-BRX.T[i])*dt/tau; }
-  if(S.brake&&!BRX.last&&ACK==='a320'&&E320.G<1500&&E320.Y<1500) BRX.acc=Math.max(0,BRX.acc-1); BRX.last=S.brake; }
+  if(S.brake&&!BRX.last&&AL()&&E320.G<1500&&E320.Y<1500) BRX.acc=Math.max(0,BRX.acc-1); BRX.last=S.brake; }
 const brkMax=()=>Math.max(...BRX.T);
 /* ---------- 4. Givrage ---------- */
 const ICE={a:0,in:false,pitot:0};
 function inCloudMetar(){ const L=metNear(S.lat,S.lon)[0]; if(!L||L[0]>45) return false; const m=L[1], ag=(S.alt-elevAt(S.lat,S.lon))/FT; return m.clouds.some(c=>(c.cov==='BKN'||c.cov==='OVC'||c.cb)&&ag>=c.base&&ag<=c.base+3000)||m.wx.some(w=>/RA|DZ|SN/.test(w))&&ag<3000; }
 function oatAt(){ const L=metNear(S.lat,S.lon)[0]; const t0=L?L[1].temp:15, ag=(S.alt-elevAt(S.lat,S.lon))/FT; return L&&L[0]<200&&ag<10000?t0-2*ag/1000:isaT(S.alt)-273.15; }
 function iceStep(dt){ if(!MI||A.kind!=='fw') return; const T=oatAt(), wet=!!(WXR.turb>0.05||inCloudMetar()); ICE.in=wet&&T<=3&&T>=-40&&!S.onGround; S.wxIce=ICE.in;
-  const wingAI=ACK==='a320'?!!SYS.wingAI&&(E320.duct[0]>0||E320.duct[1]>0):!!SYS.wingAI;
+  const wingAI=AL()?!!SYS.wingAI&&(E320.duct[0]>0||E320.duct[1]>0):!!SYS.wingAI;
   if(ICE.in&&!wingAI) ICE.a=Math.min(1,ICE.a+dt/(WXR.turb>0.3?240:600)); else if(wingAI||T>3) ICE.a=Math.max(0,ICE.a-dt/120);
-  const probeHeat=ACK==='a320'?!FAIL.pitot:!!SYS.probe; if(ICE.in&&!probeHeat) ICE.pitot=Math.min(1,ICE.pitot+dt/45); else ICE.pitot=Math.max(0,ICE.pitot-dt/30);
-  if(ICE.pitot>0.6&&AP.on&&ACK==='a320'&&!FAIL.adr1sw){ AP.on=false; AP.ath=false; flash('AP OFF / A/THR OFF : vitesses incohérentes (sonde Pitot givrée)','red'); }
+  const probeHeat=AL()?!FAIL.pitot:!!SYS.probe; if(ICE.in&&!probeHeat) ICE.pitot=Math.min(1,ICE.pitot+dt/45); else ICE.pitot=Math.max(0,ICE.pitot-dt/30);
+  if(ICE.pitot>0.6&&AP.on&&AL()&&!FAIL.adr1sw){ AP.on=false; AP.ath=false; flash('AP OFF / A/THR OFF : vitesses incohérentes (sonde Pitot givrée)','red'); }
   if(ICE.a>0.3&&performance.now()-(ICE.t||0)>30000){ ICE.t=performance.now(); flash('Givrage cellule : traînée ↑, portance max ↓ — WING ANTI ICE ON','am'); } }
 /* consommation supplémentaire due aux prélèvements d'antigivrage [ESTIMÉ : ≈ +2 % par moteur, +4 % voilure] */
 function aiFuelExtra(dt){ if(!MI||!S.ff) return; const k=(SYS.engAI1?0.01:0)+(SYS.engAI2?0.01:0)+(SYS.wingAI?0.04:0); if(k) S.fuel=Math.max(0,S.fuel-S.ff*k*dt/3600); }
@@ -2474,7 +2475,7 @@ function sysxStep(dt){ gaStep(dt); hyStep(dt); brkStep(dt); iceStep(dt); gustSte
 const XFR={L:false,R:false,lastL:false,lastR:false}, GPWS={msg:'',lvl:0,t:0};
 const brt=k=>SYS[k]==null?10:+SYS[k];
 function cockpitStep(dt){ if(!MI) return;
-  if(ACK==='a320'){ if(SYS.xfrL&&!XFR.lastL) XFR.L=!XFR.L; if(SYS.xfrR&&!XFR.lastR) XFR.R=!XFR.R; XFR.lastL=!!SYS.xfrL; XFR.lastR=!!SYS.xfrR;
+  if(AL()){ if(SYS.xfrL&&!XFR.lastL) XFR.L=!XFR.L; if(SYS.xfrR&&!XFR.lastR) XFR.R=!XFR.R; XFR.lastL=!!SYS.xfrL; XFR.lastR=!!SYS.xfrR;
     FAIL.adr1sw=SYS.airData==='CAPT 3'; FAIL.ir1sw=SYS.attHdg==='CAPT 3';
     gpwsStep(); }
   if((ACK==='h125'||ACK==='r44')&&!S.onGround&&(ACK==='r44'||SYS.horn!==false)&&S.nr<0.95&&(S.alt-elevAt(S.lat,S.lon))>3){ if(performance.now()-(GPWS.h||0)>4000){ GPWS.h=performance.now(); flash('KLAXON : BAS RÉGIME ROTOR — baisser le collectif','red'); } } }
@@ -2487,15 +2488,15 @@ function gpwsStep(){ GPWS.msg=''; if(SYS.gpwsSys||!hasPower()||S.onGround) retur
 /* luminosité, transferts et affichage des alertes GPWS (sur les fonctions d'affichage existantes) */
 const dim=(g,x,y,w,h,k)=>{ const b=brt(k); if(b<10){ g.fillStyle=`rgba(0,0,0,${(1-b/10).toFixed(2)})`; g.fillRect(x,y,w,h); } };
 const _pfdC=drawPFD, _ndC=drawND, _ewdC=drawEWD, _sdC=drawSD;
-drawPFD=function(g,x,y,w,h,ad,style,flag){ if(ACK!=='a320'||!MI) return _pfdC(g,x,y,w,h,ad,style,flag); const s=x<CK.w/2?'L':'R';
+drawPFD=function(g,x,y,w,h,ad,style,flag){ if(!AL()||!MI) return _pfdC(g,x,y,w,h,ad,style,flag); const s=x<CK.w/2?'L':'R';
   if(brt('pfdBrt'+s)===0){ screen(g,x,y,w,h); return; } if(XFR[s]){ _ndC(g,x,y,w,h,ad,style); dim(g,x,y,w,h,'pfdBrt'+s); return; }
   _pfdC(g,x,y,w,h,ad,style,flag); if(GPWS.msg&&hasPower()) txt(g,GPWS.msg,x+w*0.46,y+h*0.62,GPWS.lvl>=3?COL.red:COL.am,h*0.06,'center','700 '); dim(g,x,y,w,h,'pfdBrt'+s); };
-drawND=function(g,x,y,w,h,ad,style){ if(ACK!=='a320'||!MI) return _ndC(g,x,y,w,h,ad,style); const s=x<CK.w/2?'L':'R';
+drawND=function(g,x,y,w,h,ad,style){ if(!AL()||!MI) return _ndC(g,x,y,w,h,ad,style); const s=x<CK.w/2?'L':'R';
   if(XFR[s]||brt('pfdBrt'+s)===0){ _pfdC(g,x,y,w,h,ad,style,false); dim(g,x,y,w,h,'ndBrt'+s); return; }   // PFD transféré sur l'écran ND
   if((SYS.ecamNd==='CAPT'&&s==='L')||(SYS.ecamNd==='F/O'&&s==='R')){ _sdC(g,x,y,w,h); return; }           // page système sur le ND
   if(brt('ndBrt'+s)===0){ screen(g,x,y,w,h); return; } _ndC(g,x,y,w,h,ad,style); dim(g,x,y,w,h,'ndBrt'+s); };
-drawEWD=function(g,x,y,w,h){ if(ACK!=='a320'||!MI) return _ewdC(g,x,y,w,h); if(brt('ewdBrt')===0){ screen(g,x,y,w,h); return; } _ewdC(g,x,y,w,h); dim(g,x,y,w,h,'ewdBrt'); };
-drawSD=function(g,x,y,w,h){ if(ACK!=='a320'||!MI) return _sdC(g,x,y,w,h); if(brt('ewdBrt')===0){ _ewdC(g,x,y,w,h); return; }   // écran supérieur éteint : l'E/WD passe sur l'écran inférieur
+drawEWD=function(g,x,y,w,h){ if(!AL()||!MI) return _ewdC(g,x,y,w,h); if(brt('ewdBrt')===0){ screen(g,x,y,w,h); return; } _ewdC(g,x,y,w,h); dim(g,x,y,w,h,'ewdBrt'); };
+drawSD=function(g,x,y,w,h){ if(!AL()||!MI) return _sdC(g,x,y,w,h); if(brt('ewdBrt')===0){ _ewdC(g,x,y,w,h); return; }   // écran supérieur éteint : l'E/WD passe sur l'écran inférieur
   if(brt('sdBrt')===0){ screen(g,x,y,w,h); return; } _sdC(g,x,y,w,h); dim(g,x,y,w,h,'sdBrt'); };
 const _sysxS=sysxStep; sysxStep=function(dt){ _sysxS(dt); cockpitStep(dt); };
 
@@ -2668,7 +2669,7 @@ const _failSetS=failSet; failSet=function(id,on){ const was=!!FAIL[id]; _failSet
 FAILS.push({id:'birds',g:'Moteurs',n:'Ingestion d\'oiseaux dans les deux moteurs',l:3,t:'ENG DUAL FAILURE',a:P(['EMER ELEC PWR','MAN ON'],['APU','START'],['ATC','MAYDAY'],'- OPT SPEED ....... GREEN DOT','- DITCHING ........ IF REQUIRED'),ac:'a320',atc:['mayday','hit birds, lost thrust in both engines','impact d\'oiseaux, perte de poussée des deux moteurs'],fix:()=>{ setS('apuMaster',true)(); setS('apuStartBtn',true)(); }});
 const _failStepS=failStep; failStep=function(dt){ _failStepS(dt); if(FAIL.birds){ FAIL.dead1=FAIL.dead2=true; delete FAIL.dualEng; for(const i of [0,1]){ if(S.eng[i]) S.eng[i]=false; if(S.n2) S.n2[i]=Math.max(i===0?0.35:0.2,S.n2[i]-dt/8); } } };   // rotation résiduelle (moulinet) ; le moteur 1 conservait plus de rotation [ESTIMÉ]
 /* limite de démarrage de l'APU sur batteries [RÉFÉRENCÉ : domaine APU A320, démarrage sur batteries jusqu'au FL250] */
-const _sysEffS=sysEffect; sysEffect=function(id){ if(id==='apuStartBtn'&&ACK==='a320'&&SYS.apuStartBtn&&!S.onGround&&S.alt/FT>25000&&!E320.anyAC){ SYS.apuStartBtn=false; flash('APU : démarrage sur batteries impossible au-dessus du FL250','am'); scnEvent('ACTION','APU START refusé (au-dessus du FL250 sans AC)'); return; } _sysEffS(id); };
+const _sysEffS=sysEffect; sysEffect=function(id){ if(id==='apuStartBtn'&&AL()&&SYS.apuStartBtn&&!S.onGround&&S.alt/FT>25000&&!E320.anyAC){ SYS.apuStartBtn=false; flash('APU : démarrage sur batteries impossible au-dessus du FL250','am'); scnEvent('ACTION','APU START refusé (au-dessus du FL250 sans AC)'); return; } _sysEffS(id); };
 
 /* ====================== interface, commandes, boucle ====================== */
 const isPC=()=>matchMedia('(pointer:fine)').matches && innerWidth>=1024;
