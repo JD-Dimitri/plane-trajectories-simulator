@@ -26,7 +26,7 @@ function stepsOf(k){ if(CACHE[k]) return CACHE[k]; const sv={ACK,A,MI}; let out=
   return CACHE[k]=out; }
 function mode(){ const p=$('m-peda'), a=$('m-auto'); if(a&&a.checked) return 'auto'; if(p&&!p.checked) return 'free'; return 'guide'; }
 let CHOSEN=false;
-function goMi(key,k){ CHOSEN=true; selAC=k; selMI=key; try{ ls.set('sim-ac',k); ls.set('sim-mi',key); }catch(e){} try{ renderMenu(); }catch(e){} selAC=k; selMI=key; if(/^sc-/.test(key)){ $('go').click(); return; } BR.launchMode('scn'); }
+function goMi(key,k){ CHOSEN=true; selAC=k; selMI=key; try{ ls.set('sim-ac',k); ls.set('sim-mi',key); }catch(e){} try{ renderMenu(); }catch(e){} selAC=k; selMI=key; if(/^sc-/.test(key)){ $('go').click(); return; } BR.launchMode(MISSIONS[key]&&MISSIONS[key].full?'guide':'scn'); }
 function go(k,step){ CHOSEN=true; selAC=k; ls.set('sim-ac',k); selMI=FULL(k); try{ renderMenu(); }catch(e){} const m=mode();
   if(step>0){ window.FF={to:step,then:m==='auto'?'auto':'guide',from:0}; const want=window.FF; BR.launchMode('auto'); window.FF=want; }
   else BR.launchMode(m==='free'?'free':m); }
@@ -45,7 +45,7 @@ function decorate(){ const box=document.querySelector('#menu .box'); if(!box) re
   // missions et scénarios réels (rubrique restaurée) : un clic lance, l'appareil requis est chargé automatiquement
   let ms=box.querySelector('.m2-mis'); if(!ms){ ms=document.createElement('div'); ms.className='m2-mis'; ac.after(ms); }
   const fwK=Object.keys(AC).filter(k=>AC[k].kind==='fw'), rwK=Object.keys(AC).filter(k=>AC[k].kind!=='fw');
-  ms.innerHTML='<h2>Missions et scénarios réels — un clic lance</h2><div class="m2-mg">'+Object.keys(MISSIONS).filter(key=>!/^full|^parcours/.test(key)&&!Object.keys(AC).some(k=>FULL(k)===key)).map(key=>{ const m=MISSIONS[key];
+  ms.innerHTML='<h2>Missions et scénarios réels — un clic lance</h2><div class="m2-mg">'+Object.keys(MISSIONS).filter(key=>!(/^full|^parcours/.test(key)&&!/^full-777/.test(key))&&!Object.keys(AC).some(k=>FULL(k)===key)).map(key=>{ const m=MISSIONS[key];
     const ks=MI_AC[key]?[MI_AC[key]]:m.fw?fwK:m.rw?rwK:[]; const tag=m.link?'Étude (lien)':m.soon?'À venir':/^sc-/.test(key)?'Scénario':'Vol libre';
     return `<div class="m2-card ${m.soon?'off':''}"><small>${tag}</small><b>${m.n}</b><span>${m.d}</span><div class="m2-ab">${m.link?`<a href="${m.link}" target="_blank" rel="noopener">Ouvrir l'étude ↗</a>`:m.soon?'':ks.map(k=>`<button type="button" data-mi="${key}" data-k="${k}">▶ ${AC[k].name}</button>`).join('')}</div></div>`; }).join('')+'</div>';
   ms.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>goMi(b.dataset.mi,b.dataset.k));
