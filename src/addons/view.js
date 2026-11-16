@@ -9,7 +9,7 @@
    ===================================================================================================== */
 (function(){
 'use strict';
-const KEEP=['b-menu','b-pause','b-auto','b-jump','b-more','b-scr'];
+const KEEP=['b-back','b-menu','b-pause','b-auto','b-jump','b-more','b-scr'];
 const css=document.createElement('style'); css.textContent=`
 #bar.compact > *:not([data-v]):not(#${KEEP.join('):not(#')}){display:none!important}
 #bar.compact{flex-wrap:wrap}
