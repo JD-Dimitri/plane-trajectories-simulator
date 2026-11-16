@@ -2804,7 +2804,7 @@ function startMission(){ const c=$('crash'); if(c) c.remove(); ACK=selAC; A=AC[A
   if((selMI==='jfk-cdg'||selMI==='cdg-jfk')&&A.range<5900) setTimeout(()=>flash('Autonomie réelle insuffisante sans escale (carburant non simulé)','am'),2800);
   atcStart();
   if(MI.full){ GD.landed=false; GD.taxiInStarted=false; startFull(); autoStart(!!($('m-auto')||{}).checked); renderGuide(); return; } autoStart(false); const g=$('guide'); if(g) g.hidden=true;
-  if(A.kind==='fw') setTimeout(()=>flash(`Gaz : PgUp / R · rotation à ${A.Vr} kt : ↓`,'am'),5500); else setTimeout(()=>flash('Collectif : PgUp / R pour décoller','am'),3000); }
+  if(A.kind==='fw'){ const vr=(LS&&LS.vr&&MI.full)?LS.vr:A.Vr, k0=ACK; setTimeout(()=>{ if(ACK===k0) flash(`Gaz : PgUp / R · rotation à ${vr} kt : ↓`,'am'); },5500); } else setTimeout(()=>flash('Collectif : PgUp / R pour décoller','am'),3000); }
 /* ---- modèle extérieur ---- */
 let MODEL=null;
 function setModel(){ if(MODEL) scene.remove(MODEL); MODEL=buildModel(ACK); scene.add(MODEL); }

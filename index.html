@@ -2804,7 +2804,7 @@ function startMission(){ const c=$('crash'); if(c) c.remove(); ACK=selAC; A=AC[A
   if((selMI==='jfk-cdg'||selMI==='cdg-jfk')&&A.range<5900) setTimeout(()=>flash('Autonomie réelle insuffisante sans escale (carburant non simulé)','am'),2800);
   atcStart();
   if(MI.full){ GD.landed=false; GD.taxiInStarted=false; startFull(); autoStart(!!($('m-auto')||{}).checked); renderGuide(); return; } autoStart(false); const g=$('guide'); if(g) g.hidden=true;
-  if(A.kind==='fw') setTimeout(()=>flash(`Gaz : PgUp / R · rotation à ${A.Vr} kt : ↓`,'am'),5500); else setTimeout(()=>flash('Collectif : PgUp / R pour décoller','am'),3000); }
+  if(A.kind==='fw'){ const vr=(LS&&LS.vr&&MI.full)?LS.vr:A.Vr, k0=ACK; setTimeout(()=>{ if(ACK===k0) flash(`Gaz : PgUp / R · rotation à ${vr} kt : ↓`,'am'); },5500); } else setTimeout(()=>flash('Collectif : PgUp / R pour décoller','am'),3000); }
 /* ---- modèle extérieur ---- */
 let MODEL=null;
 function setModel(){ if(MODEL) scene.remove(MODEL); MODEL=buildModel(ACK); scene.add(MODEL); }
@@ -4761,6 +4761,42 @@ function lights(g,L,p){ const add=(k,c,s,v)=>{ L[k]=mkLight(c,s); L[k].position.
   add('bcn','#ff3020',p.s,p.bcn); add('bcn2','#ff3020',p.s,p.bcn2||p.bcn); add('strL','#ffffff',p.s*1.6,p.port); add('strR','#ffffff',p.s*1.6,[-p.port[0],p.port[1],p.port[2]]); add('land','#fff4d0',p.s*2.5,p.land); }
 const GLASS=0x0f1a24, WIN=0x16222e;
 
+/* ===== DÉTAILS EXTÉRIEURS (V10.8) =====
+   Pales de soufflante (instanciées, tournent avec le régime N2 du moteur), cône avec spirale, conduit d'entrée d'air sombre,
+   ligne de séparation capot / inverseur, carénages de rails de volets, contours des gouvernes (ailerons, volets, spoilers, becs),
+   déperditeurs d'électricité statique, sondes pitot et d'incidence, antennes, sortie APU, portes cargo et issues de secours,
+   essuie-glaces, trappes et compas de train, phare de roulage, prises d'air dynamiques. Positions et nombres d'après les
+   documents publics des constructeurs (Airport Planning) ; formes simplifiées [SIMPLIFIÉ]. */
+const LINE=new T.LineBasicMaterial({color:0x4a5560}), DARK=mat(0x121519), METAL=mat(0xa9b0b7), BLADE=mat(0x8f979f), TI=mat(0xb7bec5);
+function secAt(ws,x){ for(let i=0;i<ws.length-1;i++){ const a=ws[i], b=ws[i+1]; if(x>=a.x-1e-6&&x<=b.x+1e-6){ const f=(x-a.x)/((b.x-a.x)||1); return {y:a.y+(b.y-a.y)*f,z:a.z+(b.z-a.z)*f,c:a.c+(b.c-a.c)*f,t:a.t+(b.t-a.t)*f}; } } const l=ws[x<ws[0].x?0:ws.length-1]; return {y:l.y,z:l.z,c:l.c,t:l.t}; }
+function thick(f){ for(let k=0;k<FX.length-1;k++) if(f>=FX[k]&&f<=FX[k+1]) return TX[k]+(TX[k+1]-TX[k])*(f-FX[k])/(FX[k+1]-FX[k]); return 0; }
+const surf=(ws,x,f,s)=>{ const q=secAt(ws,x); return new T.Vector3(x,q.y+s*(thick(f)*q.t*q.c/2+0.014),q.z+f*q.c); };
+const spanL=(ws,f,x0,x1,s)=>{ const p=[]; for(let i=0;i<=10;i++) p.push(surf(ws,x0+(x1-x0)*i/10,f,s)); return p; };
+const chordL=(ws,x,f0,f1,s)=>{ const p=[]; for(let i=0;i<=6;i++) p.push(surf(ws,x,f0+(f1-f0)*i/6,s)); return p; };
+function lines(g,arrs){ arrs.forEach(p=>{ const geo=new T.BufferGeometry().setFromPoints(p); g.add(new T.Line(geo,LINE)); const l=new T.Line(geo,LINE); l.scale.x=-1; g.add(l); }); }
+const panel=(ws,x0,x1,f0,f1,s)=>[spanL(ws,f0,x0,x1,s),spanL(ws,f1,x0,x1,s),chordL(ws,x0,f0,f1,s),chordL(ws,x1,f0,f1,s)];
+function canoe(len,r,m){ const c=lathe([[0.001,0],[r*0.7,len*0.12],[r,len*0.42],[r*0.8,len*0.78],[0.001,len]],m,12); c.scale.x=0.7; return c; }
+function canoes(g,ws,xs,len,r,m){ xs.forEach(x=>{ const q=secAt(ws,x); [-1,1].forEach(s=>{ const c=canoe(len,r,m); c.position.set(s*x,q.y-q.t*q.c*0.45-r*0.35,q.z+q.c-len*0.62); g.add(c); }); }); }
+function dischargers(g,ws,xs,len){ xs.forEach(x=>{ const q=secAt(ws,x); [-1,1].forEach(s=>{ const d=strut([s*x,q.y,q.z+q.c-0.02],[s*x,q.y,q.z+q.c+len],0.012,DARK); g.add(d); }); }); }
+// soufflante : n pales vrillées de corde ch, entre le moyeu hub et le rayon r ; tourne autour de z
+function fanRotor(r,hub,n,ch,pitch,spin,z){ const grp=new T.Group(), L=r-hub, bl=new T.BoxGeometry(ch,L,0.035); bl.translate(0,hub+L/2,0);
+  const im=new T.InstancedMesh(bl,BLADE,n), m4=new T.Matrix4(), q=new T.Quaternion(), qa=new T.Quaternion(), qb=new T.Quaternion(), Z=new T.Vector3(0,0,1), Y=new T.Vector3(0,1,0), one=new T.Vector3(1,1,1), o=new T.Vector3();
+  for(let i=0;i<n;i++){ qa.setFromAxisAngle(Z,i*2*Math.PI/n); qb.setFromAxisAngle(Y,pitch); q.copy(qa).multiply(qb); o.set(0,0,z||0); m4.compose(o,q,one); im.setMatrixAt(i,m4); } grp.add(im);
+  if(spin){ const sp=lathe(spin,TI,20); grp.add(sp); const mk=new T.Mesh(new T.BoxGeometry(0.03,spin[spin.length-1][0]*0.9,0.02),mat(0xf4f6f8)); mk.position.set(0,spin[spin.length-1][0]*0.45,spin[spin.length-1][1]-0.02); mk.rotation.x=0.5; grp.add(mk); }
+  return grp; }
+function inlet(r,z0,z1){ const c=new T.Mesh(new T.CylinderGeometry(r,r,Math.abs(z1-z0),28,1,true),new T.MeshLambertMaterial({color:0x2a3036,side:T.BackSide})); c.rotation.x=Math.PI/2; c.position.z=(z0+z1)/2; return c; }
+function ring(r,z,m){ const t=new T.Mesh(new T.TorusGeometry(r,0.012,4,40),m||DARK); t.position.z=z; return t; }
+function pitot(g,x,y,z,s){ const k=s||1; g.add(strut([x,y,z],[x+Math.sign(x||1)*0.12*k,y,z-0.02],0.015*k,METAL)); g.add(strut([x+Math.sign(x||1)*0.12*k,y,z],[x+Math.sign(x||1)*0.12*k,y,z-0.2*k],0.012*k,METAL)); }
+function aoa(g,x,y,z,s){ const k=s||1, v=new T.Mesh(new T.BoxGeometry(0.01,0.06*k,0.12*k),METAL); v.position.set(x,y,z); g.add(v); }
+function blade(g,x,y,z,h,ch,down){ const m=new T.Mesh(wing([{x:0,y:0,z:0,c:ch,t:.1},{x:0,y:(down?-1:1)*h,z:ch*0.55,c:ch*0.55,t:.1}]),mat(0xe6e9ec)); m.position.set(x,y,z); g.add(m); }
+function rect(g,pts){ const geo=new T.BufferGeometry().setFromPoints(pts.concat([pts[0]]).map(p=>new T.Vector3(...p))); g.add(new T.Line(geo,LINE)); }
+function sideDoor(g,x,y0,y1,z0,z1){ [-1,1].forEach(s=>{ if(s<0&&x<0) return; }); rect(g,[[x,y0,z0],[x,y0,z1],[x,y1,z1],[x,y1,z0]]); }
+function wiper(g,x,y,z,len){ const w=new T.Mesh(new T.BoxGeometry(0.03,len,0.02),DARK); w.position.set(x,y,z); w.rotation.z=x<0?0.35:-0.35; w.rotation.x=0.6; g.add(w); }
+function gearDoor(g,x,y,z,h,l,m){ const d=new T.Mesh(new T.BoxGeometry(0.03,h,l),m||mat(0xe3e7ea)); d.position.set(x,y,z); g.add(d); return d; }
+function taxiLight(g,x,y,z){ const l=new T.Mesh(new T.BoxGeometry(0.16,0.08,0.05),new T.MeshBasicMaterial({color:0xfff4d0})); l.position.set(x,y,z); g.add(l); }
+function heliHub(bl,nb,R,y,m){ const h=cyl(R*0.06,R*0.05,0.22,m||METAL,12); bl.add(h); for(let i=0;i<nb;i++){ const a=i*2*Math.PI/nb, r=R*0.08; bl.add(strut([Math.sin(a)*r,-0.32,Math.cos(a)*r],[Math.sin(a)*r,0,Math.cos(a)*r],0.012,METAL)); } }
+
+
 /* ---------------- Airbus A320-200 ---------------- */
 function a320(){ const g=new T.Group(), L={}, W=mat(0xf4f6f8), Wg=mat(0xd3d8dd), Gy=mat(0x9aa3ab), Dk=mat(0x1c2126), Bl=mat(0x163f86), Tyre=mat(0x111316), Hub=mat(0xb9c0c6), Mt=mat(0x8c939a);
   // fuselage : nez arrondi, section 3,95 × 4,14 m, cône de queue relevé vers l'APU
@@ -4795,6 +4831,26 @@ function a320(){ const g=new T.Group(), L={}, W=mat(0xf4f6f8), Wg=mat(0xd3d8dd),
   gear.add(strut([0,-1.7,zn],[0,Gd+0.38,zn],0.11,Mt)); [-0.27,0.27].forEach(x=>gear.add(wheel(x,Gd+0.38,zn,0.38,0.27,Tyre,Hub)));
   [-1,1].forEach(s=>{ gear.add(strut([s*3.6,wy(3.6)-0.1,zm-0.3],[s*3.795,Gd+0.62,zm],0.16,Mt)); [-0.46,0.46].forEach(dx=>gear.add(wheel(s*3.795+dx,Gd+0.62,zm,0.62,0.4,Tyre,Hub))); });
   g.add(gear); g.userData.gear=gear;
+
+  // ---- détails extérieurs A320 ----
+  g.userData.fans=[];
+  [-1,1].forEach((s,i)=>{ const e=g.children.find(c=>c.isGroup&&Math.abs(c.position.x-s*5.75)<0.01&&Math.abs(c.position.y+2.28)<0.01); if(!e) return;
+    e.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='CircleGeometry') c.position.z=-6.9; });
+    const f=fanRotor(0.82,0.3,36,0.17,0.62,[[0.001,-7.2],[0.22,-6.98],[0.3,-6.85]],-7.08); e.add(f); g.userData.fans.push({o:f,i});
+    e.add(inlet(0.85,-7.32,-6.88)); e.add(ring(1.045,-5.0)); e.add(ring(0.7,-3.18,METAL)); });
+  lines(g,[...panel(ws,13.6,16.6,0.78,0.99,1),...panel(ws,2.1,6.3,0.76,0.99,1),...panel(ws,6.3,13.4,0.74,0.99,1),
+    ...[3.2,5.4,7.6,9.6,11.6].map(x=>panel(ws,x,x+1.9,0.62,0.74,1)).flat(),spanL(ws,0.13,2.6,16.7,1),...[5.4,9.0,12.6].map(x=>chordL(ws,x,0,0.13,1))]);
+  canoes(g,ws,[7.7,10.5,13.2],2.3,0.2,Wg); dischargers(g,ws,[15.2,15.8,16.4],0.26);
+  const htA=[{x:0.3,y:.95,z:13.2,c:3.9,t:.11},{x:6.22,y:1.6,z:16.95,c:1.45,t:.09}]; lines(g,panel(htA,0.6,6.0,0.7,0.99,1)); dischargers(g,htA,[5.4,6.0],0.2);
+  pitot(g,-1.88,0.25,-15.9); pitot(g,1.88,0.25,-15.9); pitot(g,-1.75,-0.7,-15.6); aoa(g,-1.96,-0.15,-16.5); aoa(g,1.96,-0.15,-16.5);
+  blade(g,0,2.07,-6.2,0.42,0.38); blade(g,0,-2.07,2.2,0.38,0.34,true); blade(g,0,2.07,-11.5,0.12,0.22); blade(g,0,-2.07,-12.4,0.12,0.22,true);
+  const gps=new T.Mesh(new T.SphereGeometry(0.11,10,6,0,Math.PI*2,0,Math.PI/2),mat(0xe6e9ec)); gps.position.set(0,2.07,-2.5); g.add(gps);
+  const apu=new T.Mesh(new T.CircleGeometry(0.11,14),DARK); apu.position.set(0,1.47,18.79); g.add(apu);
+  sideDoor(g,1.76,-1.5,-0.25,-11.5,-9.7); sideDoor(g,1.76,-1.5,-0.25,3.0,4.8); [-1.95,-1.05].forEach(z=>[-1,1].forEach(s=>sideDoor(g,s*1.99,0.15,1.15,z-0.25,z+0.25)));
+  wiper(g,-0.38,1.2,-17.25,0.55); wiper(g,0.38,1.2,-17.25,0.55);
+  [-1,1].forEach(s=>{ const r=new T.Mesh(new T.BoxGeometry(0.2,0.04,0.45),DARK); r.position.set(s*0.7,-2.03,-3.6); g.add(r); });
+  gearDoor(gear,-0.2,Gd+1.4,zn,1.1,1.4); gearDoor(gear,0.2,Gd+1.4,zn,1.1,1.4); taxiLight(gear,0,Gd+1.0,zn-0.2); gear.add(strut([0,Gd+0.9,zn-0.05],[0,Gd+0.55,zn+0.12],0.03,Mt));
+  [-1,1].forEach(s=>{ gearDoor(gear,s*4.1,Gd+1.9,zm,1.6,1.2); gear.add(strut([s*3.795,Gd+1.2,zm+0.12],[s*3.795,Gd+0.9,zm+0.28],0.04,Mt)); });
   lights(g,L,{s:3,port:[-17.0,wy(16.95)+0.05,le(16.95)+0.3],tail:[0,1.5,18.8],bcn:[0,2.08,-1.5],bcn2:[0,-2.08,-1.0],land:[0,-1.9,-13.4]});
   return {g,L}; }
 
@@ -4824,6 +4880,18 @@ function lj60(){ const g=new T.Group(), L={}, W=mat(0xf5f6f7), Gy=mat(0xa2aab2),
   [-1,1].forEach(s=>{ gear.add(strut([s*1.3,wy(1.3)-0.05,0.85],[s*1.3,Gd+0.3,0.95],0.07,Mt)); [-0.12,0.12].forEach(dx=>gear.add(wheel(s*1.3+dx,Gd+0.3,0.95,0.3,0.17,Tyre,Hub))); });
   g.add(gear); g.userData.gear=gear;
   lights(g,L,{s:2,port:[-6.6,wy(6.45)+0.05,0.4],tail:[0,2.55,8.6],bcn:[0,2.66,7.6],bcn2:[0,-1.0,0],land:[0,-0.95,-6.0]});
+  
+  // ---- détails extérieurs Learjet 60 ----
+  g.userData.fans=[];
+  const wsL=[{x:0.2,y:wy(.9),z:-1.9,c:3.8,t:.14},{x:0.9,y:wy(.9),z:-1.6,c:3.45,t:.14},{x:2.9,y:wy(2.9),z:-0.85,c:2.4,t:.125},{x:6.45,y:wy(6.45),z:0.05,c:1.15,t:.1}];
+  [-1,1].forEach((s,i)=>{ const e=g.children.find(c=>c.isGroup&&Math.abs(c.position.x-s*1.58)<0.01&&Math.abs(c.position.y-0.5)<0.01); if(!e) return;
+    e.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='CircleGeometry') c.position.z=2.72; });
+    const f=fanRotor(0.4,0.12,24,0.09,0.6,[[0.001,2.48],[0.1,2.6],[0.13,2.68]],2.6); e.add(f); g.userData.fans.push({o:f,i}); e.add(inlet(0.41,2.46,2.7)); e.add(ring(0.55,4.2)); });
+  lines(g,[...panel(wsL,4.5,6.3,0.76,0.99,1),...panel(wsL,0.95,4.4,0.74,0.99,1),...panel(wsL,1.5,4.0,0.62,0.74,1)]); dischargers(g,wsL,[5.6,6.1],0.15);
+  pitot(g,-0.8,0.2,-7.6,0.7); pitot(g,0.8,0.2,-7.6,0.7); aoa(g,-0.9,-0.1,-7.2,0.7);
+  blade(g,0,0.99,-3.5,0.28,0.25); blade(g,0,-0.99,-1.0,0.25,0.22,true);
+  wiper(g,-0.25,0.62,-7.6,0.32); wiper(g,0.25,0.62,-7.6,0.32);
+  gearDoor(gear,-0.1,Gd+0.75,-6.3,0.5,0.6); gearDoor(gear,0.1,Gd+0.75,-6.3,0.5,0.6); taxiLight(gear,0,Gd+0.55,-6.42);
   return {g,L}; }
 
 /* ---------------- hélicoptères ---------------- */
@@ -4845,7 +4913,7 @@ function h125(){ const g=new T.Group(), L={}, R=mat(0xc62a2f), W=mat(0xf2f3f4), 
   g.add(new T.Mesh(wing([{x:0,y:.4,z:6.95,c:.75,t:.12},{x:0,y:1.32,z:7.45,c:.42,t:.1}]),R)); g.add(new T.Mesh(wing([{x:0,y:-.42,z:7.1,c:.5,t:.1},{x:0,y:.38,z:6.95,c:.72,t:.12}]),R));
   const tr=trotor(2,0.93,0.16,Dk); tr.position.set(0.24,0.62,7.45); g.add(tr); g.userData.trotor=tr;
   skids(g,1.12,-1.72,-1.75,1.55,[-1.05,0.85],-0.75,Mt);
-  const bl=rotor(3,5.345,0.35,Dk,1.6,-0.25,0.28); g.add(bl); g.userData.blades=bl; g.add(disc(5.345,1.6,-0.25));
+  const bl=rotor(3,5.345,0.35,Dk,1.6,-0.25,0.28); g.add(bl); g.userData.blades=bl; heliHub(bl,3,5.345); g.add(disc(5.345,1.6,-0.25));
   lights(g,L,{s:1.6,port:[-0.92,0.1,-0.6],tail:[0,1.3,7.65],bcn:[0,1.2,1.4],bcn2:[0,-0.85,0],land:[0,-0.8,-2.6]}); return {g,L}; }
 
 function r44(){ const g=new T.Group(), L={}, W=mat(0xf4f5f6), Bl=mat(0x1b3a6e), Dk=mat(0x22272c), Mt=mat(0x9aa1a8);
@@ -4857,7 +4925,7 @@ function r44(){ const g=new T.Group(), L={}, W=mat(0xf4f5f6), Bl=mat(0x1b3a6e), 
   pair(wing([{x:0.05,y:.3,z:5.5,c:.38,t:.1},{x:0.55,y:.3,z:5.55,c:.3,t:.1}]),W,g);
   const tr=trotor(2,0.735,0.12,Dk); tr.position.set(-0.2,0.38,6.55); g.add(tr); g.userData.trotor=tr;
   skids(g,1.09,-1.58,-1.55,1.05,[-0.95,0.55],-0.65,Mt);
-  const bl=rotor(2,5.03,0.27,Dk,1.68,-0.2,0.18); g.add(bl); g.userData.blades=bl; g.add(disc(5.03,1.68,-0.2));
+  const bl=rotor(2,5.03,0.27,Dk,1.68,-0.2,0.18); g.add(bl); g.userData.blades=bl; heliHub(bl,2,5.03); g.add(disc(5.03,1.68,-0.2));
   lights(g,L,{s:1.4,port:[-0.67,0.0,-0.9],tail:[0,0.3,6.65],bcn:[0,1.1,0.4],bcn2:[0,-0.7,0],land:[0,-0.55,-2.2]}); return {g,L}; }
 
 function s76(){ const g=new T.Group(), L={}, W=mat(0xf4f5f6), Nv=mat(0x13294b), Dk=mat(0x22272c), Mt=mat(0x8c939a), Tyre=mat(0x111316), Hub=mat(0xb9c0c6);
@@ -4871,7 +4939,7 @@ function s76(){ const g=new T.Group(), L={}, W=mat(0xf4f5f6), Nv=mat(0x13294b), 
   const tr=trotor(4,1.22,0.16,Dk); tr.position.set(-0.3,1.6,8.1); g.add(tr); g.userData.trotor=tr;
   const gear=new T.Group(), Gd=-2.3; gear.add(strut([0,-0.9,-3.9],[0,Gd+0.24,-3.9],0.06,Mt)); [-0.13,0.13].forEach(x=>gear.add(wheel(x,Gd+0.24,-3.9,0.24,0.15,Tyre,Hub)));
   [-1,1].forEach(s=>{ gear.add(strut([s*1.1,-0.7,1.2],[s*1.2,Gd+0.3,1.2],0.07,Mt)); gear.add(wheel(s*1.2,Gd+0.3,1.2,0.3,0.2,Tyre,Hub)); }); g.add(gear); g.userData.gear=gear;
-  const bl=rotor(4,6.705,0.4,Dk,1.5,0.1,0.32); g.add(bl); g.userData.blades=bl; g.add(disc(6.705,1.5,0.1));
+  const bl=rotor(4,6.705,0.4,Dk,1.5,0.1,0.32); g.add(bl); g.userData.blades=bl; heliHub(bl,4,6.705); g.add(disc(6.705,1.5,0.1));
   lights(g,L,{s:1.8,port:[-1.1,0.2,-0.5],tail:[0,2.0,8.4],bcn:[0,1.3,2.8],bcn2:[0,-1.0,0],land:[0,-0.95,-4.4]}); return {g,L}; }
 
 
@@ -4910,10 +4978,34 @@ function b777(){ const g=new T.Group(), L={}, LV=window.LIVERY||'', W=mat(0xf4f6
   [-1,1].forEach(s=>{ const x=s*5.49; gear.add(strut([x,wy(5.5)-0.2,zm-0.4],[x,Gd+0.75,zm],0.24,Mt)); gear.add(strut([x,Gd+0.7,zm-1.6],[x,Gd+0.7,zm+1.6],0.12,Mt));
     [-1.45,0,1.45].forEach(dz=>[-0.72,0.72].forEach(dx=>gear.add(wheel(x+dx,Gd+0.66,zm+dz,0.66,0.48,Tyre,Hub)))); });
   g.add(gear); g.userData.gear=gear;
+
+  // ---- détails extérieurs 777-300ER : GE90-115B à 22 pales larges en composite ----
+  g.userData.fans=[];
+  const ws7=[{x:0.8,y:wy(3),z:-9.4,c:14,t:.14},{x:3,y:wy(3),z:le(3),c:13,t:.14},{x:11,y:wy(11),z:le(11),c:7.6,t:.12},{x:30.6,y:wy(30.6),z:le(30.6),c:2.4,t:.1}];
+  [-1,1].forEach((s,i)=>{ const e=g.children.find(c=>c.isGroup&&Math.abs(c.position.x-s*9.75)<0.01&&Math.abs(c.position.y+2.6)<0.01); if(!e) return;
+    e.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='CircleGeometry') c.position.z=-12.05; });
+    const f=fanRotor(1.6,0.56,22,0.52,0.75,[[0.001,-12.5],[0.4,-12.15],[0.56,-11.95]],-12.3); e.add(f); g.userData.fans.push({o:f,i});
+    e.add(inlet(1.66,-12.6,-12.0)); e.add(ring(1.865,-8.6)); e.add(ring(1.13,-5.75,METAL)); });
+  lines(g,[...panel(ws7,22,29.4,0.78,0.99,1),...panel(ws7,3.4,11,0.72,0.99,1),...panel(ws7,11,21.5,0.74,0.99,1),...panel(ws7,19.6,21.8,0.74,0.99,1),
+    ...[4.5,7.6,12.2,15.2,18.2].map(x=>panel(ws7,x,x+2.8,0.6,0.73,1)).flat(),spanL(ws7,0.12,4.2,30.4,1),...[9,15,21,26].map(x=>chordL(ws7,x,0,0.12,1))]);
+  canoes(g,ws7,[6.5,13.2,16.8,20.4,23.9,27.2],3.6,0.34,Wg); dischargers(g,ws7,[28.6,29.4,30.2],0.32);
+  const ht7=[{x:0.5,y:1.6,z:27.5,c:7.5,t:.11},{x:10.75,y:2.6,z:33.5,c:2.4,t:.09}]; lines(g,panel(ht7,1.2,10.2,0.7,0.99,1)); dischargers(g,ht7,[9.4,10.3],0.24);
+  pitot(g,-2.9,0.35,-33.6,1.3); pitot(g,2.9,0.35,-33.6,1.3); pitot(g,-2.6,-1.1,-33.2,1.3); aoa(g,-3.05,-0.25,-34.4,1.3); aoa(g,3.05,-0.25,-34.4,1.3);
+  blade(g,0,3.2,-14,0.6,0.5); blade(g,0,-3.2,4,0.55,0.45,true); blade(g,0,3.2,-24,0.16,0.3); blade(g,0,-3.2,-25,0.16,0.3,true);
+  const sat=new T.Mesh(new T.SphereGeometry(0.9,16,8,0,Math.PI*2,0,Math.PI/2),mat(0xe6e9ec)); sat.scale.set(1,0.35,2.2); sat.position.set(0,3.17,6); g.add(sat);
+  const apu7=new T.Mesh(new T.CircleGeometry(0.2,16),DARK); apu7.position.set(0,2.4,36.94); g.add(apu7);
+  sideDoor(g,2.8,-2.4,-0.6,-24.5,-21.8); sideDoor(g,2.8,-2.4,-0.6,10,12.7); sideDoor(g,2.6,-2.6,-1.4,16,17.2);
+  wiper(g,-0.7,2.0,-34.5,0.9); wiper(g,0.7,2.0,-34.5,0.9);
+  [-1,1].forEach(s=>{ const r=new T.Mesh(new T.BoxGeometry(0.35,0.05,0.8),DARK); r.position.set(s*1.1,-3.15,-6.5); g.add(r); });
+  gearDoor(gear,-0.35,Gd+2.2,zn,1.6,2.2); gearDoor(gear,0.35,Gd+2.2,zn,1.6,2.2); taxiLight(gear,0,Gd+1.5,zn-0.35); gear.add(strut([0,Gd+1.4,zn-0.1],[0,Gd+0.9,zn+0.2],0.05,Mt));
+  [-1,1].forEach(s=>{ gearDoor(gear,s*6.2,Gd+3.0,zm-0.4,2.4,2.0); gear.add(strut([s*5.49,Gd+1.8,zm+0.2],[s*5.49,Gd+1.2,zm+0.5],0.06,Mt)); });
   lights(g,L,{s:4,port:[-32.4,wy(32.4)+0.1,le(30.6)+2.3],tail:[0,2.4,36.95],bcn:[0,3.25,-5],bcn2:[0,-3.25,-2],land:[0,-3.1,-28.4]});
   return {g,L}; }
 
 const BUILD={a320,lj60,h125,r44,s76,b777};
+// soufflantes : rotation visuelle proportionnelle au régime (N2), moulinet en vol moteur arrêté [visuel ralenti pour éviter l'effet stroboscopique]
+let _ft=performance.now(); const _lu=lightsUpdate; lightsUpdate=function(){ _lu.apply(this,arguments); try{ const F=MODEL&&MODEL.userData.fans; if(!F) return; const now=performance.now(), dt=Math.min(0.1,(now-_ft)/1000); _ft=now;
+  F.forEach(x=>{ const n=(S.n2&&S.n2[x.i])||0, wm=S.onGround?0:Math.min(1,(S.V||0)/120)*1.5; x.o.rotation.z-=(n>0.02?4+n*26:wm)*dt; }); }catch(e){} };
 const _bm=buildModel;
 buildModel=function(key){ const f=BUILD[key]; if(!f) return _bm(key); const {g,L}=f(); Object.values(L).forEach(o=>{ o.visible=false; g.add(o); }); g.userData.L=L; g.userData.real=true; return g; };
 // train rentré en vol, rotor arrière qui tourne
