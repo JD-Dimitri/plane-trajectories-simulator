@@ -12,7 +12,13 @@ function facade(base,win,lit){ const cv=document.createElement('canvas'); cv.wid
 const FAC=[facade('#9aa4ad','#33475a',0.08),facade('#c2b9a8','#3b4652',0.06),facade('#5e7383','#1c2c3a',0.1),facade('#d7d9dc','#4a5d70',0.05)];
 const famMat=FAC.map(t=>new T.MeshLambertMaterial({map:t}));
 /* un objet posé au sol en (lat, lon) : repère local x = est, y = haut, z = sud */
-function place(obj,lat,lon,elev,hdg){ const p=ecef(lat,lon,elev||0), b=enuBasis(lat,lon); const g=new T.Group(); g.matrixAutoUpdate=false;
+window.OBS=window.OBS||[];
+/* obstacles solides : chaque bâtiment est enregistré (boîte orientée, hauteur) pour les collisions piéton / appareil */
+function regObs(obj,lat,lon,elev,hdg){ try{ const boxes=[]; if(obj.userData.list){ obj.userData.list.forEach(b=>boxes.push({x:b.x,z:b.z,hw:b.w/2,hd:b.d/2,h:b.h,r:b.r||0})); }
+  else { const bb=new T.Box3().setFromObject(obj); if(!isFinite(bb.min.x)) return; const r=hdg?-hdg*Math.PI/180:0, cx=(bb.min.x+bb.max.x)/2, cz=(bb.min.z+bb.max.z)/2;
+   if(obj.userData.parts) obj.userData.parts.forEach(q=>boxes.push(q)); else boxes.push({x:cx*Math.cos(r)+cz*Math.sin(r),z:-cx*Math.sin(r)+cz*Math.cos(r),hw:(bb.max.x-bb.min.x)/2,hd:(bb.max.z-bb.min.z)/2,h:bb.max.y,r}); }
+  let rad=0; boxes.forEach(b=>{ rad=Math.max(rad,Math.hypot(b.x,b.z)+Math.hypot(b.hw,b.hd)); }); OBS.push({lat,lon,elev:elev||0,rad,boxes}); }catch(e){} }
+function place(obj,lat,lon,elev,hdg){ regObs(obj,lat,lon,elev,hdg); const p=ecef(lat,lon,elev||0), b=enuBasis(lat,lon); const g=new T.Group(); g.matrixAutoUpdate=false;
   const m=new T.Matrix4().makeBasis(new T.Vector3(...b.E),new T.Vector3(...b.U),new T.Vector3(-b.N[0],-b.N[1],-b.N[2])); m.setPosition(p[0],p[1],p[2]); g.matrix.copy(m);
   if(hdg) obj.rotation.y=-hdg*Math.PI/180; g.add(obj); world.add(g); return g; }
 /* tour de contrôle : fût, bloc technique, vigie vitrée, toit, antennes */
@@ -32,7 +38,7 @@ function hangar(w,d,h){ const g=new T.Group(); const body=new T.Mesh(new T.Cylin
 function merged(list){ const g=new T.Group(); [0,1,2,3].forEach(k=>{ const P=[],N=[],U=[]; list.filter(b=>b.k===k).forEach(b=>{ const geo=new T.BoxGeometry(b.w,b.h,b.d).toNonIndexed(); const uv=geo.attributes.uv;
     for(let i=0;i<uv.count;i++) uv.setXY(i,uv.getX(i)*Math.max(1,Math.max(b.w,b.d)/14),uv.getY(i)*Math.max(1,b.h/22));
     geo.rotateY(b.r||0); geo.translate(b.x,b.h/2,b.z); P.push(...geo.attributes.position.array); N.push(...geo.attributes.normal.array); U.push(...geo.attributes.uv.array); });
-    if(!P.length) return; const bg=new T.BufferGeometry(); bg.setAttribute('position',new T.Float32BufferAttribute(P,3)); bg.setAttribute('normal',new T.Float32BufferAttribute(N,3)); bg.setAttribute('uv',new T.Float32BufferAttribute(U,2)); g.add(new T.Mesh(bg,famMat[k])); }); return g; }
+    if(!P.length) return; const bg=new T.BufferGeometry(); bg.setAttribute('position',new T.Float32BufferAttribute(P,3)); bg.setAttribute('normal',new T.Float32BufferAttribute(N,3)); bg.setAttribute('uv',new T.Float32BufferAttribute(U,2)); g.add(new T.Mesh(bg,famMat[k])); }); g.userData.list=list; return g; }
 function rng(seed){ let s=seed; return ()=>{ s=(s*16807)%2147483647; return s/2147483647; }; }
 /* quartier : zone (rectangle ou ellipse) remplie d'immeubles */
 function city(lat0,lon0,lat1,lon1,step,hMin,hMax,seed,elev,hdg,ellipse){ const rnd=rng(seed), c=[(lat0+lat1)/2,(lon0+lon1)/2], kx=111320*Math.cos(c[0]*Math.PI/180), list=[];
@@ -68,7 +74,7 @@ landmark('1wtc',40.7127,-74.0134,5); landmark('esb',40.7484,-73.9857,5); landmar
 /* ---------- Paris : Roissy-CDG et la ville ---------- */
 place(tower(112,'slim'),49.0186,2.5350,110); place(tower(90,'slim'),48.9985,2.5560,110); place(tower(75,'wide'),49.0090,2.5505,110); place(tower(60,'slim'),49.00597,2.59729,110);
 { const t1=new T.Group(); const ring=new T.Mesh(new T.CylinderGeometry(96,96,40,40),CONC); ring.position.y=20; t1.add(ring); const top=new T.Mesh(new T.CylinderGeometry(70,96,4,40),ROOF); top.position.y=42; t1.add(top);
-  for(let i=0;i<7;i++){ const a=i/7*Math.PI*2; const sat=box(26,10,26,WHITE,Math.cos(a)*210,Math.sin(a)*210); t1.add(sat); } place(t1,49.0144,2.5418,110); }
+  for(let i=0;i<7;i++){ const a=i/7*Math.PI*2; const sat=box(26,10,26,WHITE,Math.cos(a)*210,Math.sin(a)*210); t1.add(sat); } t1.userData.parts=[{x:0,z:0,hw:92,hd:92,h:44,r:0}].concat([...Array(7).keys()].map(i=>{ const an=i/7*Math.PI*2; return {x:Math.cos(an)*210,z:Math.sin(an)*210,hw:13,hd:13,h:10,r:0}; })); place(t1,49.0144,2.5418,110); }
 [[49.0045,2.5650,420,70,20,-12],[49.0030,2.5760,420,70,20,12],[49.0040,2.5880,520,80,22,0],[49.0090,2.5900,260,90,24,90]].forEach(([la,lo,l,d,h,hd])=>place(terminal(l,d,h,true),la,lo,110,hd));
 [[48.9960,2.5780],[48.9945,2.5880],[48.9975,2.6000]].forEach(([la,lo])=>place(hangar(90,100,30),la,lo,110,-10));
 city(49.0040,2.5280,49.0120,2.5480,90,10,35,29,110,0);          // Roissypôle, hôtels, fret

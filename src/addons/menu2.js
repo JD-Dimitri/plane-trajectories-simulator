@@ -8,6 +8,7 @@ const css=document.createElement('style'); css.textContent=`
 #menu .m2-hide{display:none!important}
 #menu .ld{margin:6px 0 4px}#menu .ld-row{border:1px solid var(--line);border-radius:12px;background:#0a141e;padding:10px 12px;margin:8px 0}
 #menu .ld-row>b{display:flex;align-items:center;gap:8px;font:700 17px 'Barlow Condensed',sans-serif;letter-spacing:.04em}#menu .ld-row>b small{color:var(--mut);font:500 12px 'Inter',sans-serif}
+#menu .m2-mg{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:8px;margin-bottom:10px}#menu .m2-card{border:1px solid #2b3d50;border-radius:12px;padding:10px 12px;background:#0d1924;display:flex;flex-direction:column;gap:3px}#menu .m2-card.off{opacity:.5}#menu .m2-card small{font:700 11px 'Barlow Condensed',sans-serif;letter-spacing:.12em;color:#3fd0ff;text-transform:uppercase}#menu .m2-card b{font:700 17px 'Barlow Condensed',sans-serif}#menu .m2-card span{font-size:13px;color:#9fb3c4}#menu .m2-ab{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}#menu .m2-ab button,#menu .m2-ab a{background:#e04ad8;color:#fff;border:0;border-radius:8px;padding:6px 10px;font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-decoration:none;cursor:pointer}
 #menu .ld-track{position:relative;display:flex;align-items:flex-end;gap:0;overflow-x:auto;padding:4px 4px 6px;scrollbar-width:thin}#menu .ld-g{display:flex;flex-direction:column;min-width:0;border-left:2px solid #2b3d50;padding-left:2px}#menu .ld-g:first-child{border-left:0}#menu .ld-gl{font:700 10px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--cy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px 4px}#menu .ld-gs{display:flex}
 #menu .ld-gs{position:relative}#menu .ld-gs::before{content:'';position:absolute;left:0;right:0;top:10px;height:3px;background:linear-gradient(90deg,var(--cy),var(--acc))}
 #menu .ld-st{position:relative;flex:1 0 34px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:#cfd8df;cursor:pointer;padding:0 2px;min-width:34px}
@@ -25,6 +26,7 @@ function stepsOf(k){ if(CACHE[k]) return CACHE[k]; const sv={ACK,A,MI}; let out=
   return CACHE[k]=out; }
 function mode(){ const p=$('m-peda'), a=$('m-auto'); if(a&&a.checked) return 'auto'; if(p&&!p.checked) return 'free'; return 'guide'; }
 let CHOSEN=false;
+function goMi(key,k){ CHOSEN=true; selAC=k; selMI=key; try{ ls.set('sim-ac',k); ls.set('sim-mi',key); }catch(e){} try{ renderMenu(); }catch(e){} selAC=k; selMI=key; if(/^sc-/.test(key)){ $('go').click(); return; } BR.launchMode('scn'); }
 function go(k,step){ CHOSEN=true; selAC=k; ls.set('sim-ac',k); selMI=FULL(k); try{ renderMenu(); }catch(e){} const m=mode();
   if(step>0){ window.FF={to:step,then:m==='auto'?'auto':'guide',from:0}; const want=window.FF; BR.launchMode('auto'); window.FF=want; }
   else BR.launchMode(m==='free'?'free':m); }
@@ -40,6 +42,13 @@ function decorate(){ const box=document.querySelector('#menu .box'); if(!box) re
   if(hAc&&hAc.tagName==='H2') hAc.textContent='Appareil — un clic lance le parcours';
   // un seul appareil : clic = lancement
   ac.querySelectorAll('[data-ac]').forEach(b=>{ b.classList.toggle('on',false); b.onclick=()=>go(b.dataset.ac,0); });
+  // missions et scénarios réels (rubrique restaurée) : un clic lance, l'appareil requis est chargé automatiquement
+  let ms=box.querySelector('.m2-mis'); if(!ms){ ms=document.createElement('div'); ms.className='m2-mis'; ac.after(ms); }
+  const fwK=Object.keys(AC).filter(k=>AC[k].kind==='fw'), rwK=Object.keys(AC).filter(k=>AC[k].kind!=='fw');
+  ms.innerHTML='<h2>Missions et scénarios réels — un clic lance</h2><div class="m2-mg">'+Object.keys(MISSIONS).filter(key=>!/^full|^parcours/.test(key)&&!Object.keys(AC).some(k=>FULL(k)===key)).map(key=>{ const m=MISSIONS[key];
+    const ks=MI_AC[key]?[MI_AC[key]]:m.fw?fwK:m.rw?rwK:[]; const tag=m.link?'Étude (lien)':m.soon?'À venir':/^sc-/.test(key)?'Scénario':'Vol libre';
+    return `<div class="m2-card ${m.soon?'off':''}"><small>${tag}</small><b>${m.n}</b><span>${m.d}</span><div class="m2-ab">${m.link?`<a href="${m.link}" target="_blank" rel="noopener">Ouvrir l'étude ↗</a>`:m.soon?'':ks.map(k=>`<button type="button" data-mi="${key}" data-k="${k}">▶ ${AC[k].name}</button>`).join('')}</div></div>`; }).join('')+'</div>';
+  ms.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>goMi(b.dataset.mi,b.dataset.k));
   // ligne directrice
   let ld=box.querySelector('.ld'); if(!ld){ ld=document.createElement('div'); ld.className='ld'; ac.after(ld); }
   ld.innerHTML='<h2>Ligne directrice — aller directement à une étape</h2><p class="m2-note">Chaque repère | est une étape du parcours : touchez-le pour la voir ou la faire dans la simulation (les étapes précédentes passent en avance rapide).</p>'+
@@ -50,7 +59,7 @@ function decorate(){ const box=document.querySelector('#menu .box'); if(!box) re
   // réinitialiser
   if(!box.querySelector('.m2-reset')){ const r=document.createElement('div'); r.className='m2-reset'; r.innerHTML='<button type="button">↺ Réinitialiser — repartir de zéro</button><small>Arrête le vol en cours, efface les choix et recharge le simulateur (la progression des cours de l\'Académie est conservée).</small>';
     r.querySelector('button').onclick=()=>{ try{ window.FF=null; ['sim-ac','sim-mi','sim-tm'].forEach(x=>localStorage.removeItem(x)); }catch(e){} location.reload(); }; ld.after(r); }
-  if(!box.querySelector('.m2-scn')){ const n=document.createElement('p'); n.className='m2-note m2-scn'; n.innerHTML='Vols libres, scénarios (US Airways 1549, Germanwings 9525, pannes) et examen blanc : boutons <b>« Scénarios »</b> et <b>« Procédures »</b> pendant le vol, ou cartes « Lancer » du dossier.'; box.querySelector('.m2-reset').after(n); } }
+  if(!box.querySelector('.m2-scn')){ const n=document.createElement('p'); n.className='m2-note m2-scn'; n.innerHTML='Pendant le vol : boutons <b>« Scénarios »</b> (pannes) et <b>« Procédures »</b>. Examen blanc : cartes « Lancer » du dossier.'; box.querySelector('.m2-reset').after(n); } }
 const _rm=renderMenu; renderMenu=function(){ const r=_rm.apply(this,arguments); try{ decorate(); }catch(e){ console.warn('menu',e); } return r; };
 try{ decorate(); }catch(e){}
 

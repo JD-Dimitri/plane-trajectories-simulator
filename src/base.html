@@ -237,7 +237,7 @@ kbd{display:inline-block;min-width:20px;padding:1px 5px;margin:0 2px 2px 0;borde
  <button type="button" id="b-flap">Volets 0</button>
  <span class="sep"></span>
  <span class="lbl">Temps</span>
- <select id="b-rate" aria-label="Accélération du temps"><option value="1">×1</option><option value="4">×4</option><option value="16">×16</option><option value="64">×64</option></select>
+ <select id="b-rate" aria-label="Accélération du temps"><option value="real">Temps réel (durées réelles)</option><option value="1">×1</option><option value="2">×2</option><option value="5">×5</option><option value="10">×10</option><option value="20">×20</option><option value="50">×50</option></select>
  <button type="button" id="b-dn">☀ Jour</button>
  <button type="button" id="b-help">? Aide</button>
  <a id="b-n7" hidden target="_blank" rel="noopener" style="margin-left:auto;color:var(--cy);font:600 12px 'Barlow Condensed';letter-spacing:.08em;text-transform:uppercase;text-decoration:none">Étude N722BD ↗</a>
@@ -2288,7 +2288,7 @@ function failTick(){ if(!MI) return; const now=performance.now();
   if(FX.rnd&&SIMT>FX.rnd.at){ const id=FX.rnd.id; FX.rnd=null; failSet(id,true); }
   if(AUTO.on) for(const id in FX.fixAt){ if(SIMT>FX.fixAt[id]){ const f=FAILS.find(x=>x.id===id); delete FX.fixAt[id]; if(f&&FAIL[id]){ try{ f.fix(); }catch(e){} flash('Procédure ECAM appliquée : '+(f.t||f.n),'am'); ovhSync(); pedSync(); failUI(); } } }
   // mode observation : accélération au sol pendant les attentes réelles (alignement IR, démarrages) ; auto-frein armé en descente
-  if(AUTO.on&&MI.full&&S.onGround&&!((GD.steps[GD.i]||{}).fly)){ const wait=(SYS.ir1==='NAV'&&(SYS.irAl||0)<1)||SYS.apuStart||(S.n2&&S.n2.some((n,i)=>n>0.01&&n<1&&!S.eng[i])); const want=wait?16:1; if(rate!==want) setRate(want); }
+  if(window.TREAL){ if(rate!==1&&!window.FF) setRate(1); } else if(AUTO.on&&MI.full&&S.onGround&&!((GD.steps[GD.i]||{}).fly)){ const wait=(SYS.ir1==='NAV'&&(SYS.irAl||0)<1)||SYS.apuStart||(S.n2&&S.n2.some((n,i)=>n>0.01&&n<1&&!S.eng[i])); const want=wait?16:1; if(rate!==want) setRate(want); }
   if((AUTO.on||ATC.co)&&ACK==='a320'&&!S.onGround&&S.alt/FT<10000&&(S.gam||0)<0&&ATC.flown&&!['LO','MED'].includes(SYS.abrk)){ SYS.abrk='LO'; flash('Auto-frein LO armé','am'); }
   // panneau des pannes : rafraîchir les « pannes actives » quand une panne disparaît d'elle-même
   const sig=Object.keys(FAIL).sort().join(','); if(sig!==FX.sig){ FX.sig=sig; failUI(); } }
@@ -2702,7 +2702,7 @@ document.addEventListener('keydown',e=>{ if(/INPUT|SELECT|TEXTAREA/.test((docume
   if(k==='a'||k==='A') fcuCmd('ap'); else if(k==='h'||k==='H'){ if(A.kind==='rw'&&A.afcs) fcuCmd('alth'); else flash(A.kind==='rw'?'Pas de maintien d\'altitude sur cet appareil':'—','am'); }
   else if(k==='g'||k==='G') toggleGear(); else if(k==='f') setFlap(1); else if(k==='F') setFlap(-1);
   else if(k==='c'||k==='C') setView('ck'); else if(k==='e'||k==='E') setView('ext'); else if(k==='o'||k==='O') toggleOVH();
-  else if(k==='p'||k==='P') togglePause(); else if(k==='j'||k==='J') dayNight(); else if(k==='x'||k==='X'){ const o=[1,4,16,64]; setRate(o[(o.indexOf(rate)+1)%4]); }
+  else if(k==='p'||k==='P') togglePause(); else if(k==='j'||k==='J') dayNight(); else if(k==='x'||k==='X'){ const o=[1,2,5,10,20,50]; setRate(o[(o.indexOf(rate)+1)%o.length]); }
   else if(k==='?') toggleHelp(); else if(k==='Escape'){ $('help').hidden=true; $('ovh').hidden=true; ovhPinned=false; }
   else if(k==='0'){ LK.ty=LK.tp=0; LK.tz=1; } else if(k==='k'||k==='K'){ const p=$('ped'); if(p){ p.hidden=!p.hidden; $('b-ped').classList.toggle('on',!p.hidden); } }
   else if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown',' '].includes(k)){} else used=false;
@@ -2733,7 +2733,7 @@ stick('stL',IN.tL); stick('stR',IN.tR);
 function toggleGear(){ if(A.kind!=='fw') return; if(S.onGround&&S.gear){ flash('Train : impossible au sol','am'); return; } S.gear=!S.gear; flash(S.gear?'TRAIN SORTI':'TRAIN RENTRÉ','am'); syncBar(); }
 function setFlap(d){ if(A.kind!=='fw') return; S.flap=clamp(S.flap+d,0,A.flaps.length-1); flash('VOLETS '+A.flaps[S.flap].n,'am'); syncBar(); }
 function togglePause(){ if(crashed) return; paused=!paused; $('b-pause').textContent=paused?'Reprendre':'Pause'; }
-function setRate(r){ if(r>4 && !(AP.on||S.onGround===false&&A.kind==='rw'&&AP.althold)){ flash('Accélération > ×4 : pilote auto requis','am'); r=Math.min(r,4); } rate=r; $('b-rate').value=String(r); }
+function setRate(r){ if(r>4 && !(AP.on||S.onGround===false&&A.kind==='rw'&&AP.althold)){ flash('Accélération > ×4 : pilote auto requis','am'); r=Math.min(r,4); } rate=r; if(r!==1) window.TREAL=false; $('b-rate').value=window.TREAL&&r===1?'real':String(r); }
 let ovhPinned=false;
 function toggleOVH(){ ovhPinned=!ovhPinned; $('ovh').hidden=!ovhPinned; $('b-ovh').classList.toggle('on',ovhPinned); if(ovhPinned) ovhSync(); }
 function setView(v){ if(v!=='walk'&&view==='walk'&&GD.on&&GD.steps[GD.i]&&GD.steps[GD.i].walk&&!walkDone()) flash('Tour avion non terminé','am'); view=v; document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('ck').hidden=v!=='ck'; LK.ty=LK.tp=0; LK.tz=1; resize(); }
@@ -2744,7 +2744,7 @@ $('help-x').onclick=toggleHelp; $('b-help').onclick=toggleHelp; $('b-pause').onc
 $('b-atc').onclick=()=>atcOpen(); $('b-scn').onclick=()=>scnOpen(); $('b-fail').onclick=()=>failOpen(); $('b-auto').onclick=()=>{ if(!MI.full){ flash('Mode automatique : missions « Parcours pilote complet »','am'); return; } autoStart(!AUTO.on); }; $('b-qcm').onclick=()=>{ const q=$('qcm'); if(q&&!q.hidden){ q.hidden=true; return; } qcmOpen(); };
 $('b-ped').onclick=()=>{ const p=$('ped'); if(p){ p.hidden=!p.hidden; $('b-ped').classList.toggle('on',!p.hidden); } }; $('b-guide').onclick=()=>{ if(!MI.full){ flash('Mode pédagogique : missions « Parcours pilote complet »','am'); return; } GD.peda=!GD.peda; $('b-guide').classList.toggle('on',GD.peda); renderGuide(); };
 $('b-ap').onclick=()=>fcuCmd(A.kind==='rw'&&!A.afcs?'none':'ap'); $('b-gear').onclick=toggleGear; $('b-flap').onclick=()=>setFlap(S.flap>=A.flaps.length-1?-(A.flaps.length-1):1);
-$('b-rate').onchange=()=>setRate(+$('b-rate').value); $('b-dn').onclick=dayNight; $('b-menu').onclick=openMenu;
+$('b-rate').onchange=()=>{ const v=$('b-rate').value; window.TREAL=v==='real'; setRate(v==='real'?1:+v); if(window.TREAL) flash('Temps réel : toutes les durées sont réelles, aucune accélération automatique','am'); }; $('b-dn').onclick=dayNight; $('b-menu').onclick=openMenu;
 document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
 function syncBar(){ $('b-gear').textContent='Train '+(S.gear?'sorti':'rentré'); $('b-flap').textContent='Volets '+(A.kind==='fw'?A.flaps[S.flap].n:'—');
   $('b-gear').hidden=$('b-flap').hidden=A.kind!=='fw'; $('b-ap').hidden=A.kind==='rw'&&!A.afcs; $('b-dn').textContent=SKY.u.night.value>0.5?'☾ Nuit':'☀ Jour'; }

@@ -237,7 +237,7 @@ kbd{display:inline-block;min-width:20px;padding:1px 5px;margin:0 2px 2px 0;borde
  <button type="button" id="b-flap">Volets 0</button>
  <span class="sep"></span>
  <span class="lbl">Temps</span>
- <select id="b-rate" aria-label="Accélération du temps"><option value="1">×1</option><option value="4">×4</option><option value="16">×16</option><option value="64">×64</option></select>
+ <select id="b-rate" aria-label="Accélération du temps"><option value="real">Temps réel (durées réelles)</option><option value="1">×1</option><option value="2">×2</option><option value="5">×5</option><option value="10">×10</option><option value="20">×20</option><option value="50">×50</option></select>
  <button type="button" id="b-dn">☀ Jour</button>
  <button type="button" id="b-help">? Aide</button>
  <a id="b-n7" hidden target="_blank" rel="noopener" style="margin-left:auto;color:var(--cy);font:600 12px 'Barlow Condensed';letter-spacing:.08em;text-transform:uppercase;text-decoration:none">Étude N722BD ↗</a>
@@ -2288,7 +2288,7 @@ function failTick(){ if(!MI) return; const now=performance.now();
   if(FX.rnd&&SIMT>FX.rnd.at){ const id=FX.rnd.id; FX.rnd=null; failSet(id,true); }
   if(AUTO.on) for(const id in FX.fixAt){ if(SIMT>FX.fixAt[id]){ const f=FAILS.find(x=>x.id===id); delete FX.fixAt[id]; if(f&&FAIL[id]){ try{ f.fix(); }catch(e){} flash('Procédure ECAM appliquée : '+(f.t||f.n),'am'); ovhSync(); pedSync(); failUI(); } } }
   // mode observation : accélération au sol pendant les attentes réelles (alignement IR, démarrages) ; auto-frein armé en descente
-  if(AUTO.on&&MI.full&&S.onGround&&!((GD.steps[GD.i]||{}).fly)){ const wait=(SYS.ir1==='NAV'&&(SYS.irAl||0)<1)||SYS.apuStart||(S.n2&&S.n2.some((n,i)=>n>0.01&&n<1&&!S.eng[i])); const want=wait?16:1; if(rate!==want) setRate(want); }
+  if(window.TREAL){ if(rate!==1&&!window.FF) setRate(1); } else if(AUTO.on&&MI.full&&S.onGround&&!((GD.steps[GD.i]||{}).fly)){ const wait=(SYS.ir1==='NAV'&&(SYS.irAl||0)<1)||SYS.apuStart||(S.n2&&S.n2.some((n,i)=>n>0.01&&n<1&&!S.eng[i])); const want=wait?16:1; if(rate!==want) setRate(want); }
   if((AUTO.on||ATC.co)&&ACK==='a320'&&!S.onGround&&S.alt/FT<10000&&(S.gam||0)<0&&ATC.flown&&!['LO','MED'].includes(SYS.abrk)){ SYS.abrk='LO'; flash('Auto-frein LO armé','am'); }
   // panneau des pannes : rafraîchir les « pannes actives » quand une panne disparaît d'elle-même
   const sig=Object.keys(FAIL).sort().join(','); if(sig!==FX.sig){ FX.sig=sig; failUI(); } }
@@ -2702,7 +2702,7 @@ document.addEventListener('keydown',e=>{ if(/INPUT|SELECT|TEXTAREA/.test((docume
   if(k==='a'||k==='A') fcuCmd('ap'); else if(k==='h'||k==='H'){ if(A.kind==='rw'&&A.afcs) fcuCmd('alth'); else flash(A.kind==='rw'?'Pas de maintien d\'altitude sur cet appareil':'—','am'); }
   else if(k==='g'||k==='G') toggleGear(); else if(k==='f') setFlap(1); else if(k==='F') setFlap(-1);
   else if(k==='c'||k==='C') setView('ck'); else if(k==='e'||k==='E') setView('ext'); else if(k==='o'||k==='O') toggleOVH();
-  else if(k==='p'||k==='P') togglePause(); else if(k==='j'||k==='J') dayNight(); else if(k==='x'||k==='X'){ const o=[1,4,16,64]; setRate(o[(o.indexOf(rate)+1)%4]); }
+  else if(k==='p'||k==='P') togglePause(); else if(k==='j'||k==='J') dayNight(); else if(k==='x'||k==='X'){ const o=[1,2,5,10,20,50]; setRate(o[(o.indexOf(rate)+1)%o.length]); }
   else if(k==='?') toggleHelp(); else if(k==='Escape'){ $('help').hidden=true; $('ovh').hidden=true; ovhPinned=false; }
   else if(k==='0'){ LK.ty=LK.tp=0; LK.tz=1; } else if(k==='k'||k==='K'){ const p=$('ped'); if(p){ p.hidden=!p.hidden; $('b-ped').classList.toggle('on',!p.hidden); } }
   else if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown',' '].includes(k)){} else used=false;
@@ -2733,7 +2733,7 @@ stick('stL',IN.tL); stick('stR',IN.tR);
 function toggleGear(){ if(A.kind!=='fw') return; if(S.onGround&&S.gear){ flash('Train : impossible au sol','am'); return; } S.gear=!S.gear; flash(S.gear?'TRAIN SORTI':'TRAIN RENTRÉ','am'); syncBar(); }
 function setFlap(d){ if(A.kind!=='fw') return; S.flap=clamp(S.flap+d,0,A.flaps.length-1); flash('VOLETS '+A.flaps[S.flap].n,'am'); syncBar(); }
 function togglePause(){ if(crashed) return; paused=!paused; $('b-pause').textContent=paused?'Reprendre':'Pause'; }
-function setRate(r){ if(r>4 && !(AP.on||S.onGround===false&&A.kind==='rw'&&AP.althold)){ flash('Accélération > ×4 : pilote auto requis','am'); r=Math.min(r,4); } rate=r; $('b-rate').value=String(r); }
+function setRate(r){ if(r>4 && !(AP.on||S.onGround===false&&A.kind==='rw'&&AP.althold)){ flash('Accélération > ×4 : pilote auto requis','am'); r=Math.min(r,4); } rate=r; if(r!==1) window.TREAL=false; $('b-rate').value=window.TREAL&&r===1?'real':String(r); }
 let ovhPinned=false;
 function toggleOVH(){ ovhPinned=!ovhPinned; $('ovh').hidden=!ovhPinned; $('b-ovh').classList.toggle('on',ovhPinned); if(ovhPinned) ovhSync(); }
 function setView(v){ if(v!=='walk'&&view==='walk'&&GD.on&&GD.steps[GD.i]&&GD.steps[GD.i].walk&&!walkDone()) flash('Tour avion non terminé','am'); view=v; document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('ck').hidden=v!=='ck'; LK.ty=LK.tp=0; LK.tz=1; resize(); }
@@ -2744,7 +2744,7 @@ $('help-x').onclick=toggleHelp; $('b-help').onclick=toggleHelp; $('b-pause').onc
 $('b-atc').onclick=()=>atcOpen(); $('b-scn').onclick=()=>scnOpen(); $('b-fail').onclick=()=>failOpen(); $('b-auto').onclick=()=>{ if(!MI.full){ flash('Mode automatique : missions « Parcours pilote complet »','am'); return; } autoStart(!AUTO.on); }; $('b-qcm').onclick=()=>{ const q=$('qcm'); if(q&&!q.hidden){ q.hidden=true; return; } qcmOpen(); };
 $('b-ped').onclick=()=>{ const p=$('ped'); if(p){ p.hidden=!p.hidden; $('b-ped').classList.toggle('on',!p.hidden); } }; $('b-guide').onclick=()=>{ if(!MI.full){ flash('Mode pédagogique : missions « Parcours pilote complet »','am'); return; } GD.peda=!GD.peda; $('b-guide').classList.toggle('on',GD.peda); renderGuide(); };
 $('b-ap').onclick=()=>fcuCmd(A.kind==='rw'&&!A.afcs?'none':'ap'); $('b-gear').onclick=toggleGear; $('b-flap').onclick=()=>setFlap(S.flap>=A.flaps.length-1?-(A.flaps.length-1):1);
-$('b-rate').onchange=()=>setRate(+$('b-rate').value); $('b-dn').onclick=dayNight; $('b-menu').onclick=openMenu;
+$('b-rate').onchange=()=>{ const v=$('b-rate').value; window.TREAL=v==='real'; setRate(v==='real'?1:+v); if(window.TREAL) flash('Temps réel : toutes les durées sont réelles, aucune accélération automatique','am'); }; $('b-dn').onclick=dayNight; $('b-menu').onclick=openMenu;
 document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
 function syncBar(){ $('b-gear').textContent='Train '+(S.gear?'sorti':'rentré'); $('b-flap').textContent='Volets '+(A.kind==='fw'?A.flaps[S.flap].n:'—');
   $('b-gear').hidden=$('b-flap').hidden=A.kind!=='fw'; $('b-ap').hidden=A.kind==='rw'&&!A.afcs; $('b-dn').textContent=SKY.u.night.value>0.5?'☾ Nuit':'☀ Jour'; }
@@ -3677,7 +3677,7 @@ function nowText(st){ const el=(performance.now()-AUTO.t0)/1000;
   if(TX.auto&&TX.pushMsg&&S.onGround&&S.V<-0.05) return ['🚜 <b>Repoussage (pushback)</b> : un tracteur pousse l\'avion en arrière pour le sortir du poste. Vous voyez le terminal s\'éloigner et la piste est derrière vous : c\'est normal. Ensuite, l\'avion roulera vers l\'avant, piste devant vous (temps accéléré ×4).',0.3];
   if(AUTO.stage==='act'&&c){ const airFly=st.fly&&!S.onGround;
     if(airFly&&!c.it[2]) return [`✈ Le pilote automatique vole : objectif « ${c.it[0]} ». Observez les écrans et l'extérieur.`,0.5];
-    if(!c.it[2]) return [`⏳ Attente : « ${c.it[0]} » (le système travaille, en temps réel — l'accélération du temps est utilisée pendant les longues attentes).`,c.j/st.items.length];
+    if(!c.it[2]) return [`⏳ Attente : « ${c.it[0]} » (le système travaille ${window.TREAL?'en temps réel : durée réelle, sans accélération':'— l\'accélération du temps est utilisée pendant les longues attentes ; choisissez « Temps réel » pour les durées réelles'}).`,c.j/st.items.length];
     return [`${window.SCNG&&SCNG.on&&!SCNG.demo?'👉 À vous':'👆 Action en cours'} — sous-étape ${c.j+1}/${st.items.length+1} : <b>${c.it[0]}</b>${c.it[3]?' — la commande clignote, regardez où elle se trouve':''}.`,c.j/st.items.length]; }
   if(AUTO.stage==='done') return ['✅ Étape terminée : passage à la suivante…',1];
   return ['…',0]; }
@@ -4048,7 +4048,7 @@ PT.crumb=function(st,i){ const p=PT.partOf(i), subs=PT.subs(st), cur=PT.current(
    pour arriver vite au roulage vers l'avant, piste devant soi. */
 (function(){ let boosted=false;
   setInterval(()=>{ try{ const pushing=GD.on&&TX.auto&&TX.pushMsg&&S.onGround&&S.V<-0.05;
-    if(pushing&&AUTO.on&&rate===1&&!boosted){ setRate(4); boosted=true; }
+    if(pushing&&AUTO.on&&rate===1&&!boosted&&!window.TREAL){ setRate(4); boosted=true; }
     if(!pushing&&boosted){ if(rate===4) setRate(1); boosted=false; }
     if(pushing&&!PT._pushSaid){ PT._pushSaid=true; subtitle('🚜 Repoussage (pushback)','Un tracteur pousse l\'avion EN ARRIÈRE pour le sortir du poste : un avion de ligne ne recule pas seul. Vous voyez le terminal s\'éloigner, la piste est derrière vous : c\'est normal. Ensuite le tracteur se détache et l\'avion roule vers l\'AVANT, la piste devant vous.'); }
     if(!TX.auto) PT._pushSaid=false; }catch(e){} },300); })();
@@ -4879,7 +4879,13 @@ function facade(base,win,lit){ const cv=document.createElement('canvas'); cv.wid
 const FAC=[facade('#9aa4ad','#33475a',0.08),facade('#c2b9a8','#3b4652',0.06),facade('#5e7383','#1c2c3a',0.1),facade('#d7d9dc','#4a5d70',0.05)];
 const famMat=FAC.map(t=>new T.MeshLambertMaterial({map:t}));
 /* un objet posé au sol en (lat, lon) : repère local x = est, y = haut, z = sud */
-function place(obj,lat,lon,elev,hdg){ const p=ecef(lat,lon,elev||0), b=enuBasis(lat,lon); const g=new T.Group(); g.matrixAutoUpdate=false;
+window.OBS=window.OBS||[];
+/* obstacles solides : chaque bâtiment est enregistré (boîte orientée, hauteur) pour les collisions piéton / appareil */
+function regObs(obj,lat,lon,elev,hdg){ try{ const boxes=[]; if(obj.userData.list){ obj.userData.list.forEach(b=>boxes.push({x:b.x,z:b.z,hw:b.w/2,hd:b.d/2,h:b.h,r:b.r||0})); }
+  else { const bb=new T.Box3().setFromObject(obj); if(!isFinite(bb.min.x)) return; const r=hdg?-hdg*Math.PI/180:0, cx=(bb.min.x+bb.max.x)/2, cz=(bb.min.z+bb.max.z)/2;
+   if(obj.userData.parts) obj.userData.parts.forEach(q=>boxes.push(q)); else boxes.push({x:cx*Math.cos(r)+cz*Math.sin(r),z:-cx*Math.sin(r)+cz*Math.cos(r),hw:(bb.max.x-bb.min.x)/2,hd:(bb.max.z-bb.min.z)/2,h:bb.max.y,r}); }
+  let rad=0; boxes.forEach(b=>{ rad=Math.max(rad,Math.hypot(b.x,b.z)+Math.hypot(b.hw,b.hd)); }); OBS.push({lat,lon,elev:elev||0,rad,boxes}); }catch(e){} }
+function place(obj,lat,lon,elev,hdg){ regObs(obj,lat,lon,elev,hdg); const p=ecef(lat,lon,elev||0), b=enuBasis(lat,lon); const g=new T.Group(); g.matrixAutoUpdate=false;
   const m=new T.Matrix4().makeBasis(new T.Vector3(...b.E),new T.Vector3(...b.U),new T.Vector3(-b.N[0],-b.N[1],-b.N[2])); m.setPosition(p[0],p[1],p[2]); g.matrix.copy(m);
   if(hdg) obj.rotation.y=-hdg*Math.PI/180; g.add(obj); world.add(g); return g; }
 /* tour de contrôle : fût, bloc technique, vigie vitrée, toit, antennes */
@@ -4899,7 +4905,7 @@ function hangar(w,d,h){ const g=new T.Group(); const body=new T.Mesh(new T.Cylin
 function merged(list){ const g=new T.Group(); [0,1,2,3].forEach(k=>{ const P=[],N=[],U=[]; list.filter(b=>b.k===k).forEach(b=>{ const geo=new T.BoxGeometry(b.w,b.h,b.d).toNonIndexed(); const uv=geo.attributes.uv;
     for(let i=0;i<uv.count;i++) uv.setXY(i,uv.getX(i)*Math.max(1,Math.max(b.w,b.d)/14),uv.getY(i)*Math.max(1,b.h/22));
     geo.rotateY(b.r||0); geo.translate(b.x,b.h/2,b.z); P.push(...geo.attributes.position.array); N.push(...geo.attributes.normal.array); U.push(...geo.attributes.uv.array); });
-    if(!P.length) return; const bg=new T.BufferGeometry(); bg.setAttribute('position',new T.Float32BufferAttribute(P,3)); bg.setAttribute('normal',new T.Float32BufferAttribute(N,3)); bg.setAttribute('uv',new T.Float32BufferAttribute(U,2)); g.add(new T.Mesh(bg,famMat[k])); }); return g; }
+    if(!P.length) return; const bg=new T.BufferGeometry(); bg.setAttribute('position',new T.Float32BufferAttribute(P,3)); bg.setAttribute('normal',new T.Float32BufferAttribute(N,3)); bg.setAttribute('uv',new T.Float32BufferAttribute(U,2)); g.add(new T.Mesh(bg,famMat[k])); }); g.userData.list=list; return g; }
 function rng(seed){ let s=seed; return ()=>{ s=(s*16807)%2147483647; return s/2147483647; }; }
 /* quartier : zone (rectangle ou ellipse) remplie d'immeubles */
 function city(lat0,lon0,lat1,lon1,step,hMin,hMax,seed,elev,hdg,ellipse){ const rnd=rng(seed), c=[(lat0+lat1)/2,(lon0+lon1)/2], kx=111320*Math.cos(c[0]*Math.PI/180), list=[];
@@ -4935,7 +4941,7 @@ landmark('1wtc',40.7127,-74.0134,5); landmark('esb',40.7484,-73.9857,5); landmar
 /* ---------- Paris : Roissy-CDG et la ville ---------- */
 place(tower(112,'slim'),49.0186,2.5350,110); place(tower(90,'slim'),48.9985,2.5560,110); place(tower(75,'wide'),49.0090,2.5505,110); place(tower(60,'slim'),49.00597,2.59729,110);
 { const t1=new T.Group(); const ring=new T.Mesh(new T.CylinderGeometry(96,96,40,40),CONC); ring.position.y=20; t1.add(ring); const top=new T.Mesh(new T.CylinderGeometry(70,96,4,40),ROOF); top.position.y=42; t1.add(top);
-  for(let i=0;i<7;i++){ const a=i/7*Math.PI*2; const sat=box(26,10,26,WHITE,Math.cos(a)*210,Math.sin(a)*210); t1.add(sat); } place(t1,49.0144,2.5418,110); }
+  for(let i=0;i<7;i++){ const a=i/7*Math.PI*2; const sat=box(26,10,26,WHITE,Math.cos(a)*210,Math.sin(a)*210); t1.add(sat); } t1.userData.parts=[{x:0,z:0,hw:92,hd:92,h:44,r:0}].concat([...Array(7).keys()].map(i=>{ const an=i/7*Math.PI*2; return {x:Math.cos(an)*210,z:Math.sin(an)*210,hw:13,hd:13,h:10,r:0}; })); place(t1,49.0144,2.5418,110); }
 [[49.0045,2.5650,420,70,20,-12],[49.0030,2.5760,420,70,20,12],[49.0040,2.5880,520,80,22,0],[49.0090,2.5900,260,90,24,90]].forEach(([la,lo,l,d,h,hd])=>place(terminal(l,d,h,true),la,lo,110,hd));
 [[48.9960,2.5780],[48.9945,2.5880],[48.9975,2.6000]].forEach(([la,lo])=>place(hangar(90,100,30),la,lo,110,-10));
 city(49.0040,2.5280,49.0120,2.5480,90,10,35,29,110,0);          // Roissypôle, hôtels, fret
@@ -5335,6 +5341,7 @@ const css=document.createElement('style'); css.textContent=`
 #menu .m2-hide{display:none!important}
 #menu .ld{margin:6px 0 4px}#menu .ld-row{border:1px solid var(--line);border-radius:12px;background:#0a141e;padding:10px 12px;margin:8px 0}
 #menu .ld-row>b{display:flex;align-items:center;gap:8px;font:700 17px 'Barlow Condensed',sans-serif;letter-spacing:.04em}#menu .ld-row>b small{color:var(--mut);font:500 12px 'Inter',sans-serif}
+#menu .m2-mg{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:8px;margin-bottom:10px}#menu .m2-card{border:1px solid #2b3d50;border-radius:12px;padding:10px 12px;background:#0d1924;display:flex;flex-direction:column;gap:3px}#menu .m2-card.off{opacity:.5}#menu .m2-card small{font:700 11px 'Barlow Condensed',sans-serif;letter-spacing:.12em;color:#3fd0ff;text-transform:uppercase}#menu .m2-card b{font:700 17px 'Barlow Condensed',sans-serif}#menu .m2-card span{font-size:13px;color:#9fb3c4}#menu .m2-ab{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}#menu .m2-ab button,#menu .m2-ab a{background:#e04ad8;color:#fff;border:0;border-radius:8px;padding:6px 10px;font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-decoration:none;cursor:pointer}
 #menu .ld-track{position:relative;display:flex;align-items:flex-end;gap:0;overflow-x:auto;padding:4px 4px 6px;scrollbar-width:thin}#menu .ld-g{display:flex;flex-direction:column;min-width:0;border-left:2px solid #2b3d50;padding-left:2px}#menu .ld-g:first-child{border-left:0}#menu .ld-gl{font:700 10px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--cy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px 4px}#menu .ld-gs{display:flex}
 #menu .ld-gs{position:relative}#menu .ld-gs::before{content:'';position:absolute;left:0;right:0;top:10px;height:3px;background:linear-gradient(90deg,var(--cy),var(--acc))}
 #menu .ld-st{position:relative;flex:1 0 34px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:#cfd8df;cursor:pointer;padding:0 2px;min-width:34px}
@@ -5352,6 +5359,7 @@ function stepsOf(k){ if(CACHE[k]) return CACHE[k]; const sv={ACK,A,MI}; let out=
   return CACHE[k]=out; }
 function mode(){ const p=$('m-peda'), a=$('m-auto'); if(a&&a.checked) return 'auto'; if(p&&!p.checked) return 'free'; return 'guide'; }
 let CHOSEN=false;
+function goMi(key,k){ CHOSEN=true; selAC=k; selMI=key; try{ ls.set('sim-ac',k); ls.set('sim-mi',key); }catch(e){} try{ renderMenu(); }catch(e){} selAC=k; selMI=key; if(/^sc-/.test(key)){ $('go').click(); return; } BR.launchMode('scn'); }
 function go(k,step){ CHOSEN=true; selAC=k; ls.set('sim-ac',k); selMI=FULL(k); try{ renderMenu(); }catch(e){} const m=mode();
   if(step>0){ window.FF={to:step,then:m==='auto'?'auto':'guide',from:0}; const want=window.FF; BR.launchMode('auto'); window.FF=want; }
   else BR.launchMode(m==='free'?'free':m); }
@@ -5367,6 +5375,13 @@ function decorate(){ const box=document.querySelector('#menu .box'); if(!box) re
   if(hAc&&hAc.tagName==='H2') hAc.textContent='Appareil — un clic lance le parcours';
   // un seul appareil : clic = lancement
   ac.querySelectorAll('[data-ac]').forEach(b=>{ b.classList.toggle('on',false); b.onclick=()=>go(b.dataset.ac,0); });
+  // missions et scénarios réels (rubrique restaurée) : un clic lance, l'appareil requis est chargé automatiquement
+  let ms=box.querySelector('.m2-mis'); if(!ms){ ms=document.createElement('div'); ms.className='m2-mis'; ac.after(ms); }
+  const fwK=Object.keys(AC).filter(k=>AC[k].kind==='fw'), rwK=Object.keys(AC).filter(k=>AC[k].kind!=='fw');
+  ms.innerHTML='<h2>Missions et scénarios réels — un clic lance</h2><div class="m2-mg">'+Object.keys(MISSIONS).filter(key=>!/^full|^parcours/.test(key)&&!Object.keys(AC).some(k=>FULL(k)===key)).map(key=>{ const m=MISSIONS[key];
+    const ks=MI_AC[key]?[MI_AC[key]]:m.fw?fwK:m.rw?rwK:[]; const tag=m.link?'Étude (lien)':m.soon?'À venir':/^sc-/.test(key)?'Scénario':'Vol libre';
+    return `<div class="m2-card ${m.soon?'off':''}"><small>${tag}</small><b>${m.n}</b><span>${m.d}</span><div class="m2-ab">${m.link?`<a href="${m.link}" target="_blank" rel="noopener">Ouvrir l'étude ↗</a>`:m.soon?'':ks.map(k=>`<button type="button" data-mi="${key}" data-k="${k}">▶ ${AC[k].name}</button>`).join('')}</div></div>`; }).join('')+'</div>';
+  ms.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>goMi(b.dataset.mi,b.dataset.k));
   // ligne directrice
   let ld=box.querySelector('.ld'); if(!ld){ ld=document.createElement('div'); ld.className='ld'; ac.after(ld); }
   ld.innerHTML='<h2>Ligne directrice — aller directement à une étape</h2><p class="m2-note">Chaque repère | est une étape du parcours : touchez-le pour la voir ou la faire dans la simulation (les étapes précédentes passent en avance rapide).</p>'+
@@ -5377,7 +5392,7 @@ function decorate(){ const box=document.querySelector('#menu .box'); if(!box) re
   // réinitialiser
   if(!box.querySelector('.m2-reset')){ const r=document.createElement('div'); r.className='m2-reset'; r.innerHTML='<button type="button">↺ Réinitialiser — repartir de zéro</button><small>Arrête le vol en cours, efface les choix et recharge le simulateur (la progression des cours de l\'Académie est conservée).</small>';
     r.querySelector('button').onclick=()=>{ try{ window.FF=null; ['sim-ac','sim-mi','sim-tm'].forEach(x=>localStorage.removeItem(x)); }catch(e){} location.reload(); }; ld.after(r); }
-  if(!box.querySelector('.m2-scn')){ const n=document.createElement('p'); n.className='m2-note m2-scn'; n.innerHTML='Vols libres, scénarios (US Airways 1549, Germanwings 9525, pannes) et examen blanc : boutons <b>« Scénarios »</b> et <b>« Procédures »</b> pendant le vol, ou cartes « Lancer » du dossier.'; box.querySelector('.m2-reset').after(n); } }
+  if(!box.querySelector('.m2-scn')){ const n=document.createElement('p'); n.className='m2-note m2-scn'; n.innerHTML='Pendant le vol : boutons <b>« Scénarios »</b> (pannes) et <b>« Procédures »</b>. Examen blanc : cartes « Lancer » du dossier.'; box.querySelector('.m2-reset').after(n); } }
 const _rm=renderMenu; renderMenu=function(){ const r=_rm.apply(this,arguments); try{ decorate(); }catch(e){ console.warn('menu',e); } return r; };
 try{ decorate(); }catch(e){}
 
@@ -7017,7 +7032,7 @@ inject(); setInterval(inject,700);
 <script>
 /* ===== CHECKLIST : vérifier que chaque sous-étape a été faite, aller directement à la commande manquante ===== */
 (function(){
-const css=document.createElement('style'); css.textContent=`#b-ckl{position:fixed;top:8px;right:8px;z-index:46;display:none;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:2px solid #3ddc84;background:#071a10ee;color:#9ff0bf;font:700 14px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 14px #0008}
+const css=document.createElement('style'); css.textContent=`#b-ckl{position:fixed;top:8px;right:8px;z-index:46;display:none;user-select:none;-webkit-user-select:none;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:2px solid #3ddc84;background:#071a10ee;color:#9ff0bf;font:700 14px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 14px #0008}
 #b-ckl.bad{border-color:#ff3b30;background:#2a0707ee;color:#ffb3ad;animation:cklp 1.2s ease-in-out infinite}@keyframes cklp{50%{box-shadow:0 0 0 4px #ff3b3055}}#b-ckl i{font-style:normal;background:#ff3b30;color:#fff;border-radius:999px;padding:0 7px}
 @media(min-width:901px){#b-ckl{left:50%;right:auto;transform:translateX(-50%)}}
 #ckl{position:fixed;inset:0;z-index:66;background:#000a;display:flex;align-items:flex-start;justify-content:center;padding:10px;overflow:auto}#ckl[hidden]{display:none}
@@ -7055,7 +7070,17 @@ function render(msg){ let p=document.getElementById('ckl'); if(!p){ p=document.c
 function close(){ const p=document.getElementById('ckl'); if(p) p.hidden=true; PEND=null; }
 function refresh(){ const p=document.getElementById('ckl'); if(p&&!p.hidden) render(); }
 /* bouton en haut de l'écran */
-const btn=document.createElement('button'); btn.type='button'; btn.id='b-ckl'; btn.innerHTML='☑ Checklist'; btn.onclick=()=>render(); document.body.appendChild(btn);
+const btn=document.createElement('button'); btn.type='button'; btn.id='b-ckl'; btn.innerHTML='☑ Checklist'; btn.title='Toucher : ouvrir · glisser : déplacer'; document.body.appendChild(btn);
+/* bouton déplaçable : on le glisse où il ne gêne pas ; position mémorisée ; un simple toucher ouvre la checklist */
+(function(){ let sx=0, sy=0, ox=0, oy=0, drag=false, down=false;
+ const apply=(x,y)=>{ const w=btn.offsetWidth, h=btn.offsetHeight; x=Math.max(4,Math.min(innerWidth-w-4,x)); y=Math.max(4,Math.min(innerHeight-h-4,y)); btn.style.left=x+'px'; btn.style.top=y+'px'; btn.style.right='auto'; btn.style.transform='none'; return [x,y]; };
+ try{ const p=JSON.parse(localStorage.getItem('ckl-pos')||'null'); if(p) requestAnimationFrame(()=>apply(p[0],p[1])); }catch(e){}
+ btn.addEventListener('pointerdown',e=>{ down=true; drag=false; sx=e.clientX; sy=e.clientY; const r=btn.getBoundingClientRect(); ox=r.left; oy=r.top; btn.setPointerCapture(e.pointerId); });
+ btn.addEventListener('pointermove',e=>{ if(!down) return; const dx=e.clientX-sx, dy=e.clientY-sy; if(!drag&&Math.hypot(dx,dy)>8){ drag=true; btn.style.opacity='.85'; } if(drag){ e.preventDefault(); apply(ox+dx,oy+dy); } });
+ btn.addEventListener('pointerup',e=>{ if(!down) return; down=false; btn.style.opacity=''; if(drag){ const r=btn.getBoundingClientRect(); try{ localStorage.setItem('ckl-pos',JSON.stringify([r.left,r.top])); }catch(er){} } else render(); });
+ btn.addEventListener('pointercancel',()=>{ down=false; drag=false; btn.style.opacity=''; });
+ btn.style.touchAction='none';
+ addEventListener('resize',()=>{ if(btn.style.left){ const r=btn.getBoundingClientRect(); apply(r.left,r.top); } }); })();
 setInterval(()=>{ const on=typeof GD!=='undefined'&&GD.on&&GD.steps&&GD.steps.length&&(!document.getElementById('menu')||document.getElementById('menu').hidden)&&!(document.getElementById('sysat')&&!document.getElementById('sysat').hidden);
  btn.style.display=on?'flex':'none'; if(!on) return; rec(); const prev=missing(0,GD.i-1).length, cur=missing(GD.i,GD.i).length;
  const h=prev?`☑ Checklist <i>${prev}</i>`:`☑ Checklist${cur?'':' ✓'}`; if(btn._h!==h){ btn.innerHTML=h; btn._h=h; } btn.classList.toggle('bad',prev>0); refresh(); },600);
@@ -7471,6 +7496,82 @@ setInterval(()=>{ if(typeof GD==='undefined'||!GD.on||!GD.steps) return; const s
 function barBtn(){ const m=document.getElementById('b-menu'); if(!m||document.getElementById('b-docs')) return; const b=document.createElement('button'); b.type='button'; b.id='b-docs'; b.textContent='📁 Documents'; b.onclick=()=>open('plan'); m.parentNode.insertBefore(b,m.nextSibling); }
 setInterval(barBtn,1000); barBtn();
 window.DOCS={open,list:()=>Object.keys(D),forStep};
+})();
+
+</script>
+<script>
+/* ===== PHYSIQUE DES OBJETS : tout objet solide est un obstacle, chaque substance suit sa propre constitution =====
+   Solides : l'appareil (fuselage là où il est trop bas pour passer dessous, nacelles, jambes de train, ailes basses, poutres de queue,
+   patins), les bâtiments (tours, terminaux, hangars, immeubles) → le piéton les contourne, l'appareil qui les heurte s'écrase.
+   Eau : on ne marche pas dessus (l'appareil qui s'y pose amerrit : déjà géré). Nuages : traversables, mais visibilité très réduite,
+   turbulence et risque de givrage sous 0 °C. Dimensions issues des cotes publiées (cf. addon_models). */
+(function(){
+/* --- formes solides de chaque appareil : capsules [x1,z1,x2,z2,rayon] en mètres, repère modèle (−z avant, +x droite) --- */
+const M2=(l)=>l.concat(l.filter(c=>c[0]||c[2]).map(c=>[-c[0],c[1],-c[2],c[3],c[4]]));
+const HULL={
+ a320:M2([[0,-10,0,12,2.05],[5.75,-6.9,5.75,-1.7,1.3],[3.8,0.4,3.8,1.7,0.55],[0,-15.9,0,-15.2,0.35]]),   // fuselage central (ventre bas) ; on passe sous le nez et sous le cône de queue
+ lj60:M2([[0,-8.4,0,8.6,1.0],[0,-9.3,0,-8.4,0.6],[1.0,0.6,3.8,1.2,1.0],[3.8,1.2,6.6,1.7,0.6],[1.65,3.5,1.65,7.6,0.65]]),
+ h125:M2([[0,-4.2,0,1.6,1.05],[0,1.6,0,6.6,0.35],[0,6.6,0,7.3,0.45],[1.15,-2.6,1.15,1.6,0.1]]),
+ r44:M2([[0,-3.4,0,1.0,0.72],[0,1.0,0,5.4,0.22],[0,5.4,0,5.9,0.3],[1.1,-2.2,1.1,1.2,0.08]]),
+ s76:M2([[0,-6.0,0,3.0,1.15],[0,-6.7,0,-6.0,0.7],[0,3.0,0,8.3,0.45],[0,8.3,0,8.9,0.5],[1.3,0.6,1.3,1.4,0.3],[0,-4.8,0,-4.3,0.3]])
+};
+const RAD={a320:17.9,lj60:6.7,h125:5.4,r44:5.0,s76:6.7};   // demi-envergure / rayon rotor : pour les bâtiments
+const MARGIN=0.35;                                          // demi-largeur d'épaules d'un piéton
+function segDist(px,pz,c){ const [x1,z1,x2,z2]=c, dx=x2-x1, dz=z2-z1, L=dx*dx+dz*dz, t=L?Math.max(0,Math.min(1,((px-x1)*dx+(pz-z1)*dz)/L)):0, cx=x1+dx*t, cz=z1+dz*t, d=Math.hypot(px-cx,pz-cz); return [d,px-cx,pz-cz]; }
+function hullHit(mx,mz,k){ let best=null; (HULL[k||ACK]||[]).forEach(c=>{ const [d,nx,nz]=segDist(mx,mz,c), pen=c[4]+MARGIN-d; if(pen>0&&(!best||pen>best.pen)){ const n=d>1e-6?[nx/d,nz/d]:[mx>=0?1:-1,0]; best={pen,n}; } }); return best; }
+/* repère local (x est, z sud, origine appareil) ↔ repère modèle */
+const l2m=(x,z)=>{ const t=-S.psi, c=Math.cos(t), s=Math.sin(t); return [x*c-z*s, x*s+z*c]; };
+const m2lv=(x,z)=>{ const t=-S.psi, c=Math.cos(t), s=Math.sin(t); return [x*c+z*s, -x*s+z*c]; };
+/* bâtiments proches, en repère local */
+function obsHit(lx,lz,R,altM){ const OB=window.OBS||[]; if(!OB.length) return null; const kx=111320*Math.cos(S.lat*Math.PI/180), wx=lx, wz=lz; let best=null;
+ for(const o of OB){ const ox=(o.lon-S.lon)*kx, oz=-(o.lat-S.lat)*111320, dx=wx-ox, dz=wz-oz; if(Math.hypot(dx,dz)>o.rad+R+5) continue; if(altM!=null&&altM-o.elev>Math.max(...o.boxes.map(b=>b.h))+2) continue;
+  for(const b of o.boxes){ if(altM!=null&&altM-o.elev>b.h) continue; const ex=dx-b.x, ez=dz-b.z, c=Math.cos(b.r), s=Math.sin(b.r), bx=ex*c-ez*s, bz=ex*s+ez*c, qx=Math.max(-b.hw,Math.min(b.hw,bx)), qz=Math.max(-b.hd,Math.min(b.hd,bz)), d=Math.hypot(bx-qx,bz-qz), inside=Math.abs(bx)<=b.hw&&Math.abs(bz)<=b.hd;
+   const pen=inside?R+Math.min(b.hw-Math.abs(bx),b.hd-Math.abs(bz)):R-d; if(pen>0&&(!best||pen>best.pen)){ let nx,nz; if(inside){ if(b.hw-Math.abs(bx)<b.hd-Math.abs(bz)){ nx=Math.sign(bx)||1; nz=0; } else { nx=0; nz=Math.sign(bz)||1; } } else { nx=(bx-qx)/d; nz=(bz-qz)/d; }
+    best={pen,n:[nx*c+nz*s,-nx*s+nz*c],o,b}; } } } return best; }
+function pedLL(lx,lz){ const kx=111320*Math.cos(S.lat*Math.PI/180); return [S.lat-lz/111320, S.lon+lx/kx]; }
+function blocked(lx,lz){ const [mx,mz]=l2m(lx,lz), h=hullHit(mx,mz); if(h){ const n=m2lv(h.n[0],h.n[1]); return {pen:h.pen,n,what:'appareil'}; }
+ const o=obsHit(lx,lz,MARGIN,null); if(o) return {pen:o.pen,n:o.n,what:'bâtiment'};
+ try{ const [la,lo]=pedLL(lx,lz); if(typeof waterAt==='function'&&waterAt(la,lo)) return {pen:0.5,n:[-lx/(Math.hypot(lx,lz)||1),-lz/(Math.hypot(lx,lz)||1)],what:'eau'}; }catch(e){}
+ return null; }
+let SIDE=1, warnT=0;
+function resolve(px,pz,nx,nz){ const dx=nx-px, dz=nz-pz; if(!dx&&!dz) return [px,pz];
+ let b=blocked(nx,nz); if(!b) return [nx,nz];
+ const d=dx*b.n[0]+dz*b.n[1], tx=dx-d*b.n[0], tz=dz-d*b.n[1];            // glisser le long de la surface
+ if(Math.hypot(tx,tz)>1e-4&&!blocked(px+tx,pz+tz)) return [px+tx,pz+tz];
+ const L=Math.hypot(dx,dz); for(const s of [SIDE,-SIDE]){ const rx=-b.n[1]*s*L, rz=b.n[0]*s*L; if(!blocked(px+rx,pz+rz)){ SIDE=s; return [px+rx,pz+rz]; } }
+ if(performance.now()>warnT){ warnT=performance.now()+2500; try{ flash(b.what==='eau'?'On ne marche pas sur l\'eau.':'Obstacle solide : impossible de traverser '+(b.what==='appareil'?'l\'appareil':'le bâtiment')+'.','am'); }catch(e){} }
+ return [px,pz]; }
+function pushOut(){ for(let i=0;i<6;i++){ const b=blocked(GD.walk.x,GD.walk.z); if(!b||b.what==='eau') return; GD.walk.x+=b.n[0]*(b.pen+0.05); GD.walk.z+=b.n[1]*(b.pen+0.05); } }
+/* points du tour avion : jamais à l'intérieur d'un solide (on regarde la pièce depuis l'extérieur) */
+function fixPoints(){ for(const k in WALKPTS){ (WALKPTS[k]||[]).forEach(p=>{ for(let i=0;i<6;i++){ const h=hullHit(p[0],p[1],k); if(!h) break; p[0]+=h.n[0]*(h.pen+0.25); p[1]+=h.n[1]*(h.pen+0.25); } }); }
+ const h=(WALKPTS.h125||[]).find(p=>/fenestron/.test(p[2])); if(h) h[2]='Poutre de queue, rotor anticouple bipale'; }
+try{ fixPoints(); }catch(e){}
+/* marche manuelle et automatique : collisions */
+if(typeof walkStep==='function'){ const _w=walkStep; walkStep=function(dt){ const px=GD.walk.x, pz=GD.walk.z; _w.apply(this,arguments); const [x,z]=resolve(px,pz,GD.walk.x,GD.walk.z); GD.walk.x=x; GD.walk.z=z; }; }
+let stuck=0;
+if(typeof autoWalk==='function'){ const _a=autoWalk; autoWalk=function(dt){ const px=GD.walk.x, pz=GD.walk.z; _a.apply(this,arguments); if(GD.walk.x===px&&GD.walk.z===pz) return;
+  const want=Math.hypot(GD.walk.x-px,GD.walk.z-pz); const [x,z]=resolve(px,pz,GD.walk.x,GD.walk.z); GD.walk.x=x; GD.walk.z=z;
+  const got=Math.hypot(x-px,z-pz); if(got<want*0.15){ stuck+=dt; if(stuck>2){ stuck=0; const pts=WALKPTS[ACK]||[]; let i=0; while(i<pts.length&&GD.seen.has(i)) i++; if(i<pts.length){ GD.seen.add(i); try{ walkBox(i); }catch(e){} } } } else stuck=0; }; }
+setInterval(()=>{ try{ if(typeof view!=='undefined'&&view==='walk'&&GD&&GD.walk) pushOut(); }catch(e){} },500);
+/* appareil contre bâtiments : collision = accident */
+let ign=new Set(), t0=0, lastMI=null;
+setInterval(()=>{ try{ if(typeof S==='undefined'||!MI||crashed||paused) return; if(MI!==lastMI){ lastMI=MI; ign=new Set(); t0=performance.now(); }
+  const R=RAD[ACK]||10, alt=S.alt; const hit=obsHit(0,0,R,alt);
+  if(performance.now()-t0<6000){ if(hit) ign.add(hit.b); return; }   // départ au contact d'un bâtiment (poste de stationnement) : toléré
+  if(hit&&!ign.has(hit.b)&&(S.V||0)>1.5){ CRASH_WHY='Collision avec un bâtiment : un obstacle solide ne peut pas être traversé (hauteur '+Math.round(hit.b.h)+' m).'; crash(-Math.min(30,S.V||5),false); } }catch(e){} },120);
+/* nuages : substance traversable (gouttelettes d'eau ou cristaux de glace) → visibilité, turbulence, givrage */
+const fog=document.createElement('div'); fog.id='cloudfx'; fog.style.cssText='position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(235,240,245,.92),rgba(205,214,222,.97));opacity:0;transition:opacity .6s'; try{ renderer.domElement.after(fog); }catch(e){ document.body.appendChild(fog); }
+const TH={FEW:[700,0.35],SCT:[1200,0.6],BKN:[2000,0.85],OVC:[3000,0.97],VV:[600,0.97]};
+let inC=false, shake=0, icing=0;
+function layers(){ let best=null, bd=1e9; try{ for(const k in WXS.met){ const m=WXS.met[k], a=APTS[k]; if(!a||!m.clouds) continue; const d=gcKm(S.lat,S.lon,a.lat,a.lon); if(d<bd){ bd=d; best=m; } } }catch(e){} return bd<120&&best?best.clouds:[]; }
+setInterval(()=>{ try{ if(typeof S==='undefined'||!MI){ fog.style.opacity=0; return; } const agl=aglFt(); let op=0, cb=false;
+  layers().forEach(c=>{ const t=TH[c.cov]||[1000,0.5]; let thick=t[0]; if(c.cb){ thick=12000; cb=true; } const b=c.base, top=b+thick; if(agl>=b&&agl<=top){ const edge=Math.min(agl-b,top-agl), k=Math.min(1,edge/250); op=Math.max(op,t[1]*k); } });
+  const ext=view!=='ck'||!document.body.classList.contains('hidescr'); fog.style.opacity=(op*(view==='walk'?0:1)).toFixed(2);
+  const now=op>0.3; if(now&&!inC){ inC=true; try{ flash('Dans les nuages : visibilité quasi nulle, pilotage aux instruments'+(cb?' — cumulonimbus : turbulence forte !':''),'am'); }catch(e){} } if(!now) inC=false;
+  shake=op>0.2?(cb?0.012:0.004)*op:0;
+  const oat=15-2*(S.alt/0.3048/1000); if(now&&oat<=0){ icing+=1; if(icing===10) try{ flash('Nuage à '+Math.round(oat)+' °C : risque de givrage — antigivrage voilure et moteurs !','am'); }catch(e){} } else icing=0; }catch(e){} },300);
+if(typeof placeCamera==='function'){ const _pc=placeCamera; placeCamera=function(){ _pc.apply(this,arguments); if(shake&&!paused){ camera.rotateX((Math.random()-0.5)*shake); camera.rotateZ((Math.random()-0.5)*shake); } }; }
+window.PHYS={HULL,blocked,obsHit,fixPoints};
 })();
 
 </script>

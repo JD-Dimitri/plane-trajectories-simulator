@@ -1,6 +1,6 @@
 /* ===== CHECKLIST : vérifier que chaque sous-étape a été faite, aller directement à la commande manquante ===== */
 (function(){
-const css=document.createElement('style'); css.textContent=`#b-ckl{position:fixed;top:8px;right:8px;z-index:46;display:none;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:2px solid #3ddc84;background:#071a10ee;color:#9ff0bf;font:700 14px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 14px #0008}
+const css=document.createElement('style'); css.textContent=`#b-ckl{position:fixed;top:8px;right:8px;z-index:46;display:none;user-select:none;-webkit-user-select:none;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:2px solid #3ddc84;background:#071a10ee;color:#9ff0bf;font:700 14px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 14px #0008}
 #b-ckl.bad{border-color:#ff3b30;background:#2a0707ee;color:#ffb3ad;animation:cklp 1.2s ease-in-out infinite}@keyframes cklp{50%{box-shadow:0 0 0 4px #ff3b3055}}#b-ckl i{font-style:normal;background:#ff3b30;color:#fff;border-radius:999px;padding:0 7px}
 @media(min-width:901px){#b-ckl{left:50%;right:auto;transform:translateX(-50%)}}
 #ckl{position:fixed;inset:0;z-index:66;background:#000a;display:flex;align-items:flex-start;justify-content:center;padding:10px;overflow:auto}#ckl[hidden]{display:none}
@@ -38,7 +38,17 @@ function render(msg){ let p=document.getElementById('ckl'); if(!p){ p=document.c
 function close(){ const p=document.getElementById('ckl'); if(p) p.hidden=true; PEND=null; }
 function refresh(){ const p=document.getElementById('ckl'); if(p&&!p.hidden) render(); }
 /* bouton en haut de l'écran */
-const btn=document.createElement('button'); btn.type='button'; btn.id='b-ckl'; btn.innerHTML='☑ Checklist'; btn.onclick=()=>render(); document.body.appendChild(btn);
+const btn=document.createElement('button'); btn.type='button'; btn.id='b-ckl'; btn.innerHTML='☑ Checklist'; btn.title='Toucher : ouvrir · glisser : déplacer'; document.body.appendChild(btn);
+/* bouton déplaçable : on le glisse où il ne gêne pas ; position mémorisée ; un simple toucher ouvre la checklist */
+(function(){ let sx=0, sy=0, ox=0, oy=0, drag=false, down=false;
+ const apply=(x,y)=>{ const w=btn.offsetWidth, h=btn.offsetHeight; x=Math.max(4,Math.min(innerWidth-w-4,x)); y=Math.max(4,Math.min(innerHeight-h-4,y)); btn.style.left=x+'px'; btn.style.top=y+'px'; btn.style.right='auto'; btn.style.transform='none'; return [x,y]; };
+ try{ const p=JSON.parse(localStorage.getItem('ckl-pos')||'null'); if(p) requestAnimationFrame(()=>apply(p[0],p[1])); }catch(e){}
+ btn.addEventListener('pointerdown',e=>{ down=true; drag=false; sx=e.clientX; sy=e.clientY; const r=btn.getBoundingClientRect(); ox=r.left; oy=r.top; btn.setPointerCapture(e.pointerId); });
+ btn.addEventListener('pointermove',e=>{ if(!down) return; const dx=e.clientX-sx, dy=e.clientY-sy; if(!drag&&Math.hypot(dx,dy)>8){ drag=true; btn.style.opacity='.85'; } if(drag){ e.preventDefault(); apply(ox+dx,oy+dy); } });
+ btn.addEventListener('pointerup',e=>{ if(!down) return; down=false; btn.style.opacity=''; if(drag){ const r=btn.getBoundingClientRect(); try{ localStorage.setItem('ckl-pos',JSON.stringify([r.left,r.top])); }catch(er){} } else render(); });
+ btn.addEventListener('pointercancel',()=>{ down=false; drag=false; btn.style.opacity=''; });
+ btn.style.touchAction='none';
+ addEventListener('resize',()=>{ if(btn.style.left){ const r=btn.getBoundingClientRect(); apply(r.left,r.top); } }); })();
 setInterval(()=>{ const on=typeof GD!=='undefined'&&GD.on&&GD.steps&&GD.steps.length&&(!document.getElementById('menu')||document.getElementById('menu').hidden)&&!(document.getElementById('sysat')&&!document.getElementById('sysat').hidden);
  btn.style.display=on?'flex':'none'; if(!on) return; rec(); const prev=missing(0,GD.i-1).length, cur=missing(GD.i,GD.i).length;
  const h=prev?`☑ Checklist <i>${prev}</i>`:`☑ Checklist${cur?'':' ✓'}`; if(btn._h!==h){ btn.innerHTML=h; btn._h=h; } btn.classList.toggle('bad',prev>0); refresh(); },600);

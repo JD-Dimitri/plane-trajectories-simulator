@@ -137,7 +137,7 @@ PT.crumb=function(st,i){ const p=PT.partOf(i), subs=PT.subs(st), cur=PT.current(
    pour arriver vite au roulage vers l'avant, piste devant soi. */
 (function(){ let boosted=false;
   setInterval(()=>{ try{ const pushing=GD.on&&TX.auto&&TX.pushMsg&&S.onGround&&S.V<-0.05;
-    if(pushing&&AUTO.on&&rate===1&&!boosted){ setRate(4); boosted=true; }
+    if(pushing&&AUTO.on&&rate===1&&!boosted&&!window.TREAL){ setRate(4); boosted=true; }
     if(!pushing&&boosted){ if(rate===4) setRate(1); boosted=false; }
     if(pushing&&!PT._pushSaid){ PT._pushSaid=true; subtitle('🚜 Repoussage (pushback)','Un tracteur pousse l\'avion EN ARRIÈRE pour le sortir du poste : un avion de ligne ne recule pas seul. Vous voyez le terminal s\'éloigner, la piste est derrière vous : c\'est normal. Ensuite le tracteur se détache et l\'avion roule vers l\'AVANT, la piste devant vous.'); }
     if(!TX.auto) PT._pushSaid=false; }catch(e){} },300); })();

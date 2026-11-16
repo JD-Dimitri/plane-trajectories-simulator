@@ -48,7 +48,7 @@ function nowText(st){ const el=(performance.now()-AUTO.t0)/1000;
   if(TX.auto&&TX.pushMsg&&S.onGround&&S.V<-0.05) return ['🚜 <b>Repoussage (pushback)</b> : un tracteur pousse l\'avion en arrière pour le sortir du poste. Vous voyez le terminal s\'éloigner et la piste est derrière vous : c\'est normal. Ensuite, l\'avion roulera vers l\'avant, piste devant vous (temps accéléré ×4).',0.3];
   if(AUTO.stage==='act'&&c){ const airFly=st.fly&&!S.onGround;
     if(airFly&&!c.it[2]) return [`✈ Le pilote automatique vole : objectif « ${c.it[0]} ». Observez les écrans et l'extérieur.`,0.5];
-    if(!c.it[2]) return [`⏳ Attente : « ${c.it[0]} » (le système travaille, en temps réel — l'accélération du temps est utilisée pendant les longues attentes).`,c.j/st.items.length];
+    if(!c.it[2]) return [`⏳ Attente : « ${c.it[0]} » (le système travaille ${window.TREAL?'en temps réel : durée réelle, sans accélération':'— l\'accélération du temps est utilisée pendant les longues attentes ; choisissez « Temps réel » pour les durées réelles'}).`,c.j/st.items.length];
     return [`${window.SCNG&&SCNG.on&&!SCNG.demo?'👉 À vous':'👆 Action en cours'} — sous-étape ${c.j+1}/${st.items.length+1} : <b>${c.it[0]}</b>${c.it[3]?' — la commande clignote, regardez où elle se trouve':''}.`,c.j/st.items.length]; }
   if(AUTO.stage==='done') return ['✅ Étape terminée : passage à la suivante…',1];
   return ['…',0]; }
