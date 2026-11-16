@@ -1663,7 +1663,7 @@ function flyFW(dt){ const L=LS, st=GD.steps[GD.i]||{}, agl=(S.alt-elevAt(S.lat,S
   // Learjet 60 : pas d'automanette — le « pilote » du mode automatique gère la poussée à la main pour tenir la vitesse visée
   if(ACK==='lj60'&&agl>400&&!(AP.appr&&agl<15)){ const vt=Math.min(tasFromCas(AP.spd*KT,S.alt),0.78*sos(S.alt)); S.thr=clamp(S.thr+clamp((vt-S.V)*0.06,-0.4,0.4)*dt,0.03,1); }
   // accélération du temps en croisière
-  const want=atcSlow()?1:(AP.on&&!AP.appr&&S.alt/FT>9000&&dF>tod+80)?64:(AP.on&&!AP.appr&&dT>40?4:1); if(rate!==want){ rate=want; $('b-rate').value=String(want); }
+  const want=atcSlow()?1:(AP.on&&!AP.appr&&S.alt/FT>9000&&dF>tod+80)?64:(AP.on&&!AP.appr&&dT>40?4:1); if(rate!==want){ rate=want; rateUI(); }
 }
 /* ---- pilotage automatique hélicoptère ---- */
 function flyRW(dt){ const st=GD.steps[GD.i]||{}, dest=APTS[MI.dest], elev=elevAt(S.lat,S.lon), agl=S.alt-elev, d=gcKm(S.lat,S.lon,dest.lat,dest.lon)*1000;
@@ -1682,7 +1682,7 @@ function flyRW(dt){ const st=GD.steps[GD.i]||{}, dest=APTS[MI.dest], elev=elevAt
   const ev=vA-vfwd; DIR.iv=clamp((DIR.iv||0)+ev*dt*(vh<15?1:0.2),-40,40);   // terme intégral : annule l'erreur statique (vent)
   DIR.pitch=clamp(-(ev*0.045+DIR.iv*0.012),-0.5,0.5); const e=wrapPi(hdgA-S.psi); DIR.roll=vh>12?clamp(e*1.6,-0.7,0.7):0; DIR.yaw=vh<=12?clamp(e*2,-1,1):0;
   if(agl<3&&vT===0&&gs<1){ DIR.pitch=0; }
-  const want=atcSlow()?1:(d>4000&&agl>150)?16:1; if(rate!==want&&AUTO.on){ rate=want; $('b-rate').value=String(want); }
+  const want=atcSlow()?1:(d>4000&&agl>150)?16:1; if(rate!==want&&AUTO.on){ rate=want; rateUI(); }
 }
 function dirApply(){ if(!DIR.active||!GD.on) return; if(DIR.pitch!=null) IN.pitch=DIR.pitch; if(DIR.roll!=null) IN.roll=DIR.roll; if(DIR.yaw!=null) IN.yaw=DIR.yaw; if(DIR.coll!=null){ IN.collD=0; IN.thrD=0; } }
 function dirStep(dt){ if(!DIR.active||!GD.on) return; if(A.kind==='fw') flyFW(dt); else flyRW(dt);
@@ -2753,7 +2753,14 @@ stick('stL',IN.tL); stick('stR',IN.tR);
 function toggleGear(){ if(A.kind!=='fw') return; if(S.onGround&&S.gear){ flash('Train : impossible au sol','am'); return; } S.gear=!S.gear; flash(S.gear?'TRAIN SORTI':'TRAIN RENTRÉ','am'); syncBar(); }
 function setFlap(d){ if(A.kind!=='fw') return; S.flap=clamp(S.flap+d,0,A.flaps.length-1); flash('VOLETS '+A.flaps[S.flap].n,'am'); syncBar(); }
 function togglePause(){ if(crashed) return; paused=!paused; $('b-pause').textContent=paused?'Reprendre':'Pause'; }
-function setRate(r){ if(r>4 && !(AP.on||S.onGround===false&&A.kind==='rw'&&AP.althold||window.DUR_ON&&S.onGround&&Math.abs(S.V)<0.5)){ flash('Accélération > ×4 : pilote auto requis','am'); r=Math.min(r,4); } rate=r; $('b-rate').value=window.DUR_ON?(r===1?'real':(['2','5','10','20','30','50'].includes(String(r))?String(r):(window.RSEL===1?'real':String(window.RSEL||'real')))):'fast'; }
+function setRate(r){ if(r>4 && !(AP.on||S.onGround===false&&A.kind==='rw'&&AP.althold||window.DUR_ON&&S.onGround&&Math.abs(S.V)<0.5)){ flash('Accélération > ×4 : pilote auto requis','am'); r=Math.min(r,4); } rate=r; rateUI(); }
+/* sélecteur TEMPS : reflète toujours l'accélération réelle (y compris les accélérations automatiques ×4, ×16, ×64) */
+function rateUI(){ const sel=$('b-rate'); if(!sel) return; const std=['2','5','10','20','30','50'], r=String(rate);
+  let au=sel.querySelector('option[data-auto]'); if(au) au.remove();
+  const fo=sel.querySelector('option[value="fast"]'); if(fo) fo.textContent='Étapes courtes (sans durée réelle)'+(rate!==1&&!window.DUR_ON?' · ×'+rate:'');
+  if(!window.DUR_ON){ sel.value='fast'; return; }
+  if(rate===1){ sel.value='real'; return; } if(std.includes(r)){ sel.value=r; return; }
+  au=document.createElement('option'); au.value='auto'; au.dataset.auto='1'; au.textContent='×'+r+' (accélération automatique)'; sel.appendChild(au); sel.value='auto'; }
 let ovhPinned=false;
 function toggleOVH(){ ovhPinned=!ovhPinned; $('ovh').hidden=!ovhPinned; $('b-ovh').classList.toggle('on',ovhPinned); if(ovhPinned) ovhSync(); }
 function setView(v){ if(v!=='walk'&&view==='walk'&&GD.on&&GD.steps[GD.i]&&GD.steps[GD.i].walk&&!walkDone()) flash('Tour avion non terminé','am'); view=v; document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('ck').hidden=v!=='ck'; LK.ty=LK.tp=0; LK.tz=1; resize(); }
@@ -2764,7 +2771,7 @@ $('help-x').onclick=toggleHelp; $('b-help').onclick=toggleHelp; $('b-pause').onc
 $('b-atc').onclick=()=>atcOpen(); $('b-scn').onclick=()=>scnOpen(); $('b-fail').onclick=()=>failOpen(); $('b-auto').onclick=()=>{ if(!MI.full){ flash('Mode automatique : missions « Parcours pilote complet »','am'); return; } autoStart(!AUTO.on); }; $('b-qcm').onclick=()=>{ const q=$('qcm'); if(q&&!q.hidden){ q.hidden=true; return; } qcmOpen(); };
 $('b-ped').onclick=()=>{ const p=$('ped'); if(p){ p.hidden=!p.hidden; $('b-ped').classList.toggle('on',!p.hidden); } }; $('b-guide').onclick=()=>{ if(!MI.full){ flash('Mode pédagogique : missions « Parcours pilote complet »','am'); return; } GD.peda=!GD.peda; $('b-guide').classList.toggle('on',GD.peda); renderGuide(); };
 $('b-ap').onclick=()=>fcuCmd(A.kind==='rw'&&!A.afcs?'none':'ap'); $('b-gear').onclick=toggleGear; $('b-flap').onclick=()=>setFlap(S.flap>=A.flaps.length-1?-(A.flaps.length-1):1);
-$('b-rate').onchange=()=>{ const v=$('b-rate').value; window.DUR_ON=v!=='fast'; window.TREAL=window.DUR_ON; window.RSEL=v==='real'?1:v==='fast'?1:+v; setRate(window.RSEL); if(v==='real') flash('Durées réelles : chaque étape dure son temps réel (dossier de vol ≈ 30 min, devis ≈ 20 min…). Accélérez avec ×2 à ×50.','am'); else if(v!=='fast') flash('Temps accéléré ×'+v+' : durées réelles divisées par '+v,'am'); else flash('Étapes courtes : pas de durée réelle minimale','am'); }; $('b-dn').onclick=dayNight; $('b-menu').onclick=openMenu;
+$('b-rate').onchange=()=>{ const v=$('b-rate').value; if(v==='auto') return; window.DUR_ON=v!=='fast'; window.TREAL=window.DUR_ON; window.RSEL=v==='real'?1:v==='fast'?1:+v; setRate(window.RSEL); if(v==='real') flash('Durées réelles : chaque étape dure son temps réel (dossier de vol ≈ 30 min, devis ≈ 20 min…). Accélérez avec ×2 à ×50.','am'); else if(v!=='fast') flash('Temps accéléré ×'+v+' : durées réelles divisées par '+v,'am'); else flash('Étapes courtes : pas de durée réelle minimale','am'); }; $('b-dn').onclick=dayNight; $('b-menu').onclick=openMenu;
 document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
 function syncBar(){ $('b-gear').textContent='Train '+(S.gear?'sorti':'rentré'); $('b-flap').textContent='Volets '+(A.kind==='fw'?A.flaps[S.flap].n:'—');
   $('b-gear').hidden=$('b-flap').hidden=A.kind!=='fw'; $('b-ap').hidden=A.kind==='rw'&&!A.afcs; $('b-dn').textContent=SKY.u.night.value>0.5?'☾ Nuit':'☀ Jour'; }
@@ -2799,7 +2806,7 @@ function startMission(){ const c=$('crash'); if(c) c.remove(); ACK=selAC; A=AC[A
   GD.on=false; GD.markers=null; GD.peda=!!($('m-peda')||{checked:true}).checked; sysDefaults(); resetState(); setModel(); buildFCU(); fcuSync(); buildOVH(); buildHelp(); buildPED(); $('ped').hidden=true; showRoute(null); TX.auto=false; syncBar();
   const st=MI.start(), now=new Date(), base=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()), H={dawn:7,noon:12,dusk:18.5,night:23}[selTM];
   simMs= selTM==='real'?Date.now():base+(H-st.lon/15)*3600e3;
-  $('menu').hidden=true; paused=false; $('b-pause').textContent='Pause'; rate=1; $('b-rate').value='1'; setView('ck');
+  $('menu').hidden=true; paused=false; $('b-pause').textContent='Pause'; rate=1; rateUI(); setView('ck');
   $('h-ac').textContent=A.name.replace('Airbus ','').replace('Sikorsky ',''); flash(MI.n,'am');
   if((selMI==='jfk-cdg'||selMI==='cdg-jfk')&&A.range<5900) setTimeout(()=>flash('Autonomie réelle insuffisante sans escale (carburant non simulé)','am'),2800);
   atcStart();
