@@ -76,20 +76,23 @@ const _es=engStep; engStep=function(dt){ if(!C()) return _es.apply(this,argument
   if(!S.n2) S.n2=[0,0]; S.eng[1]=false;
   if(MI.full){ const pw=!!SYS.bat1, fuel=SYS.fuelSel!=='OFF'&&(S.fuel??1)>0, rich=SYS.mix==='RICH';
     if(SYS.primer!=='0') GD.primed=true;
+    const dead=!!(FAIL.engC||FAIL.dead1||(GD.ice||0)>0.95);
     if(!S.eng[0]){ if(SYS.mags==='START'&&pw){ crankT+=dt; S.n2[0]=Math.min(0.12,S.n2[0]+dt/10);
-        if(crankT>2){ if(rich&&fuel&&GD.primed){ S.eng[0]=true; S.n2[0]=1; SYS.mags='BOTH'; flash('MOTEUR TOURNANT · clé relâchée sur BOTH · pression d\'huile dans les 30 s','am'); if(S.thr>0.4) flash('Gaz trop ouverts au démarrage : risque d\'emballement','am'); pedSync(); }
+        if(crankT>2){ if(rich&&fuel&&GD.primed&&!dead){ S.eng[0]=true; S.n2[0]=1; SYS.mags='BOTH'; flash('MOTEUR TOURNANT · clé relâchée sur BOTH · pression d\'huile dans les 30 s','am'); if(S.thr>0.4) flash('Gaz trop ouverts au démarrage : risque d\'emballement','am'); pedSync(); }
           else if(crankT>6){ crankT=0; SYS.mags='OFF'; flash(!rich?'Mélange sur IDLE CUT-OFF : pas de carburant au moteur':!fuel?'Robinet carburant fermé':'Moteur froid non amorcé : 2 à 3 injections de primer','am'); pedSync(); } } }
       else { crankT=0; S.n2[0]=Math.max(0,S.n2[0]-dt/5); } }
+    else if(dead){ S.eng[0]=false; S.n2[0]=0; flash(FAIL.engC||FAIL.dead1?'PANNE MOTEUR : hélice en moulinet. Vitesse de plané ≈ 65 KIAS, choisir un champ':'Givrage carburateur : le moteur s\'arrête','red'); }
     else if(SYS.mags==='OFF'||!rich||!fuel){ S.eng[0]=false; S.n2[0]=0; flash(SYS.mags==='OFF'?'Magnétos OFF : moteur arrêté':!rich?'Mélange IDLE CUT-OFF : moteur arrêté':'Panne d\'alimentation carburant : moteur arrêté','am'); }
     // horizon et conservateur de cap entraînés par la pompe à dépression (moteur)
     SYS.irAl=S.eng[0]?Math.min(1,(SYS.irAl||0)+dt/30):Math.max(0,(SYS.irAl||0)-dt/120);
-    let ff=S.eng[0]?6+S.thr*24:0; S.ff=ff; S.fuel=Math.max(0,(S.fuel??WB[K].fuelMax*0.8)-ff*dt/3600); S.mass=(LS.zfw||WB[K].dow+80)+S.fuel; }
+    if(FAIL.carbIce&&S.eng[0]) GD.ice=SYS.carbH==='CHAUD'?Math.max(0,(GD.ice||0)-dt/25):Math.min(1,(GD.ice||0)+dt/100); else if(!FAIL.carbIce) GD.ice=0;
+    let ff=S.eng[0]?6+S.thr*24:0; if(FAIL.fuelLeak) S.fuel=Math.max(0,(S.fuel??0)-25*dt/3600); S.ff=ff; S.fuel=Math.max(0,(S.fuel??WB[K].fuelMax*0.8)-ff*dt/3600); S.mass=(LS.zfw||WB[K].dow+80)+S.fuel; }
   else { if(S.eng[0]) S.n2[0]=1; SYS.irAl=1; }
   // régime (tr/min) : point fixe ≈ 2 300 plein gaz ; l'hélice à pas fixe « s'allège » avec la vitesse
   const run=!!S.eng[0], single=SYS.mags==='L'||SYS.mags==='R', hot=SYS.carbH==='CHAUD';
   let rpm=run?600+S.thr*1750+(S.V||0)*6*(S.thr>0.3?1:0.5):(S.onGround?(SYS.mags==='START'&&SYS.bat1?240:0):Math.min(1200,(S.V||0)*18));
-  if(run&&single) rpm-=SYS.mags==='L'?95:85; if(run&&hot) rpm-=80; S.rpm=Math.max(0,Math.min(2800,rpm));
-  S.pk=run?(single?0.95:1)*(hot?0.9:1):0; S.nr=run?1:0;
+  if(run&&single) rpm-=SYS.mags==='L'?95:85; if(run&&hot) rpm-=80; if(run&&GD.ice) rpm-=600*GD.ice*(0.9+0.1*Math.sin(simMs/90)); S.rpm=Math.max(0,Math.min(2800,rpm));
+  S.pk=run?(single?0.95:1)*(hot?0.9:1)*(1-0.7*(GD.ice||0)):0; S.nr=run?1:0;
   // essais moteur au point d'arrêt
   if(run&&S.onGround&&S.rpm>1550){ if(SYS.mags==='L') GD.magL=(GD.magL||0)+dt; if(SYS.mags==='R') GD.magR=(GD.magR||0)+dt; if(hot) GD.carbT=(GD.carbT||0)+dt; }
   if(run&&S.onGround&&S.thr<0.05&&(GD.magL||0)>1&&(GD.magR||0)>1) GD.idleOK=true;

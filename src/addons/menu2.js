@@ -46,7 +46,7 @@ function decorate(){ const box=document.querySelector('#menu .box'); if(!box) re
   let ms=box.querySelector('.m2-mis'); if(!ms){ ms=document.createElement('div'); ms.className='m2-mis'; ac.after(ms); }
   const fwK=Object.keys(AC).filter(k=>AC[k].kind==='fw'&&!AC[k].sep), rwK=Object.keys(AC).filter(k=>AC[k].kind!=='fw');
   ms.innerHTML='<h2>Missions et scénarios réels — un clic lance</h2><div class="m2-mg">'+Object.keys(MISSIONS).filter(key=>!(/^full|^parcours/.test(key)&&!/^full-777/.test(key))&&!Object.keys(AC).some(k=>FULL(k)===key)).map(key=>{ const m=MISSIONS[key];
-    const ks=MI_AC[key]?[MI_AC[key]]:m.fw?fwK:m.rw?rwK:[]; const tag=m.link?'Étude (lien)':m.soon?'À venir':/^sc-/.test(key)?'Scénario':'Vol libre';
+    const ks=m.acs?m.acs.filter(k=>AC[k]):MI_AC[key]?[MI_AC[key]]:m.fw?fwK:m.rw?rwK:[]; const tag=m.link?'Étude (lien)':m.soon?'À venir':/^sc-/.test(key)?'Scénario':'Vol libre';
     return `<div class="m2-card ${m.soon?'off':''}"><small>${tag}</small><b>${m.n}</b><span>${m.d}</span><div class="m2-ab">${m.link?`<a href="${m.link}" target="_blank" rel="noopener">Ouvrir l'étude ↗</a>`:m.soon?'':ks.map(k=>`<button type="button" data-mi="${key}" data-k="${k}">▶ ${AC[k].name}</button>`).join('')}</div></div>`; }).join('')+'</div>';
   ms.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>goMi(b.dataset.mi,b.dataset.k));
   // ligne directrice
