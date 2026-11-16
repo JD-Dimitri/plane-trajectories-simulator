@@ -346,7 +346,7 @@ function ex(id,s,d){ const k=d.k, o={ln:[]}, ln=(c,t)=>o.ln.push([c,t]), blk=(t,
  case 'clutch': o.h='Embrayage (clutch actuator)'; ln('el','Un moteur électrique fait descendre la poulie inférieure : les courroies se tendent progressivement (voyant CLUTCH allumé tant qu\'il bouge).'); ln('me','La puissance du moteur passe alors par les courroies à la poulie supérieure, la roue libre, la boîte de transmission et le rotor.');
   if(!s.master) blk('Batterie OFF : l\'actionneur ne bouge pas.','master'); else if(s.clutch&&!s.run) ln('me','Moteur arrêté : les courroies se tendent mais rien ne tourne.'); break;
  case 'gov': o.h='Régulateur'; ln('dat','Un petit calculateur agit sur la poignée des gaz pour garder le régime à 102 %, le pilote n\'a presque rien à corriger.'); break;
- case 'thr': o.h='Poignée des gaz'; ln('me','Tournante, sur le collectif : câble vers le papillon du carburateur.'); break;
+ case 'thr': o.h='Poignée des gaz'; ln('me','Tournante, sur le collectif : câble vers le papillon d\'air du servo d\'injection (le moteur IO-540 du Raven II est à injection : pas de carburateur).'); break;
  case 'rbrake': o.h='Frein rotor'; ln('me','Frein à câble sur la transmission.'); if(s._rb) blk('Interdit avec le rotor encore rapide (au-dessus de quelques pourcents) : attendre son ralentissement après l\'arrêt.'); break;
  case 'coll': o.h='Collectif'; ln('me','Change le pas des deux pales ensemble, par des tiges et les servocommandes hydrauliques.'); if(s.coll&&!s.gov) blk('Régulateur sur OFF ou régime pas au vert : on ne décolle pas.','gov'); break;
  case 'cyc': o.h='Cyclique en T'; ln('me','Tiges et renvois vers le plateau cyclique : le disque rotor s\'incline.'); break;
