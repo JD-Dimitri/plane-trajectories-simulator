@@ -11,13 +11,15 @@ const css=document.createElement('style'); css.textContent=`
 #sysat header{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 9px;border-bottom:1px solid #1d2f40;background:#08111a}
 #sysat header .tt{flex:1 1 180px;min-width:0}#sysat header .tt b{display:block;font:700 19px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase}#sysat header .tt span{color:#8fa4b8;font-size:12px}
 #sysat button,#sysat select{background:#132232;color:#fff;border:1px solid #2b3d50;border-radius:8px;padding:6px 9px;font:600 13px 'Barlow Condensed',sans-serif;letter-spacing:.04em;cursor:pointer}
-#sysat .modes{flex:1 1 100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}#sysat .modes i{font-style:normal}#sysat .strip{grid-column:1/3;font:600 13px/1.3 'Inter',sans-serif;padding:6px 8px;border-radius:8px;background:#16091a;border:2px solid #e04ad8}#sysat .strip.auto{border-color:#3ddc84;background:#071a10}#sysat .strip.exam{border-color:#ff3b30;background:#1a0707}#sysat .strip b{color:#fff}#sysat .modes button{padding:8px 4px;font-size:14px}#sysat .modes button.on{background:#e04ad8;border-color:#e04ad8}
+#sysat .modes{flex:1 1 100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}#sysat .modes i{font-style:normal}#sysat .dlg{grid-column:1/3;display:flex;gap:8px;align-items:center;background:#05080c;border:1px solid #2b3d50;border-radius:10px;padding:6px 8px;min-height:46px}#sysat .dlg[hidden]{display:none}#sysat .dlg .av{flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;border:2px solid currentColor}#sysat .dlg .tx{flex:1;min-width:0;font-size:13px;line-height:1.3}#sysat .dlg .tx b{display:block;font:700 11px 'Barlow Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase}#sysat .dlg .tx span{display:block;color:#fff}#sysat .dlg .tx small{display:block;color:#8fa4b8;font-size:11.5px}#sysat .dlg.ao .tx span,#sysat .dlg.ao .tx small{display:none}#sysat .dlg .db{display:flex;flex-direction:column;gap:3px}#sysat .dlg .db button{padding:2px 6px;font-size:13px}#sysat .dlg .db button.off{opacity:.45}
+#sysat .strip{grid-column:1/3;font:600 13px/1.3 'Inter',sans-serif;padding:6px 8px;border-radius:8px;background:#16091a;border:2px solid #e04ad8}#sysat .strip.auto{border-color:#3ddc84;background:#071a10}#sysat .strip.exam{border-color:#ff3b30;background:#1a0707}#sysat .strip b{color:#fff}#sysat .modes button{padding:8px 4px;font-size:14px}#sysat .modes button.on{background:#e04ad8;border-color:#e04ad8}
 #sysat .modes button[data-mode=auto].on{background:#1f8a4c;border-color:#3ddc84}#sysat .modes button[data-mode=exam].on{background:#b3261e;border-color:#ff3b30}
 #sysat .pre{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto}#sysat .pre button{font-size:12px;padding:5px 8px}
 #sysat .fneed{outline:3px solid #ff2b2b!important;outline-offset:3px;border-radius:8px;animation:safn 0.9s ease-in-out infinite}@keyframes safn{50%{outline-color:#ff2b2b44;box-shadow:0 0 14px #ff2b2b}}
 #sysat .fok{outline:3px solid #3ddc84!important;outline-offset:3px;border-radius:8px;box-shadow:0 0 14px #3ddc84}
 #sysat .fbad{outline:3px solid #ff2b2b!important;outline-offset:3px;border-radius:8px;background:#ff2b2b33!important;animation:saflash .4s 3}
 #sysat .tour.auto{border-color:#3ddc84;background:#071a10}#sysat .tour.auto b.t{color:#3ddc84}#sysat .tour.exam{border-color:#ff3b30;background:#1a0707}#sysat .tour.exam b.t{color:#ff6a60}
+#sysat .phb{display:flex;flex-wrap:wrap;gap:3px;margin:5px 0}#sysat .phb span{font:600 10.5px 'Barlow Condensed',sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:#1d2f40;color:#8fa4b8}#sysat .phb span.dn{background:#1f8a4c55;color:#9ff0bf}#sysat .phb span.cur{background:#e04ad8;color:#fff}
 #sysat .tour .res{font:700 30px 'Barlow Condensed',sans-serif}#sysat .tour ul{margin:4px 0;padding-left:18px;font-size:13px}
 #sysat .hrow{display:flex;gap:4px;align-items:center;flex-wrap:wrap}#sysat .pre{display:flex;gap:4px;flex-wrap:wrap}#sysat header button{white-space:nowrap}#sysat .pre button.on{background:#e04ad8;border-color:#e04ad8}
 #sysat .main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(280px,340px) minmax(300px,1fr) minmax(300px,1fr);grid-template-areas:"ctl mid sch";overflow:hidden}
@@ -62,12 +64,13 @@ const css=document.createElement('style'); css.textContent=`
 #sysat svg.ac .on.spin{animation:sar var(--sp,.4s) linear infinite;transform-box:view-box}@keyframes sar{to{transform:rotate(360deg)}}
 #sysat svg.ac .tch{stroke:#fff!important;stroke-width:2.2!important;filter:drop-shadow(0 0 4px #fff)}
 #sysat svg.ac .tags text{fill:#fff;font:600 9px 'Inter',sans-serif;paint-order:stroke;stroke:#000;stroke-width:3px}#sysat svg.ac .tags line{stroke:#fff;stroke-width:.7;stroke-dasharray:2 2}
+#sysat svg.ac .hud{fill:#e8eef2;font:700 10px 'JetBrains Mono',monospace;paint-order:stroke;stroke:#000;stroke-width:3px}#sysat svg.ac .actors text{fill:#fff;font:700 7.5px 'Inter',sans-serif;paint-order:stroke;stroke:#000;stroke-width:2.5px}#sysat svg.ac .env *{pointer-events:none}
 #sysat svg.ac .lbl{fill:#6f8aa3;font:600 8px 'Inter',sans-serif;pointer-events:none}
 #samenu{display:flex;gap:12px;align-items:center;width:100%;text-align:left;margin:4px 0;padding:11px 14px;border-radius:12px;border:1px solid #3fd0ff;background:linear-gradient(90deg,#062033,#0a141e);color:#fff;cursor:pointer;font:500 14px 'Inter',sans-serif}
 #samenu b{display:block;font:700 19px 'Barlow Condensed',sans-serif;letter-spacing:.04em}#samenu .e{font-size:28px}
 @media (max-width:900px){
  #sysat .main{display:block;overflow:auto}
- #sysat .top>*{grid-area:auto!important}#sysat header .tt{flex:1 1 120px}#sysat header .tt b{font-size:16px}#sysat .modes button{font-size:12.5px;padding:7px 2px;overflow:hidden}#sysat .modes i{display:none}#sysat header .tt b{font-size:15px}#sysat header .tt .tl{display:none}#sysat header .tt{flex:1 1 90px}#sysat header select{max-width:40vw;font-size:12px}#sysat header{gap:4px}#sysat header select{max-width:46vw}
+ #sysat .top>*{grid-area:auto!important}#sysat .top>.strip,#sysat .top>.dlg{grid-column:1/3!important}#sysat header .tt{flex:1 1 120px}#sysat header .tt b{font-size:16px}#sysat .modes button{font-size:12.5px;padding:7px 2px;overflow:hidden}#sysat .modes i{display:none}#sysat header .tt b{font-size:15px}#sysat header .tt .tl{display:none}#sysat header .tt{flex:1 1 90px}#sysat header select{max-width:40vw;font-size:12px}#sysat header{gap:4px}#sysat header select{max-width:46vw}
  #sysat .top{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:58% 42%;gap:4px;background:#050a10;padding:4px;border-bottom:1px solid #1d2f40}
  #sysat .sch,#sysat .mid,#sysat .ctl{overflow:visible;border:0}
  #sysat .top .sch{padding:0}#sysat .top .sch svg.ac{max-height:36vh;height:36vh}
@@ -125,7 +128,7 @@ const parts=
  R('hG',184,352,9,9,2)+R('hB',195.5,352,9,9,2)+R('hY',207,352,9,9,2)+Ci('pB',200,368,3)+Ci('pYe',211,368,3)+R('ptu',190,376,20,5,2)+Ci('rat',224,300,3.6)+
  R('mgL',182,306,6,11,2)+R('mgR',212,306,6,11,2)+Ci('brk',185,311.5,1.6)+Ci('brk',215,311.5,1.6)+
  R('apu',192,560,16,18,4)+R('apugen',193,555,6,4,1)+R('apuflap',203,555,5,4,1)+F('apuex','M200 578 V594')+
- Ci('navL',31,328,3)+Ci('navR',369,328,3)+Ci('navT',200,594,2.5)+CC('stb','stb',35,321,2)+Ci('stb',200,588,1.8)+Ci('bcn',200,226,2.6)+Ci('bcn',200,420,2.6)+CC('land','land',168,242,2.2)+CC('logo','logo',150,548,2);
+ Ci('navL',31,328,3)+Ci('navR',369,328,3)+Ci('navT',200,594,2.5)+CC('stb','stb',35,321,2)+Ci('stb',200,588,1.8)+Ci('bcn',200,226,2.6)+Ci('bcn',200,420,2.6)+CC('land','land',168,242,2.2)+CC('logo','logo',150,548,2)+[...Array(14).keys()].map(i=>Ci('masks',189,150+i*22,1.7)+Ci('masks',211,150+i*22,1.7)).join('')+R('avio2',186,109,28,4,1);
 const labels=Lb(200,10,'NEZ')+Lb(60,262,'AILE GAUCHE')+Lb(340,262,'AILE DROITE')+Lb(128,214,'MOTEUR 1')+Lb(272,214,'MOTEUR 2')+Lb(238,60,'SOUTE AVIONIQUE','start')+Lb(226,570,'APU','start')+Lb(246,96,'GPU','start');
 const NM={cabin:'Cabine pressurisée (fuselage entre cloisons étanches avant et arrière)',tLi:'Réservoir intérieur gauche (inner tank, caisson de voilure)',tRi:'Réservoir intérieur droit',tLo:'Réservoir extérieur gauche (outer tank)',tRo:'Réservoir extérieur droit',tC:'Réservoir central, dans le caisson central de voilure',
  slatL:'Becs de bord d\'attaque gauches (slats 1 à 5)',slatR:'Becs de bord d\'attaque droits',splL:'Spoilers gauches 1 à 5 (destructeurs de portance)',splR:'Spoilers droits 1 à 5',flapL:'Volets Fowler gauches (intérieur + extérieur)',flapR:'Volets Fowler droits',ailL:'Aileron gauche',ailR:'Aileron droit',elevL:'Gouverne de profondeur gauche',elevR:'Gouverne de profondeur droite',rud:'Gouverne de direction (sur la dérive)',
@@ -142,7 +145,7 @@ const NM={cabin:'Cabine pressurisée (fuselage entre cloisons étanches avant et
  lp1:'Vanne carburant basse pression (LP) moteur 1, dans le mât',lp2:'Vanne LP moteur 2',ag1:'Bouteilles d\'extincteur moteur 1 (agents 1 et 2)',ag2:'Bouteilles d\'extincteur moteur 2',f_ag1:'Ligne de décharge de l\'agent extincteur',xbv:'Vanne de cross bleed',pack1:'Pack 1 : groupe de conditionnement (échangeurs + machine à cycle à air)',pack2:'Pack 2',mixer:'Mélangeur (mixer unit)',ofv:'Vanne de décharge de pressurisation (outflow valve)',
  hG:'Réservoir hydraulique vert',hB:'Réservoir hydraulique bleu',hY:'Réservoir hydraulique jaune',pB:'Pompe électrique bleue',pYe:'Pompe électrique jaune',ptu:'PTU, unité de transfert de puissance vert ↔ jaune',rat:'RAT : éolienne de secours (pompe bleue + génératrice de secours)',
  mgL:'Atterrisseur principal gauche (2 roues)',mgR:'Atterrisseur principal droit (2 roues)',brk:'Freins carbone multidisques',apu:'APU : groupe auxiliaire de puissance (turbine à gaz dans le cône de queue)',apugen:'Génératrice de l\'APU 90 kVA',apuflap:'Volet d\'entrée d\'air de l\'APU',apuex:'Échappement APU',
- navL:'Feu de navigation gauche (rouge)',navR:'Feu de navigation droit (vert)',navT:'Feu de navigation arrière (blanc)',stb:'Feux à éclats blancs (strobes)',bcn:'Feux anticollision rouges (beacon), dessus et dessous',land:'Phares d\'atterrissage (emplanture)',logo:'Feux de logo (éclairent la dérive)'};
+ navL:'Feu de navigation gauche (rouge)',navR:'Feu de navigation droit (vert)',navT:'Feu de navigation arrière (blanc)',stb:'Feux à éclats blancs (strobes)',bcn:'Feux anticollision rouges (beacon), dessus et dessous',land:'Phares d\'atterrissage (emplanture)',logo:'Feux de logo (éclairent la dérive)',masks:'Masques à oxygène passagers (générateurs chimiques au-dessus des sièges)',avio2:'Radios VHF, transpondeur, interphone (RMP / ACP)'};
 
 const st=v=>v; // lisibilité
 const OFF=['','OFF|wh'], NONE=['',''];
@@ -203,6 +206,14 @@ const ctl=[
   {id:'spd',l:'AÉROFREINS',t:'sel',o:[0,1],ol:['RET','FULL'],pg:'F/CTL',pt:['splL','splR']},
   {id:'gear',l:'LEVIER DE TRAIN',t:'sel',o:['UP','DOWN'],ol:['UP','DOWN'],pg:'WHEEL',pt:['ngear','mgL','mgR']},
   {id:'pbrake',l:'PARK BRK',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'WHEEL',pt:['brk']}]},
+ {g:'Communications · cabine',w:'pylône (RMP, ACP), overhead (SIGNS, CALLS)',c:[
+  {id:'ptt',l:'VHF 1 · ALTERNAT',t:'mom',pg:'ELEC',pt:['avio2','scr']},
+  {id:'callMech',l:'CALL MECH',t:'mom',pg:'ELEC',pt:['ngear']},
+  {id:'callFwd',l:'CALL FWD',t:'mom',pg:'ELEC',pt:['cabin']},{id:'callAft',l:'CALL AFT',t:'mom',pg:'ELEC',pt:['cabin']},
+  {id:'pa',l:'PA (annonce)',t:'mom',pg:'ELEC',pt:['cabin']},
+  {id:'belts',l:'SEAT BELTS',t:'sel',o:[false,true],ol:['OFF','ON'],pg:'ELEC',pt:['cabin']},
+  {id:'xpdr',l:'TRANSPONDEUR',t:'sel',o:['STBY','AUTO'],ol:['STBY','AUTO'],pg:'ELEC',pt:['avio2']},
+  {id:'mask',l:'MASQUES PAX',t:'mom',grd:1,pg:'PRESS',pt:['masks'],lt:s=>s.masks?['','ON|cy']:NONE}]},
  {g:'Feu moteur (exercice)',w:'overhead · FIRE (20VU)',c:[
   {id:'fireSim',l:'SIMULER FEU MOT. 1',t:'mom',pg:'ENG',pt:['e1fire','e1'],lt:s=>s.fire1?['','FEU|rd']:NONE},
   {id:'ff1',l:'ENG 1 FIRE',t:'mom',grd:1,pg:'ENG',pt:['lp1','f_bl1','e1hp','e1idg','ag1'],lt:s=>[s.fire1?'FIRE|rd':'',s.ff1?'PUSHED|wh':'']},
@@ -214,7 +225,7 @@ function init(){ return {ground:true,bat1:false,bat2:false,ext:false,apuMaster:f
   b1:true,b2:true,xbleed:'AUTO',pack1:true,pack2:true,ditch:false,hEP1:true,hBE:true,hEP2:true,hYE:false,ptu:true,rat:false,gP:0,bP:0,yP:0,
   wai:false,waiT:0,eai1:false,eai2:false,probe:false,ir1:'OFF',ir2:'OFF',ir3:'OFF',al:[0,0,0],beacon:false,strobe:'OFF',nav:false,land:false,taxi:'OFF',
   stick:'N',stickT:0,ped:'N',pedT:0,flaps:0,fp:0,spd:0,gear:'DOWN',gp:1,pbrake:true,fire1:false,ff1:false,ag1:false,agT:0,
-  fuel:{lo:690,li:2800,c:2400,ri:2800,ro:690},cab:0,t:0}; }
+  fuel:{lo:690,li:2800,c:2400,ri:2800,ro:690},cab:0,t:0,belts:false,xpdr:'STBY',masks:false,fail:{e1:0,e2:0,dep:0}}; }
 function kk(s){ const k={};
  k.apuAv=s.apuSt===2; k.extOn=s.ext&&s.ground; k.apuG=k.apuAv&&s.apuGen;
  k.g=[s.es[0]===2&&s.gen1&&!s.ff1, s.es[1]===2&&s.gen2];
@@ -247,6 +258,9 @@ function step(s,dt){ const k=kk(s); s.t+=dt;
  if(s.apuSt===2&&!s.apuMaster) s.apuSt=3;
  if(s.apuSt===3){ s.apuN=Math.max(0,s.apuN-dt*12); if(s.apuN<=0) s.apuSt=0; }
  if(s.apuSt===2) s.apuN+=(100-s.apuN)*Math.min(1,dt);
+ // pannes
+ const fl=s.fail||{}; if(fl.e1&&s.es[0]) s.es[0]=0; if(fl.e2&&s.es[1]) s.es[1]=0;
+ if(!s.ground&&!k.acAny&&s.es[0]!==2&&s.es[1]!==2&&(s.n2[0]>0||s.n2[1]>0||fl.e1||fl.e2)) s.rat=true;
  // moteurs
  for(let i=0;i<2;i++){ const m=s['m'+(i+1)];
   if(s.es[i]===1){
@@ -254,7 +268,7 @@ function step(s,dt){ const k=kk(s); s.t+=dt;
    else if(s.n2[i]<50){ if(k.duct[i]){ s.n2[i]+=dt*(s.n2[i]<22?4.4:5.6); s.sf[i]=0; } else { s.n2[i]=Math.max(0,s.n2[i]-dt*3); s.sf[i]=1; } }
    else { s.n2[i]+=dt*2.6; if(s.n2[i]>=N2T.IDLE){ s.es[i]=2; } }
   } else if(s.es[i]===2){ if(!m||!k.lp[i]) s.es[i]=0; else { const t=s.ground&&s.thr!=='IDLE'&&s.pbrake?N2T.IDLE+6:N2T[s.thr]; s.n2[i]+=(t-s.n2[i])*Math.min(1,dt*0.8); } }
-  else s.n2[i]=Math.max(0,s.n2[i]-dt*5);
+  else s.n2[i]=Math.max(s.ground?0:Math.min(s.n2[i],12),s.n2[i]-dt*5);
   const egt=k.burn[i]?(s.es[i]===1?655:EGTT[s.thr]):18+s.n2[i]*.5; s.eg[i]+=(egt-s.eg[i])*Math.min(1,dt*(egt>s.eg[i]?0.9:0.35)); }
  // carburant
  const ff=[0,1].map(i=>k.burn[i]?(s.es[i]===2?FFT[s.thr]:180):0), use=(ff[0]+ff[1]+(s.apuSt===2?120:0))*dt/3600;
@@ -271,7 +285,7 @@ function step(s,dt){ const k=kk(s); s.t+=dt;
  if(s.wai) s.waiT+=dt; else s.waiT=0;
  // feu
  if(s.ag1&&s.fire1){ s.agT+=dt; if(s.agT>3&&!k.lp[0]) { s.fire1=false; } }
- { const tg=s.ground?0:((k.pack[0]||k.pack[1])&&!s.ditch?6000:25000); s.cab+=Math.max(-dt*350,Math.min(dt*350,tg-s.cab)); }
+ { const alt=s.fl?s.fl.alt:35000, dep=fl.dep&&!s.ground, tg=s.ground?0:(dep?alt:((k.pack[0]||k.pack[1])&&!s.ditch?Math.min(alt,6000):alt)), r=dep?4000:350; s.cab+=Math.max(-dt*r,Math.min(dt*r,tg-s.cab)); if(s.cab>14000) s.masks=true; }
 }
 function ev(s){ const k=kk(s), p={}; const A=(id,c,m)=>{ p[id]=m?[c,m]:c; };
  // électricité
@@ -327,6 +341,7 @@ function ev(s){ const k=kk(s), p={}; const A=(id,c,m)=>{ p[id]=m?[c,m]:c; };
  // feux
  if(k.lights){ if(s.nav){ A('navL','lr'); A('navR','lg'); A('navT','lt'); A('logo','lt'); } if(s.beacon) A('bcn','lr','blink');
   if(s.strobe==='ON'||(s.strobe==='AUTO'&&!s.ground)) A('stb','lt','blink'); if(s.land) A('land','lt'); if(s.taxi!=='OFF') A('taxi','lt'); }
+ if(s.masks) A('masks','hy','blink'); if(k.acAny&&(s.xpdr==='AUTO')) A('avio2','dat');
  // feu moteur
  if(s.fire1){ A('e1','fire','blink'); A('e1fire','fire','blink'); } if(s.ag1){ A('ag1','ac'); if(s.agT<3) A('f_ag1','ac','flow'); }
  // live
@@ -338,7 +353,7 @@ function ev(s){ const k=kk(s), p={}; const A=(id,c,m)=>{ p[id]=m?[c,m]:c; };
  if(k.ptuRun) lv.push('PTU en fonctionnement (bruit d\'« aboiement » caractéristique)');
  const memo=[]; if(s.fire1) memo.push([RD,'ENG 1 FIRE']); if(k.apuAv) memo.push([G,'APU AVAIL']); if(k.apuBl) memo.push([G,'APU BLEED']);
  [0,1].forEach(i=>{ if(s.sf[i]&&s.es[i]===1) memo.push([AM,'ENG '+(i+1)+' START FAULT']); }); if(k.ptuRun) memo.push([G,'HYD PTU']); if(s.rat&&!s.ground) memo.push([AM,'RAT OUT']);
- if(k.dcAny&&!k.acAny&&s.ground) memo.push([AM,'ELEC : BAT ONLY']); if(s.pbrake&&k.dcAny) memo.push([G,'PARK BRK']); if(s.ditch) memo.push([AM,'DITCHING']);
+ if(k.dcAny&&!k.acAny&&s.ground) memo.push([AM,'ELEC : BAT ONLY']); if(s.pbrake&&k.dcAny) memo.push([G,'PARK BRK']); if(s.ditch) memo.push([AM,'DITCHING']); if(s.belts&&k.dcAny) memo.push([G,'SEAT BELTS']); if(s.cab>9550&&!s.ground) memo.push([RD,'CAB PR EXCESS CAB ALT']); if(s.masks) memo.push([AM,'PAX OXY MASKS']); if(s.fail&&(s.fail.e1||s.fail.e2)&&!s.ground) memo.push([AM,'ENG '+(s.fail.e1&&s.fail.e2?'1+2':s.fail.e1?'1':'2')+' FAIL']);
  return {p,k,lv,memo}; }
 
 /* ----- pages écran (style ECAM, SD) ----- */
@@ -523,6 +538,13 @@ function ex(id,s,d){ const k=d.k, o={ln:[]}, ln=(c,t)=>o.ln.push([c,t]), blk=(t,
  case 'ag1': o.h='AGENT 1 — Décharge extincteur';
   if(!s.ff1){ blk('Rien ne se passe : les agents ne sont armés qu\'après avoir poussé le bouton ENG 1 FIRE.','ff1'); break; }
   ln('el','Un courant de la barre HOT met à feu une cartouche pyrotechnique (squib) qui perce l\'opercule de la bouteille.'); ln('ac','L\'agent (halon) se répand dans la nacelle par une tuyauterie et étouffe le feu ; voyant DISCH.'); ln('fire',s.fire1?'Si le feu persiste 30 s après, décharger l\'AGENT 2.':'Feu éteint : voyants rouges éteints.'); break;
+ case 'ptt': o.h='Alternat VHF 1 (Push To Talk)'; ln('dat','Le RMP (panneau radio) sélectionne VHF 1 sur la fréquence du contrôle ; l\'alternat met l\'émetteur en émission tant qu\'il est appuyé.'); ln('el','Les radios VHF sont alimentées en 28 V / 115 V ; l\'antenne est sur le dessus du fuselage.'); if(!k.dcAny) blk('Aucun courant : radio muette.','bat1'); break;
+ case 'callMech': o.h='CALL MECH — Appel du mécanicien'; ln('el','Fait retentir un klaxon dans la case du train avant : le mécanicien au sol branche son casque sur la prise d\'interphone près du train avant.'); if(!k.dcAny) blk('Aucun courant.','bat1'); break;
+ case 'callFwd': case 'callAft': o.h=(id==='callFwd'?'CALL FWD':'CALL AFT')+' — Appel cabine'; ln('el','Carillon et voyant au poste PNC '+(id==='callFwd'?'avant':'arrière')+' : le PNC décroche le combiné d\'interphone.'); break;
+ case 'pa': o.h='PA — Annonce passagers'; ln('el','Le sélecteur de l\'ACP passe le micro du pilote sur les haut-parleurs de la cabine.'); break;
+ case 'belts': o.h='SEAT BELTS — Consigne ceintures'; ln('lt','Allume les signaux « ceintures » au-dessus de chaque rangée, avec un carillon en cabine.'); break;
+ case 'xpdr': o.h='Transpondeur'; ln('dat','AUTO : le transpondeur répond aux radars du contrôle (code à 4 chiffres, altitude) et alimente le TCAS anticollision.'); break;
+ case 'mask': o.h='MASK MAN ON — Masques passagers'; ln('el','Ouvre les trappes au-dessus des sièges : les masques tombent ; tirer le masque allume un générateur chimique d\'oxygène (environ 15 minutes).'); ln('dat','Automatique si l\'altitude cabine dépasse environ 14 000 ft.'); break;
  case 'ground': o.h='Situation de l\'avion'; ln('me',s.ground?'Au sol : amortisseurs comprimés, certains systèmes sont inhibés ou limités (train verrouillé, antigivrage voilure 30 s, strobes en AUTO éteints).':'En vol : le vent relatif existe (RAT possible), le train peut se rentrer, le GPU est débranché.'); break;
  }
  return o; }
@@ -568,7 +590,7 @@ MOD.a320={snd,name:'Airbus A320',sub:'2 turboréacteurs CFM56-5B / LEAP-1A · co
 const AU=(function(){ const A={on:true,ctx:null,v:{}}; try{ A.on=localStorage.getItem('sa-snd')!=='0'; }catch(e){}
  function init(){ if(A.ctx) return true; try{ A.ctx=(window.SND&&SND.ctx)||new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return false; } const x=A.ctx;
   A.m=x.createGain(); A.m.gain.value=0; A.m.connect(x.destination);
-  const nb=x.createBuffer(1,x.sampleRate*2,x.sampleRate), d=nb.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  const nb=x.createBuffer(1,x.sampleRate*2,x.sampleRate), d=nb.getChannelData(0); A.nb=nb; for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
   const voice=(name,kind,freq,ft,ff,q,lfo)=>{ let src; if(kind==='noise'){ src=x.createBufferSource(); src.buffer=nb; src.loop=true; } else { src=x.createOscillator(); src.type=kind; src.frequency.value=freq; }
    const f=x.createBiquadFilter(); f.type=ft; f.frequency.value=ff; f.Q.value=q||0.7; const g=x.createGain(); g.gain.value=0; let last=g;
    src.connect(f); if(lfo){ const am=x.createGain(); am.gain.value=0.5; const lo=x.createOscillator(); lo.type=lfo.t||'square'; lo.frequency.value=lfo.f; const la=x.createGain(); la.gain.value=0.5; lo.connect(la); la.connect(am.gain); lo.start(); f.connect(am); am.connect(g); A.v[name+'_lfo']=lo; } else f.connect(g);
@@ -584,6 +606,10 @@ const AU=(function(){ const A={on:true,ctx:null,v:{}}; try{ A.on=localStorage.ge
  A.click=()=>{ blip(2200,0.03,'square',0.08); setTimeout(()=>blip(1400,0.025,'square',0.05),25); };
  A.chime=()=>{ blip(660,0.5,'sine',0.18); };
  A.ok=()=>{ blip(880,0.12,'sine',0.1); setTimeout(()=>blip(1320,0.18,'sine',0.09),110); };
+ A.foot=()=>{ if(!A.on||!init()) return; const x=A.ctx, t=x.currentTime, b=x.createBufferSource(); b.buffer=A.nb; const f=x.createBiquadFilter(); f.type='lowpass'; f.frequency.value=650+Math.random()*250; const g=x.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.22,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+0.09); b.connect(f); f.connect(g); g.connect(x.destination); b.start(t,Math.random()); b.stop(t+0.12); };
+ A.radio=()=>{ blip(1000,0.05,'square',0.05); setTimeout(()=>blip(1500,0.04,'square',0.04),60); };
+ A.cabin=()=>{ blip(988,0.6,'sine',0.12); setTimeout(()=>blip(784,0.9,'sine',0.11),420); };
+ A.horn=()=>{ blip(420,0.7,'sawtooth',0.07); };
  A.mute=()=>{ if(A.m) A.m.gain.setTargetAtTime(0,A.ctx.currentTime,0.1); };
  A.toggle=()=>{ A.on=!A.on; try{ localStorage.setItem('sa-snd',A.on?'1':'0'); }catch(e){} const b=document.querySelector('#sysat [data-snd]'); if(b) b.textContent=A.on?'🔊':'🔇'; if(!A.on) A.mute(); else { init(); A.ctx.resume&&A.ctx.resume(); } };
  A.update=()=>{ const b=document.querySelector('#sysat [data-snd]'); if(b&&b.textContent!==(A.on?'🔊':'🔇')) b.textContent=A.on?'🔊':'🔇';
@@ -591,7 +617,7 @@ const AU=(function(){ const A={on:true,ctx:null,v:{}}; try{ A.on=localStorage.ge
   const x=M.snd(S,D)||{}; set('hum',0.025*(x.hum||0)); set('fan',0.05*(x.fan||0));
   const ap=x.apu||0; set('apu',ap>0.02?0.035:0,180+ap*820); set('apuN',0.07*ap,null,1200+ap*2600);
   [0,1].forEach(i=>{ const e=(x.eng||[])[i]||{n:0,burn:0}, n=e.n/100; set('ew'+i,n>0.02?0.035*Math.min(1,n*3):0,140+n*1800,300+n*3000); set('er'+i,e.burn?0.10+0.12*n:0,null,250+n*500); set('ef'+i,0.09*n*n,null,500+n*1600); });
-  set('air',0.06*(x.air||0)); set('hyd',0.03*Math.min(2,x.hyd||0)); set('motor',x.motor?0.04:0); set('ptu',x.ptu?0.09:0); set('ign',x.ign?0.06:0); set('bell',x.bell?0.07:0);
+  set('air',0.06*(x.air||0)); set('hyd',0.03*Math.min(2,x.hyd||0)); set('motor',(x.motor||performance.now()<VEH)?0.04:0); set('ptu',x.ptu?0.09:0); set('ign',x.ign?0.06:0); set('bell',x.bell?0.07:0);
   const r=x.rot||0; set('rot',r>0.02?0.22*Math.min(1,r):0,null,180+r*200); lfo('rot',Math.max(2,(x.bf||18)*r)); const p=x.pist||0; set('pist',p>0.02?0.08:0,30+p*1.1,300+p*4); };
  addEventListener('pointerdown',()=>{ if(A.on&&!document.getElementById('sysat')?.hidden) { init(); A.ctx&&A.ctx.resume&&A.ctx.resume(); } },{capture:true});
  return A; })();
@@ -600,7 +626,7 @@ const $s=q=>document.querySelector('#sysat '+q);
 function dom(){ let a=document.getElementById('sysat'); if(a) return a; a=document.createElement('section'); a.id='sysat'; a.hidden=true; a.setAttribute('aria-label','Atelier des systèmes');
  a.innerHTML=`<header><div class="tt"><b>⚙ Atelier<span class="tl"> des systèmes</span></b><span>Touchez une commande : les pièces qu'elle actionne se colorent sur le schéma, l'écran système réagit.</span></div>
   <select data-acsel aria-label="Appareil"></select><button type="button" data-snd aria-label="Son">🔊</button><button type="button" data-help>?</button><button type="button" data-x aria-label="Fermer">✕</button><div class="modes"><button type="button" data-mode="libre">✋ <span>Libre</span></button><button type="button" data-mode="auto">▶ <span>Auto</span><i>matique</i></button><button type="button" data-mode="peda">🎓 <span>Pédago</span><i>gique</i></button><button type="button" data-mode="exam">📝 <span>Examen</span></button></div><div class="pre"></div></header>
-  <div class="main"><div class="top"><div class="sch"><svg class="ac" xmlns="http://www.w3.org/2000/svg"></svg></div><div class="scrw"><div class="tabs"></div><div class="scr"></div></div><div class="strip" hidden></div></div>
+  <div class="main"><div class="top"><div class="sch"><svg class="ac" xmlns="http://www.w3.org/2000/svg"></svg></div><div class="scrw"><div class="tabs"></div><div class="scr"></div></div><div class="strip" hidden></div><div class="dlg" hidden><div class="av"></div><div class="tx"><b></b><span></span><small></small></div><div class="db"><button type="button" data-dv title="Voix">🔈</button><button type="button" data-da title="Audio seul">🎧</button></div></div></div>
   <div class="mid"><div class="tour" hidden></div><div class="ex"></div><div class="pinfo" hidden></div><div class="leg"></div><div class="sitw"></div></div><div class="ctl"></div></div>`;
  document.body.appendChild(a);
  a.addEventListener('click',e=>{ const b=e.target.closest('button,[data-p]'); if(!b) return; const d=b.dataset;
@@ -614,6 +640,8 @@ function dom(){ let a=document.getElementById('sysat'); if(a) return a; a=docume
   if(d.snd!=null) return AU.toggle();
   if(d.tpa!=null){ AUTO.pause=!AUTO.pause; renderTour(); return; }
   if(d.thint!=null) return hint();
+  if(d.dv!=null){ DLG.voice=!DLG.voice; if(!DLG.voice) try{ speechSynthesis.cancel(); }catch(e){} dlgBtns(); return; }
+  if(d.da!=null){ DLG.ao=!DLG.ao; if(DLG.ao) DLG.voice=true; dlgBtns(); return; }
   if(d.tp!=null) return tourStart(d.tp,d.tm);
   if(d.tdo!=null) return tourDo(); if(d.tnx!=null) return tourNext(); if(d.tq!=null){ return setMode('libre'); }
   if(d.go!=null) return flashCtl(d.go);
@@ -623,13 +651,14 @@ function dom(){ let a=document.getElementById('sysat'); if(a) return a; a=docume
  a.querySelector('[data-acsel]').addEventListener('change',e=>load(e.target.value));
  return a; }
 function parseV(v){ return v==='true'?true:v==='false'?false:(/^-?\d+$/.test(v)?+v:v); }
-function relayout(){ const a=dom(), mob=matchMedia('(max-width:900px)').matches, main=a.querySelector('.main'), top=a.querySelector('.top'), sch=a.querySelector('.sch'), scrw=a.querySelector('.scrw'), mid=a.querySelector('.mid'), ctl=a.querySelector('.ctl');
+function relayout(){ const a=dom(), mob=matchMedia('(max-width:900px)').matches, a2=a, main=a.querySelector('.main'), top=a.querySelector('.top'), sch=a.querySelector('.sch'), scrw=a.querySelector('.scrw'), mid=a.querySelector('.mid'), ctl=a.querySelector('.ctl');
  if(mob){ if(sch.parentNode!==top){ top.append(sch,scrw); } top.style.display=''; main.prepend(top); main.append(mid,ctl); }
- else { top.style.display='none'; main.append(ctl,mid,sch); mid.prepend(scrw); } }
-function load(ac){ M=MOD[ac]; if(!M) return; AC=ac; S=M.preset?M.preset(PRE='cold'):M.init(); LAST=null; TOUR=null; PAGE=M.pages[0]; exPrev=''; pgPrev='';
+ else { top.style.display='none'; main.append(ctl,mid,sch); mid.prepend(scrw); const dl=a.querySelector('.dlg'); if(dl&&dl.parentNode!==sch) sch.insertBefore(dl,sch.children[1]||null); }
+ if(mob){ const dl=a.querySelector('.dlg'); if(dl&&dl.parentNode!==top) top.appendChild(dl); } }
+function load(ac){ M=MOD[ac]; if(!M) return; AC=ac; S=M.preset?M.preset(PRE='cold'):M.init(); world(); LAST=null; TOUR=null; PAGE=M.pages[0]; exPrev=''; pgPrev='';
  const a=dom(); a.querySelector('[data-acsel]').innerHTML=Object.keys(MOD).map(k=>`<option value="${k}" ${k===ac?'selected':''}>${MOD[k].name}</option>`).join('');
- a.querySelector('.tt span').textContent=M.sub;
- const svg=a.querySelector('svg.ac'); svg.setAttribute('viewBox',M.vb); svg.innerHTML=M.svg+'<g class="tags"></g>';
+ a.querySelector('.tt > span').textContent=M.sub;
+ const svg=a.querySelector('svg.ac'); svg.setAttribute('viewBox',M.vb); svg.innerHTML='<g class="env"></g>'+M.svg+'<g class="actors"></g><g class="tags"></g><text class="hud" x="6" y="14"></text>'; ENVK='';
  svg.querySelectorAll('[data-p]').forEach(el=>{ el._k=''; const t=document.createElementNS('http://www.w3.org/2000/svg','title'); t.textContent=M.names[el.dataset.p]||el.dataset.p; el.appendChild(t); });
  a.querySelector('.pre').innerHTML=(M.presets||[]).map(p=>`<button type="button" data-pre="${p[0]}" class="${p[0]===PRE?'on':''}">${p[1]}</button>`).join('');
  a.querySelector('.leg').innerHTML=M.legend.map(c=>`<span><i style="background:${C[c]}"></i>${LEGN[c]}</span>`).join('')+'<span><i style="background:#fff;box-shadow:0 0 5px #fff"></i>Pièce touchée par la commande</span><span><i style="background:none;border:2px solid #ffa21a"></i>Commandé mais bloqué</span>';
@@ -657,7 +686,14 @@ function defaultOn(id,prev,v){ const s=S; /* A320 */
  if((id==='m1'||id==='m2')){ const i=+id[1]-1; if(s[id]&&!prev&&s.eMode==='IGN'&&s.es[i]===0&&s.n2[i]<10){ s.es[i]=1; s.sf[i]=0; } }
  if(id==='gear'&&s.ground&&v==='UP'){ s.gear='DOWN'; }
  if(id==='rat'){ s.rat=true; } if(id==='fireSim'){ s.fire1=true; s.ag1=false; s.agT=0; } if(id==='ff1'){ s.ff1=true; } if(id==='ag1'){ if(s.ff1) s.ag1=true; }
- if(id==='ext'&&!s.ground) s.ext=false; }
+ if(id==='ext'&&!s.ground) s.ext=false;
+ if(id==='mask') s.masks=true;
+ if(!SELF){ const k=kk(s);
+  if(id==='callMech'){ AU.horn(); if(s.ground) say([['MECA','Oui cockpit, ici le sol, je vous écoute.']]); }
+  if(id==='callFwd'||id==='callAft'){ AU.cabin(); say([['PNC','Cockpit, j\'écoute ?']]); }
+  if(id==='pa') say([['PA','Mesdames et messieurs, ici le commandant de bord. Bienvenue à bord.']]);
+  if(id==='ptt'&&k.dcAny) say([['OPL','Kennedy Ground, Air Trajectoires one two three, radio check.'],['GND','Air Trajectoires one two three, reading you five.','Je vous reçois 5 sur 5.']]);
+  if(id==='belts'&&v) { AU.cabin(); } } }
 function showBlock(h,t){ AU.chime(); const e=$s('.ex'); e.innerHTML=`<h3>${h}</h3><div class="blk">⚠ ${t}</div>`; exPrev=''; }
 function touch(ids){ TCH=ids.slice(); tTch=performance.now()+4500; const svg=$s('svg.ac'), g=svg.querySelector('.tags'); g.innerHTML='';
  const seen={}; ids.forEach(id=>{ const el=svg.querySelector(`[data-p="${id}"]`); if(!el||seen[id]) return; seen[id]=1; let bb; try{ bb=el.getBBox(); }catch(e){ return; }
@@ -690,21 +726,65 @@ function paint(force){ if(!M||!D) return; const a=dom(), svg=a.querySelector('sv
  a.querySelectorAll('.tabs [data-pg]').forEach(b=>b.classList.toggle('on',b.dataset.pg===PAGE));
  const ph=M.page(PAGE,S,D); if(ph!==pgPrev){ a.querySelector('.scr').innerHTML=ph; pgPrev=ph; }
  if(force||Math.floor(now/600)!==Math.floor(tPrev/600)) explain(); tPrev=now; }
-function loop(){ if(!M||dom().hidden) return; const now=performance.now(), dt=Math.min(1,(now-(loop.t||now))/1000); loop.t=now; M.step(S,dt); D=M.ev(S); paint(); if(TOUR){ tourTick(); renderTour(true); } AU.update(); }
-function setPreset(n){ PRE=n; S=M.preset(n); LAST=null; exPrev=''; pgPrev=''; dom().querySelectorAll('.pre button').forEach(b=>b.classList.toggle('on',b.dataset.pre===n)); explainIntro(); D=M.ev(S); paint(true); }
+function loop(){ if(!M||dom().hidden) return; const now=performance.now(), dt=Math.min(1,(now-(loop.t||now))/1000); loop.t=now; M.step(S,dt); wstep(dt); D=M.ev(S); paint(); paintWorld(); dlgTick(); if(TOUR){ tourTick(); renderTour(true); } AU.update(); }
+function setPreset(n){ PRE=n; S=M.preset(n); world(); LAST=null; exPrev=''; pgPrev=''; dom().querySelectorAll('.pre button').forEach(b=>b.classList.toggle('on',b.dataset.pre===n)); explainIntro(); D=M.ev(S); paint(true); }
+/* ===== dialogues : équipage, sol, tour, cabine (texte + voix) ===== */
+const ROLES={CDB:['Commandant de bord','#e04ad8','👨‍✈️'],OPL:['Copilote','#3fd0ff','🧑‍✈️'],PNC:['Chef de cabine','#f2f4f6','💁'],MECA:['Mécanicien sol (casque)','#ffe14a','🎧'],CLR:['Kennedy Clearance (prévol)','#3ddc84','🗼'],GND:['Contrôle Sol','#3ddc84','🗼'],TWR:['Tour de contrôle','#3ddc84','🗼'],DEP:['Départ / Radar','#3ddc84','📡'],APP:['Approche','#3ddc84','📡'],PA:['Annonce passagers','#ffa21a','📢'],ECAM:['Alarme / voix synthétique','#ff3b30','⚠'],PAX:['Passager','#9fb3c4','🧳']};
+const DLG={q:[],cur:null,until:0,voice:true,ao:false}; try{ const v=JSON.parse(localStorage.getItem('sa-dlg')||'{}'); if(v.voice===false) DLG.voice=false; if(v.ao) DLG.ao=true; }catch(e){}
+function say(lines){ (lines||[]).forEach(l=>DLG.q.push(l)); }
+function dlgIdle(){ return !DLG.q.length&&(!DLG.cur||performance.now()>DLG.until); }
+function dlgClear(){ DLG.q=[]; DLG.cur=null; try{ speechSynthesis.cancel(); }catch(e){} const b=$s('.dlg'); if(b) b.hidden=true; }
+function dlgBtns(){ const b=$s('.dlg'); if(!b) return; b.classList.toggle('ao',DLG.ao); b.querySelector('[data-dv]').classList.toggle('off',!DLG.voice); b.querySelector('[data-dv]').textContent=DLG.voice?'🔈':'🔇'; b.querySelector('[data-da]').classList.toggle('off',!DLG.ao); try{ localStorage.setItem('sa-dlg',JSON.stringify({voice:DLG.voice,ao:DLG.ao})); }catch(e){} }
+function dlgTick(){ const now=performance.now(), box=$s('.dlg'); if(!box) return;
+ if(DLG.cur&&now<DLG.until) return; if(!DLG.q.length){ if(DLG.cur&&now>DLG.until+2500){ DLG.cur=null; box.hidden=true; } return; }
+ const l=DLG.q.shift(); DLG.cur=l; const r=ROLES[l[0]]||[l[0],'#fff','💬'], en=!!l[2]; DLG.until=now+Math.max(1700,l[1].length*(en?62:58))+400;
+ box.hidden=false; dlgBtns(); const av=box.querySelector('.av'); av.textContent=r[2]; av.style.color=r[1]; box.querySelector('.tx b').textContent=r[0]; box.querySelector('.tx b').style.color=r[1]; box.querySelector('.tx span').textContent=(en?'« ':'')+l[1]+(en?' »':''); box.querySelector('.tx small').textContent=en?'🇫🇷 '+l[2]:'';
+ if(['MECA','CLR','GND','TWR','DEP','APP'].includes(l[0])) AU.radio(); if(l[0]==='PA'||l[0]==='PNC') AU.cabin();
+ if(DLG.voice&&AU.on){ try{ const u=new SpeechSynthesisUtterance(l[1]); u.lang=en?'en-US':'fr-FR'; u.rate=en?1.08:1.05; u.pitch={CDB:0.85,OPL:1.05,PNC:1.25,MECA:0.95,PA:1.0,ECAM:0.7}[l[0]]||1; const vs=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.startsWith(en?'en':'fr')); if(vs.length) u.voice=vs[(l[0].length)%vs.length];
+   u.onend=()=>{ DLG.until=Math.min(DLG.until,performance.now()+300); }; DLG.until=now+Math.max(2500,l[1].length*80)+800; speechSynthesis.speak(u); }catch(e){} } }
+/* ===== monde vu de dessus : décor qui défile, vol simplifié, personnages ===== */
+let ENVK='';
+function world(){ const air=S&&S.ground===false; S.fl={alt:air?35000:0,ias:air?280:0,vs:0,tAlt:null,tIas:null,rate:1500,acc:5,env:air?'air':(M.pad?'pad':'park'),scroll:0,dir:1,ph:''}; S.act={}; }
+function wstep(dt){ const f=S.fl; if(!f) return;
+ if(f.tIas!=null) f.ias+=Math.sign(f.tIas-f.ias)*Math.min(Math.abs(f.tIas-f.ias),f.acc*dt*3);
+ const a0=f.alt; if(f.tAlt!=null) f.alt+=Math.sign(f.tAlt-f.alt)*Math.min(Math.abs(f.tAlt-f.alt),f.rate*dt); f.vs=Math.abs(f.alt-a0)<0.01?0:Math.sign(f.alt-a0)*Math.round(Math.max(500,Math.min(6000,f.rate*1.2))/100)*100;
+ const sp=f.env==='air'?f.ias*0.25:f.env==='water'?f.ias*0.5:f.ias*0.9; f.scroll+=sp*dt*f.dir;
+ for(const id in S.act){ const a=S.act[id]; if(!a.path||!a.path.length) continue; const [tx,ty]=a.path[0], dx=tx-a.x, dy=ty-a.y, d=Math.hypot(dx,dy), st=(a.spd||22)*dt; if(d<=st){ a.x=tx; a.y=ty; a.path.shift(); } else { a.x+=dx/d*st; a.y+=dy/d*st; } if(a.foot){ a.acc=(a.acc||0)+Math.min(d,st); if(a.acc>11){ a.acc=0; AU.foot(); } } if(a.veh) VEH=performance.now()+400; } }
+let VEH=0;
+function moveActor(id,path,o){ o=o||{}; let a=S.act[id]; const def=(M.actors||{})[id.replace(/\d+$/,'')]||(M.actors||{})[id]||{c:'#fff',l:id};
+ if(!a||o.at){ const p0=o.at||(path&&path[0])||[0,0]; a=S.act[id]={x:p0[0],y:p0[1],c:o.c||def.c,l:o.l!=null?o.l:def.l,r:o.r||def.r||5,sq:o.sq||def.sq,w:o.w||def.w,h:o.h||def.h,spd:o.spd||def.spd,foot:o.foot!=null?o.foot:def.foot,veh:def.veh||o.veh,path:[]}; }
+ if(o.hide){ delete S.act[id]; return; } a.path=(path||[]).map(p=>p.slice()); if(o.spd) a.spd=o.spd; }
+function actorsIdle(ids){ return (ids||Object.keys(S.act)).every(id=>!S.act[id]||!S.act[id].path.length); }
+function paintWorld(){ if(!M||!S.fl) return; const svg=$s('svg.ac'), f=S.fl, vb=svg.viewBox.baseVal, W=vb.width, H=vb.height, env=svg.querySelector('.env');
+ const key=f.env+(f.apt||''); if(key!==ENVK){ ENVK=key; let h='';
+  if(f.env==='park') h=`<rect width="${W}" height="${H}" fill="#1b2128"/><rect x="0" y="0" width="${W*0.27}" height="${H*0.12}" fill="#2a3a4c" stroke="#5f7d99"/><text x="6" y="16" fill="#9fb3c4" font-size="9" font-weight="700">TERMINAL ${S.fl&&S.fl.apt||''}</text><text x="6" y="30" fill="#6f8aa3" font-size="8">Salle d'équipage · Porte 7</text><path class="mv" d="M${W/2} -60 V${H+60}" stroke="#e8c33a" stroke-width="3" stroke-dasharray="30 12"/><path class="mv" d="M${W*0.12} -60 V${H+60} M${W*0.88} -60 V${H+60}" stroke="#e8eef233" stroke-width="2" stroke-dasharray="60 20"/>`;
+  else if(f.env==='pad') h=`<rect width="${W}" height="${H}" fill="#1b2128"/><circle cx="${W/2}" cy="${H*0.42}" r="${W*0.3}" fill="none" stroke="#e8eef244" stroke-width="5"/><text x="${W/2}" y="${H*0.42+40}" text-anchor="middle" fill="#e8eef222" font-size="120" font-weight="700">H</text>`;
+  else if(f.env==='taxi') h=`<rect width="${W}" height="${H}" fill="#14181b"/><rect x="${W*0.3}" y="0" width="${W*0.4}" height="${H}" fill="#23292f"/><path class="mv" d="M${W/2} -60 V${H+60}" stroke="#e8c33a" stroke-width="3" stroke-dasharray="26 14"/><path class="mv" d="M${W*0.3} -60 V${H+60} M${W*0.7} -60 V${H+60}" stroke="#4a8bff" stroke-width="4" stroke-linecap="round" stroke-dasharray="0.1 40"/>`;
+  else if(f.env==='rwy') h=`<rect width="${W}" height="${H}" fill="#101315"/><rect x="${W*0.3}" y="0" width="${W*0.4}" height="${H}" fill="#2b3036"/><path class="mv" d="M${W/2} -60 V${H+60}" stroke="#fff" stroke-width="4" stroke-dasharray="30 30"/><path class="mv" d="M${W*0.3} -60 V${H+60} M${W*0.7} -60 V${H+60}" stroke="#fff6c0" stroke-width="5" stroke-linecap="round" stroke-dasharray="0.1 36"/>`;
+  else if(f.env==='water') h=`<rect width="${W}" height="${H}" fill="#0a3a57"/>${[...Array(14).keys()].map(i=>`<path class="mv" d="M${(i*53)%W} -60 V${H+60}" stroke="#ffffff22" stroke-width="2" stroke-dasharray="14 40"/>`).join('')}`;
+  else h=`<rect class="sky" width="${W}" height="${H}" fill="#0b2a44"/>${[...Array(9).keys()].map(i=>`<ellipse class="cl" data-y="${(i*137)%H}" cx="${(i*97+40)%W}" cy="0" rx="${30+(i*13)%40}" ry="${12+(i*7)%14}" fill="#ffffff" opacity="0.13"/>`).join('')}`;
+  env.innerHTML=h; }
+ const sc=f.scroll; env.querySelectorAll('.mv').forEach(e=>e.setAttribute('stroke-dashoffset',(-sc).toFixed(1)));
+ if(f.env==='air'){ const sky=env.querySelector('.sky'); if(sky){ const t=Math.min(1,f.alt/35000); sky.setAttribute('fill',`rgb(${Math.round(40-30*t)},${Math.round(80-50*t)},${Math.round(120-50*t)})`); }
+  env.querySelectorAll('.cl').forEach(e=>{ const y=((+e.dataset.y+sc*0.6)%(H+80))-40; e.setAttribute('cy',y.toFixed(1)); e.setAttribute('opacity',f.alt>30000?0.06:0.14); }); }
+ const g=svg.querySelector('.actors'); let ah=''; for(const id in S.act){ const a=S.act[id]; ah+=a.sq?`<rect x="${(a.x-(a.w||16)/2).toFixed(1)}" y="${(a.y-(a.h||10)/2).toFixed(1)}" width="${a.w||16}" height="${a.h||10}" rx="2" fill="${a.c}" stroke="#000"/>`:`<circle cx="${a.x.toFixed(1)}" cy="${a.y.toFixed(1)}" r="${a.r}" fill="${a.c}" stroke="#fff" stroke-width="${a.r>3?1.2:0.5}"/>`; if(a.l) ah+=`<text x="${(a.x+(a.sq?(a.w||16)/2:a.r)+2).toFixed(1)}" y="${(a.y+3).toFixed(1)}">${a.l}</text>`; } if(g._h!==ah){ g.innerHTML=ah; g._h=ah; }
+ const hud=svg.querySelector('.hud'), ht=(f.ph?f.ph.toUpperCase()+' · ':'')+(f.alt>5||f.ias>1?`ALT ${Math.round(f.alt/10)*10} ft · ${Math.round(f.ias)} kt${f.vs?' · V/S '+(f.vs>0?'+':'')+f.vs:''}`:''); if(hud.textContent!==ht) hud.textContent=ht; }
 /* ===== modes : libre, automatique, pédagogique, examen ===== */
-let MODE='libre', SELF=false; const AUTO={phase:'',t:0,pause:false}, EXM={err:0,steps:{},hints:0,log:[],t0:0};
+let MODE='libre', SELF=false; const AUTO={t:0,pause:false}, EXM={err:0,steps:{},hints:0,log:[],t0:0,wc:{}};
 const MLAB={auto:'Mode automatique',peda:'Mode pédagogique',exam:'Examen'};
-function setMode(m){ MODE=m; dom().querySelectorAll('.modes [data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===m)); dom().querySelector('.pre').style.display=m==='libre'?'':'none';
+const norm=st=>Array.isArray(st)?{c:st[0],v:st[1],n:st[2],w:st[3],wt:st[4]}:st;
+const isSeq=st=>!st.c;
+function setMode(m){ MODE=m; dlgClear(); dom().querySelectorAll('.modes [data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===m)); dom().querySelector('.pre').style.display=m==='libre'?'':'none';
  if(m==='libre'){ TOUR=null; clearFrames(); const te=$s('.tour'); te.innerHTML=''; te.hidden=true; strip(); explainIntro(); return; }
- const ks=Object.keys(M.tours||{}); if(ks.length===1) tourStart(ks[0],m); else tourPick(m); }
+ const ks=Object.keys(M.tours||{}); if(m==='auto'&&M.tours.vol) return tourStart('vol','auto'); if(ks.length===1) tourStart(ks[0],m); else tourPick(m); }
 function tourPick(m){ MODE=m||MODE; const t=M.tours||{}; const e=$s('.tour'); e.hidden=false; e.className='tour '+MODE; TOUR=null; clearFrames();
- const what={auto:'L\'atelier actionne lui-même chaque commande : cadre ROUGE sur la commande, puis VERT une fois activée, et les pièces touchées s\'éclairent sur le schéma.',peda:'À vous : la commande à utiliser est encadrée en ROUGE ; touchez-la, elle passe au VERT et les pièces qu\'elle actionne s\'éclairent. Une mauvaise commande est refusée et expliquée.',exam:'Aucune aide : réalisez la procédure dans l\'ordre. Chaque erreur est comptée et sa conséquence expliquée ; note sur 20 à la fin.'}[MODE];
- e.innerHTML=`<b class="t">${MLAB[MODE]} · ${M.name}</b><p>${what}</p><p>Choisissez la procédure :</p><div class="bt">${Object.keys(t).map(k=>`<button type="button" class="go" data-tp="${k}" data-tm="${MODE}">${t[k].n}</button>`).join('')}<button type="button" data-tq>Fermer</button></div>`;
+ const what={auto:'L\'atelier joue lui-même : cadre ROUGE sur la commande, puis VERT une fois activée ; les pièces touchées s\'éclairent, l\'équipage et les passagers se déplacent sur le schéma.',peda:'À vous : la commande à utiliser est encadrée en ROUGE ; touchez-la, elle passe au VERT. Les séquences sans commande (tour avion, roulage, vol) se jouent seules.',exam:'Aucune aide : réalisez la procédure dans l\'ordre. Chaque erreur est comptée et sa conséquence expliquée ; note sur 20 à la fin.'}[MODE];
+ const ks=Object.keys(t), norms=ks.filter(k=>!t[k].fail), fails=ks.filter(k=>t[k].fail);
+ e.innerHTML=`<b class="t">${MLAB[MODE]} · ${M.name}</b><p>${what}</p><div class="bt">${norms.map(k=>`<button type="button" class="go" data-tp="${k}" data-tm="${MODE}">${t[k].n}</button>`).join('')}</div>${fails.length?`<p><b>Pannes et urgences :</b></p><div class="bt">${fails.map(k=>`<button type="button" class="go" style="background:#b3261e" data-tp="${k}" data-tm="${MODE}">⚠ ${t[k].n}</button>`).join('')}</div>`:''}<div class="bt"><button type="button" data-tq>Fermer</button></div>`;
  e.scrollIntoView({block:'nearest'}); }
 function tourStart(k,m){ if(m) MODE=m; if(MODE==='libre') MODE='peda'; dom().querySelectorAll('.modes [data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===MODE)); dom().querySelector('.pre').style.display='none';
- const t=M.tours[k]; TOUR=t; TI=0; t.st.forEach(x=>{ x.done=false; x.tDone=0; }); setPreset(t.pre||'cold'); AUTO.phase=''; AUTO.pause=false; Object.assign(EXM,{err:0,steps:{},hints:0,log:[],wc:{},t0:performance.now()});
- if(MODE==='exam') $s('.ex').innerHTML=`<h3>📝 Examen : ${t.n}</h3><div class="w">${M.name} · ${t.st.length} actions à réaliser dans l'ordre, sans aide.</div>`;
+ dlgClear(); const t=M.tours[k]; if(t.before&&!t._ok){ t.before(()=>{ t._ok=true; tourStart(k,MODE); t._ok=false; }); return; } t.st=(typeof t.build==='function'?t.build():t.st).map(norm); TOUR=t; TI=0; t.st.forEach(x=>{ x.done=false; x.tDone=0; x.ran=false; }); setPreset(t.pre||'cold'); if(t.init) t.init(S,{move:moveActor}); AUTO.pause=false; Object.assign(EXM,{err:0,steps:{},hints:0,log:[],wc:{},t0:performance.now()});
+ if(MODE==='exam') $s('.ex').innerHTML=`<h3>📝 Examen : ${t.n}</h3><div class="w">${M.name} · ${t.st.filter(x=>!isSeq(x)).length} actions à réaliser dans l'ordre, sans aide.</div>`;
  renderTour(); stepEnter(); $s('.tour').scrollIntoView({block:'nearest'}); }
 function ctlEl(id){ return document.querySelector(`#sysat [data-cw="${id}"]`)||document.querySelector(`#sysat [data-c="${id}"]`)||(id==='ground'?document.querySelector('#sysat [data-sit]'):null); }
 function clearFrames(){ document.querySelectorAll('#sysat .fneed,#sysat .fok').forEach(e=>e.classList.remove('fneed','fok')); }
@@ -712,49 +792,60 @@ function frame(id,cls){ clearFrames(); const el=ctlEl(id); if(!el) return; el.cl
 function badFrame(id){ const el=ctlEl(id); if(!el) return; el.classList.remove('fbad'); void el.offsetWidth; el.classList.add('fbad'); setTimeout(()=>el.classList.remove('fbad'),1600); }
 const MOB=()=>matchMedia('(max-width:900px)').matches;
 function scrollTo(id){ const el=ctlEl(id); if(el) el.scrollIntoView({block:MOB()?'end':'center',behavior:'smooth'}); }
-function satisfied(st){ const id=st[0], c=findC(id); if(id==='ground') return S.ground===st[1]; if(!c||c.t==='mom'||c.t==='pad') return false; if(c.t==='pb') return !!S[id]===st[1]; return String(S[id])===String(st[1]); }
-function matches(st,id,v){ if(st[0]!==id) return false; const c=findC(id); if(id==='ground') return true; if(c.t==='pb') return !S[id]===st[1]; if(c.t==='mom') return true; return String(v)===String(st[1]); }
-function stepLabel(st){ const c=findC(st[0]); if(st[0]==='ground') return 'Situation : '+(st[1]?'se poser':'passer en vol'); if(c&&c.t==='sw') return c.l+' → '+(st[1]?'ON':'OFF'); return (c?c.l:st[0])+(c&&c.t!=='pb'&&c.t!=='mom'?' → '+(c.ol?c.ol[c.o.findIndex(x=>String(x)===String(st[1]))]:(c.o.find(x=>String(x[0])===String(st[1]))||[0,st[1]])[1]):(c&&c.t==='pb'?' → '+(st[1]?'ON':'OFF'):'')); }
-function stepEnter(){ const st=TOUR&&TOUR.st[TI]; if(!st) return; if(satisfied(st)){ st.done=true; st.tDone=performance.now()-2000; }
- if(MODE==='auto'){ AUTO.phase='need'; AUTO.t=performance.now(); frame(st[0],'fneed'); scrollTo(st[0]); }
- else if(MODE==='peda'){ frame(st[0],st.done?'fok':'fneed'); scrollTo(st[0]); } else clearFrames(); }
-function stepDone(){ const st=TOUR.st[TI]; st.done=true; st.tDone=performance.now(); if(MODE!=='exam'||true) frame(st[0],'fok'); if(MODE==='exam'){ if(!EXM.steps[TI]) EXM.steps[TI]='ok'; setTimeout(()=>{ const el=ctlEl(st[0]); el&&el.classList.remove('fok'); },1200); } AU.ok(); renderTour(); }
-function wrong(id,v,st){ const c=findC(id); badFrame(id); AU.chime(); let o={ln:[]}; const S0=S, LV=LASTV; try{ S=JSON.parse(JSON.stringify(S0)); if(c&&c.t==='pb') S[id]=!S[id]; else if(c&&c.t!=='mom') S[id]=v; LASTV=c&&c.t==='pb'?S[id]:v; o=(id==='ground'?M.ex('ground',S,M.ev(S)):M.ex(id,S,M.ev(S)))||o; }catch(e){} S=S0; LASTV=LV; const cons=o.blk?o.blk:(o.ln[0]||['',''])[1];
- if(MODE==='exam'){ EXM.err++; EXM.steps[TI]='err'; EXM.log.push([c?c.l:id,stepLabel(st)]); EXM.wc=EXM.wc||{}; EXM.wc[TI]=(EXM.wc[TI]||0)+1; EXM.wrongCount=EXM.wc[TI];
-  $s('.ex').innerHTML=`<h3>✗ Erreur ${EXM.err}</h3><div class="blk">⚠ « ${c?c.l:id} » n'est pas l'action attendue à ce moment de la procédure. Elle est refusée.${cons?'<br><b>Ce qu\'elle aurait fait :</b> '+cons:''}${EXM.wrongCount>=2?'<br><b>Après deux erreurs, la réponse :</b> '+stepLabel(st):''}</div>`; if(EXM.wrongCount>=2) frame(st[0],'fneed'); }
- else { $s('.ex').innerHTML=`<h3>Pas cette commande</h3><div class="blk">⚠ « ${c?c.l:id} » : pas maintenant. L'étape demandée est <b>${stepLabel(st)}</b> (encadrée en rouge).${cons?'<br><b>Cette commande :</b> '+cons:''}<br><button type="button" data-go="${st[0]}">Montrer la commande attendue</button></div>`; }
+function satisfied(st){ if(isSeq(st)) return false; const id=st.c, c=findC(id); if(id==='ground') return S.ground===st.v; if(!c||c.t==='mom'||c.t==='pad') return false; if(c.t==='pb') return !!S[id]===st.v; return String(S[id])===String(st.v); }
+function matches(st,id,v){ if(isSeq(st)||st.c!==id) return false; const c=findC(id); if(id==='ground') return true; if(c.t==='pb') return !S[id]===st.v; if(c.t==='mom') return true; return String(v)===String(st.v); }
+function stepLabel(st){ if(isSeq(st)) return st.t||'Séquence'; const c=findC(st.c); if(st.c==='ground') return 'Situation : '+(st.v?'poser l\'appareil':'décollage'); if(c&&c.t==='sw') return c.l+' → '+(st.v?'ON':'OFF');
+ return (c?c.l:st.c)+(c&&c.t!=='pb'&&c.t!=='mom'?' → '+(c.ol?c.ol[c.o.findIndex(x=>String(x)===String(st.v))]:((c.o||[]).find(x=>String(x[0])===String(st.v))||[0,st.v])[1]):(c&&c.t==='pb'?' → '+(st.v?'ON':'OFF'):'')); }
+function stepEnter(){ const st=TOUR&&TOUR.st[TI]; if(!st) return; AUTO.t=performance.now(); st.t0=performance.now();
+ if(isSeq(st)){ clearFrames(); if(!st.ran){ st.ran=true; if(st.ph) S.fl.ph=st.ph; if(st.fl) Object.assign(S.fl,st.fl); if(st.mv) st.mv.forEach(m=>moveActor(m[0],m[1],m[2])); if(st.run) st.run(S,{move:moveActor}); if(st.pt) touch(st.pt); if(st.pg){ PAGE=st.pg; pgPrev=''; } if(st.snd==='chime') AU.chime(); if(st.say) say(st.say); } return; }
+ if(st.ph) S.fl.ph=st.ph; if(st.say&&!st.ran){ st.ran=true; say(st.say); }
+ if(satisfied(st)){ st.done=true; st.tDone=performance.now()-2000; }
+ if(MODE==='auto'){ frame(st.c,'fneed'); scrollTo(st.c); } else if(MODE==='peda'){ frame(st.c,st.done?'fok':'fneed'); scrollTo(st.c); } else clearFrames(); }
+function stepDone(){ const st=TOUR.st[TI]; st.done=true; st.tDone=performance.now(); frame(st.c,'fok'); if(MODE==='exam'){ if(!EXM.steps[TI]) EXM.steps[TI]='ok'; setTimeout(()=>{ const el=ctlEl(st.c); el&&el.classList.remove('fok'); },1200); } AU.ok(); renderTour(); }
+function wrong(id,v,st){ const c=findC(id); badFrame(id); AU.chime();
+ if(isSeq(st)){ $s('.ex').innerHTML=`<h3>Séquence en cours</h3><div class="blk">⏳ ${st.t} : attendez la fin de cette séquence, la prochaine commande sera encadrée.</div>`; exPrev=''; return; }
+ let o={ln:[]}; const S0=S, LV=LASTV; try{ S=JSON.parse(JSON.stringify(S0)); if(c&&c.t==='pb') S[id]=!S[id]; else if(c&&c.t!=='mom') S[id]=v; LASTV=c&&c.t==='pb'?S[id]:v; o=(id==='ground'?M.ex('ground',S,M.ev(S)):M.ex(id,S,M.ev(S)))||o; }catch(e){} S=S0; LASTV=LV; const cons=o.blk?o.blk:(o.ln[0]||['',''])[1];
+ if(MODE==='exam'){ EXM.err++; EXM.steps[TI]='err'; EXM.log.push([c?c.l:id,stepLabel(st)]); EXM.wc[TI]=(EXM.wc[TI]||0)+1; const n=EXM.wc[TI];
+  $s('.ex').innerHTML=`<h3>✗ Erreur ${EXM.err}</h3><div class="blk">⚠ « ${c?c.l:id} » n'est pas l'action attendue à ce moment de la procédure. Elle est refusée.${cons?'<br><b>Ce qu\'elle aurait fait :</b> '+cons:''}${n>=2?'<br><b>Après deux erreurs, la réponse :</b> '+stepLabel(st):''}</div>`; if(n>=2) frame(st.c,'fneed'); }
+ else $s('.ex').innerHTML=`<h3>Pas cette commande</h3><div class="blk">⚠ « ${c?c.l:id} » : pas maintenant. L'étape demandée est <b>${stepLabel(st)}</b> (encadrée en rouge).${cons?'<br><b>Cette commande :</b> '+cons:''}<br><button type="button" data-go="${st.c}">Montrer la commande attendue</button></div>`;
  exPrev=''; renderTour(); }
-function hint(){ const st=TOUR&&TOUR.st[TI]; if(!st) return; EXM.hints++; EXM.steps[TI]='hint'; frame(st[0],'fneed'); scrollTo(st[0]); $s('.ex').innerHTML=`<h3>Indice (−½ point)</h3><div class="blk">L'action attendue : <b>${stepLabel(st)}</b></div>`; exPrev=''; renderTour(); }
-function doStep(){ const st=TOUR.st[TI]; if(!st) return; const c=findC(st[0]); SELF=true; try{ if(st[0]==='ground'){ if(S.ground!==st[1]) act('ground'); } else if(c.t==='pb'){ if(!!S[st[0]]!==st[1]) act(st[0]); } else act(st[0],st[1]); } finally{ SELF=false; } if(!st.done) stepDone(); }
+function hint(){ const st=TOUR&&TOUR.st[TI]; if(!st||isSeq(st)) return; EXM.hints++; EXM.steps[TI]='hint'; frame(st.c,'fneed'); scrollTo(st.c); $s('.ex').innerHTML=`<h3>Indice (−½ point)</h3><div class="blk">L'action attendue : <b>${stepLabel(st)}</b></div>`; exPrev=''; renderTour(); }
+function doStep(){ const st=TOUR.st[TI]; if(!st||isSeq(st)) return; const c=findC(st.c); SELF=true; try{ if(st.c==='ground'){ if(S.ground!==st.v) act('ground'); } else if(c.t==='pb'){ if(!!S[st.c]!==st.v) act(st.c); } else act(st.c,st.v); } finally{ SELF=false; } if(!st.done) stepDone(); }
 function tourDo(){ doStep(); }
 function advance(){ TI++; if(TOUR.st[TI]){ renderTour(); stepEnter(); } else { clearFrames(); finish(); } }
-function tourNext(){ const st=TOUR.st[TI]; if(!st) return; if(!st.done) doStep(); if(st[3]&&!st[3](S)) return; advance(); }
-function tourCheck(id,v){ if(!TOUR||SELF) return; const st=TOUR.st[TI]; if(st&&!st.done&&st[0]===id) stepDone(); }
-function finish(){ AU.ok(); if(MODE==='exam'){ const N=TOUR.st.length, bad=Object.values(EXM.steps).filter(x=>x==='err').length, note=Math.max(0,Math.round(20*(N-bad-EXM.hints*0.5)/N*2)/2), dur=Math.round((performance.now()-EXM.t0)/1000);
+function seqReady(st){ return dlgIdle()&&actorsIdle(st.mv?st.mv.map(m=>m[0]).filter(id=>S.act[id]):null)&&(!st.w||st.w(S))&&performance.now()-st.t0>(st.d||2.6)*1000*(MODE==='auto'?1:0.8); }
+function tourNext(){ const st=TOUR.st[TI]; if(!st) return; if(isSeq(st)){ if(!seqReady(st)) return; advance(); return; } if(!st.done) doStep(); if(st.w&&!st.w(S)) return; advance(); }
+function tourCheck(id,v){ if(!TOUR||SELF) return; const st=TOUR.st[TI]; if(st&&!isSeq(st)&&!st.done&&st.c===id) stepDone(); }
+function finish(){ AU.ok(); if(MODE==='exam'){ const N=TOUR.st.filter(x=>!isSeq(x)).length, bad=Object.values(EXM.steps).filter(x=>x==='err').length, note=Math.max(0,Math.round(20*(N-bad-EXM.hints*0.5)/N*2)/2), dur=Math.round((performance.now()-EXM.t0)/1000);
   EXM.res=`<b class="t">Résultat · ${TOUR.n}</b><p class="res" style="color:${note>=14?'#3ddc84':note>=10?'#ffa21a':'#ff3b30'}">${note} / 20</p><p>${N} actions · ${bad} étape(s) avec erreur · ${EXM.err} erreur(s) au total · ${EXM.hints} indice(s) · ${Math.floor(dur/60)} min ${dur%60} s · ${note>=14?'Réussi':note>=10?'Juste : à retravailler':'Insuffisant'}</p>${EXM.log.length?`<ul>${EXM.log.map(l=>`<li>« ${l[0]} » au lieu de : ${l[1]}</li>`).join('')}</ul>`:''}`; }
  renderTour(); }
+function phaseBar(){ const ph=[]; TOUR.st.forEach((x,i)=>{ if(x.ph&&!ph.find(p=>p[0]===x.ph)) ph.push([x.ph,i]); }); if(ph.length<2) return ''; return `<div class="phb">${ph.map((p,j)=>{ const nx=ph[j+1]?ph[j+1][1]:1e9, cur=TI>=p[1]&&TI<nx, dn=TI>=nx; return `<span class="${cur?'cur':dn?'dn':''}">${p[0]}</span>`; }).join('')}</div>`; }
 function renderTour(live){ const e=$s('.tour'); if(!TOUR){ if(!live&&MODE==='libre') e.hidden=true; strip(); return; } e.hidden=false; e.className='tour '+MODE; const st=TOUR.st[TI];
  let html;
- if(!st){ html=MODE==='exam'?EXM.res+`<div class="bt"><button type="button" class="go" data-mode="peda">🎓 Revoir en mode pédagogique</button><button type="button" data-mode="exam">↺ Repasser l'examen</button><button type="button" data-tq>Fermer</button></div>`:`<b class="t">${MLAB[MODE]} · ${TOUR.n}</b><p>✓ Procédure terminée.</p><div class="bt">${MODE==='auto'?'<button type="button" class="go" data-mode="peda">🎓 À vous en mode pédagogique</button>':'<button type="button" class="go" data-mode="exam">📝 Passer l\'examen</button>'}<button type="button" data-tour>Autre procédure</button><button type="button" data-tq>Fermer</button></div>`; }
- else { const wt=st[3]&&st.done&&!st[3](S), head=`<b class="t">${MLAB[MODE]} · ${TOUR.n} · étape ${TI+1}/${TOUR.st.length}</b>`;
-  if(MODE==='exam') html=head+`<p>${st.done?'✓ Action correcte.':'Quelle est la prochaine action ? Utilisez les commandes.'}</p>${wt?`<p class="wt">⏳ ${st[4]}…</p>`:''}<p class="wt">Erreurs : ${EXM.err} · indices : ${EXM.hints}</p><div class="bt"><button type="button" data-thint ${st.done?'disabled':''}>💡 Indice (−½ point)</button><button type="button" data-tq>Abandonner</button></div>`;
-  else if(MODE==='auto') html=head+`<p><b>${stepLabel(st)}</b></p><p>${st[2]}</p><p class="wt">${AUTO.pause?'⏸ En pause':(st.done?(wt?'⏳ '+st[4]+'…':'✓ Activée (cadre vert)'):'▶ Commande à activer (cadre rouge)…')}</p><div class="bt"><button type="button" class="go" data-tpa>${AUTO.pause?'▶ Reprendre':'⏸ Pause'}</button><button type="button" data-tnx ${wt?'disabled':''}>⏭ Étape suivante</button><button type="button" data-tq>■ Arrêter</button></div>`;
-  else html=head+`<p><b>${stepLabel(st)}</b></p><p>${st[2]}</p><p class="wt">${st.done?(wt?'⏳ '+st[4]+'…':'✓ Bien. Étape suivante…'):'👉 Touchez la commande encadrée en ROUGE.'}</p><div class="bt">${st.done?'':`<button type="button" data-go="${st[0]}">Montrer</button><button type="button" data-tdo>Le faire pour moi</button>`}<button type="button" data-tq>Arrêter</button></div>`; }
+ if(!st){ html=MODE==='exam'?EXM.res+`<div class="bt"><button type="button" class="go" data-mode="peda">🎓 Revoir en mode pédagogique</button><button type="button" data-mode="exam">↺ Repasser l'examen</button><button type="button" data-tq>Fermer</button></div>`:`<b class="t">${MLAB[MODE]} · ${TOUR.n}</b><p>✓ Terminé.</p><div class="bt">${MODE==='auto'?'<button type="button" class="go" data-mode="peda">🎓 À vous en mode pédagogique</button>':'<button type="button" class="go" data-mode="exam">📝 Passer l\'examen</button>'}<button type="button" data-tour>Autres procédures et pannes</button><button type="button" data-tq>Fermer</button></div>`; }
+ else { const seq=isSeq(st), wt=!seq&&st.w&&st.done&&!st.w(S), head=`<b class="t">${MLAB[MODE]} · ${TOUR.n} · étape ${TI+1}/${TOUR.st.length}</b>${phaseBar()}`, more=`<button type="button" data-tour>Autres / pannes</button>`;
+  if(seq) html=head+`<p><b>${st.t}</b></p><p>${st.n||''}</p><p class="wt">${seqReady(st)?'✓':'⏳ séquence en cours…'}</p><div class="bt">${MODE==='auto'?`<button type="button" class="go" data-tpa>${AUTO.pause?'▶ Reprendre':'⏸ Pause'}</button>`:''}<button type="button" data-tnx ${seqReady(st)?'':'disabled'}>⏭ Suite</button>${more}<button type="button" data-tq>■ Arrêter</button></div>`;
+  else if(MODE==='exam') html=head+`<p>${st.done?'✓ Action correcte.':'Quelle est la prochaine action ? Utilisez les commandes.'}</p>${wt?`<p class="wt">⏳ ${st.wt}…</p>`:''}<p class="wt">Erreurs : ${EXM.err} · indices : ${EXM.hints}</p><div class="bt"><button type="button" data-thint ${st.done?'disabled':''}>💡 Indice (−½ point)</button><button type="button" data-tq>Abandonner</button></div>`;
+  else if(MODE==='auto') html=head+`<p><b>${stepLabel(st)}</b></p><p>${st.n||''}</p><p class="wt">${AUTO.pause?'⏸ En pause':(st.done?(wt?'⏳ '+st.wt+'…':'✓ Activée (cadre vert)'):'▶ Commande à activer (cadre rouge)…')}</p><div class="bt"><button type="button" class="go" data-tpa>${AUTO.pause?'▶ Reprendre':'⏸ Pause'}</button><button type="button" data-tnx ${wt?'disabled':''}>⏭ Étape suivante</button>${more}<button type="button" data-tq>■ Arrêter</button></div>`;
+  else html=head+`<p><b>${stepLabel(st)}</b></p><p>${st.n||''}</p><p class="wt">${st.done?(wt?'⏳ '+st.wt+'…':'✓ Bien. Étape suivante…'):'👉 Touchez la commande encadrée en ROUGE.'}</p><div class="bt">${st.done?'':`<button type="button" data-go="${st.c}">Montrer</button><button type="button" data-tdo>Le faire pour moi</button>`}${more}<button type="button" data-tq>Arrêter</button></div>`; }
  if(e._h!==html){ e.innerHTML=html; e._h=html; } strip(st); }
 function strip(st){ const el=$s('.strip'); if(!el) return; if(!TOUR){ el.hidden=true; return; } el.hidden=false; el.className='strip '+MODE; let t;
- if(!st) t=MODE==='exam'?'📝 Examen terminé : résultat ci-dessous.':'✓ Procédure terminée.';
- else { const wt=st[3]&&st.done&&!st[3](S), n=`${TI+1}/${TOUR.st.length}`;
-  if(MODE==='exam') t=`📝 Examen · étape ${n} · ${st.done?'✓ correct':'à vous : quelle commande ?'} · erreurs ${EXM.err}`;
-  else t=`${MODE==='auto'?'▶ Auto':'🎓 Pédago'} · ${n} · <b>${stepLabel(st)}</b> · ${st.done?(wt?'⏳ '+st[4]:'✓ activée (vert)'):(MODE==='auto'?'cadre rouge : activation…':'👉 touchez le cadre ROUGE')}`; }
+ if(!st) t=MODE==='exam'?'📝 Examen terminé : résultat ci-dessous.':'✓ Terminé.';
+ else { const n=`${TI+1}/${TOUR.st.length}`; if(isSeq(st)) t=`${MODE==='auto'?'▶':MODE==='exam'?'📝':'🎓'} ${n} · <b>${st.t}</b>${st.n&&!MOB()?' — '+st.n:''}`;
+  else { const wt=st.w&&st.done&&!st.w(S);
+   if(MODE==='exam') t=`📝 Examen · étape ${n} · ${st.done?'✓ correct':'à vous : quelle commande ?'} · erreurs ${EXM.err}`;
+   else t=`${MODE==='auto'?'▶ Auto':'🎓 Pédago'} · ${n} · <b>${stepLabel(st)}</b> · ${st.done?(wt?'⏳ '+st.wt:'✓ activée (vert)'):(MODE==='auto'?'cadre rouge : activation…':'👉 touchez le cadre ROUGE')}`; } }
  if(el._h!==t){ el.innerHTML=t; el._h=t; } }
-function tourTick(){ if(!TOUR) return; const st=TOUR.st[TI]; if(!st) return; const now=performance.now(), cond=!st[3]||st[3](S);
- if(MODE==='auto'){ if(AUTO.pause) return; if(!st.done&&now-AUTO.t>1900) doStep(); else if(st.done&&cond&&now-st.tDone>2600) advance(); }
- else if(st.done&&cond&&now-st.tDone>1500) advance(); }
+function tourTick(){ if(!TOUR) return; const st=TOUR.st[TI]; if(!st) return; const now=performance.now();
+ if(isSeq(st)){ if(MODE==='auto'&&AUTO.pause) return; if(seqReady(st)&&now-st.t0>(st.d||2.6)*1000+600) advance(); return; }
+ const cond=!st.w||st.w(S);
+ if(MODE==='auto'){ if(AUTO.pause) return; if(!st.done&&now-AUTO.t>1900&&dlgIdle()) doStep(); else if(st.done&&cond&&now-st.tDone>2400&&dlgIdle()) advance(); }
+ else if(st.done&&cond&&now-st.tDone>1500&&dlgIdle()) advance(); }
 function help(){ explainIntro(); }
 function open(ac,tour){ const a=dom(); a.hidden=false; if(!M||(ac&&ac!==AC)) load(ac&&MOD[ac]?ac:(typeof selAC!=='undefined'&&selAC&&MOD[selAC]?selAC:'a320')); else relayout(); clearInterval(timer); loop.t=0; timer=setInterval(loop,100); if(tour&&M.tours&&M.tours[tour]) tourStart(tour,MODE==='libre'?'peda':MODE); }
-function close(){ dom().hidden=true; clearInterval(timer); AU.mute(); }
+function close(){ dom().hidden=true; clearInterval(timer); AU.mute(); dlgClear(); }
 addEventListener('resize',()=>{ if(M&&!dom().hidden) relayout(); });
-window.SYSAT={open,close,MOD,C,LEGN,helpers:{mir,P,F,R,Ci,RR,CC,PP,FF,Lb,T,BX,LN,ARC,SCR,OFFSCR,G,AM,W,CY,RD,GY},get S(){return S;},act,load};
+window.SYSAT={_t:{DLG,get TI(){return TI},get TOUR(){return TOUR},ff(){ DLG.q=[]; DLG.until=0; for(const id in S.act){ const a=S.act[id]; if(a.path.length){ const p=a.path[a.path.length-1]; a.x=p[0]; a.y=p[1]; a.path=[]; } } const st=TOUR&&TOUR.st[TI]; if(st){ st.t0-=1e5; if(st.tDone) st.tDone-=1e5; } AUTO.t-=1e5; },adv(n){ for(let i=0;i<n;i++){ M.step(S,0.1); wstep(0.1); } }},say,world:()=>S&&S.fl,moveActor:(...a)=>moveActor(...a),open,close,MOD,C,LEGN,helpers:{mir,P,F,R,Ci,RR,CC,PP,FF,Lb,T,BX,LN,ARC,SCR,OFFSCR,G,AM,W,CY,RD,GY},get S(){return S;},act,load};
 /* entrée dans le menu */
 function inject(){ const box=document.querySelector('#menu .box'); if(!box||box.querySelector('#samenu')) return; const b=document.createElement('button'); b.type='button'; b.id='samenu';
  b.innerHTML='<span class="e">⚙</span><span><b>Atelier des systèmes</b>Un bouton → la pièce qu\'il actionne : électricité, carburant, hydraulique, air, gouvernes, colorés sur le schéma de l\'appareil.</span>';
