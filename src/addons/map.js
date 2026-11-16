@@ -55,6 +55,12 @@ function draw(){ if(!ST.on||!W||W.hidden) return; const r=cv.getBoundingClientRe
     const sx=(lon0-dLon/2+180)/360*IW, sy=(90-(lat0+dLat/2))/180*IH, sw=dLon/360*IW, sh=dLat/180*IH;
     try{ g.imageSmoothingEnabled=true; g.drawImage(im,sx,sy,sw,sh,0,0,w,h); if(sx<0) g.drawImage(im,sx+IW,sy,sw,sh,0,0,w,h); if(sx+sw>IW) g.drawImage(im,sx-IW,sy,sw,sh,0,0,w,h); }catch(e){}
     g.fillStyle='rgba(4,14,26,0.28)'; g.fillRect(0,0,w,h); }
+  // à fort zoom : fond schématique net (le planisphère devient flou) — voies de circulation et bâtiments du décor en vectoriel
+  if(kpp<0.4){ g.fillStyle=`rgba(28,44,30,${Math.min(0.85,(0.4-kpp)/0.25)})`; g.fillRect(0,0,w,h);
+    try{ for(const k in GN){ const G=GN[k]; if(!G||!G.n||!G.a) continue; const c=P(G.n[0][0],G.n[0][1]); if(c[0]<-3000||c[0]>w+3000||c[1]<-3000||c[1]>h+3000) continue;
+        g.strokeStyle='rgba(255,214,90,0.55)'; g.lineWidth=Math.max(1,23/1000/kpp); g.beginPath(); G.a.forEach(e=>{ const A1=G.n[e[0]], B1=G.n[e[1]]; if(!A1||!B1) return; const p=P(A1[0],A1[1]), q=P(B1[0],B1[1]); g.moveTo(p[0],p[1]); g.lineTo(q[0],q[1]); }); g.stroke(); } }catch(e){}
+    try{ if(window.OBS){ g.fillStyle='rgba(170,182,196,0.75)'; for(const o of OBS){ const c=P(o.lat,o.lon), rr=o.rad/1000/kpp; if(c[0]+rr<0||c[0]-rr>w||c[1]+rr<0||c[1]-rr>h) continue;
+        const kx=1/1000/kpp; o.boxes.forEach(bx=>{ if(bx.hw*kx<0.6&&bx.hd*kx<0.6) return; g.save(); g.translate(c[0]+bx.x*kx,c[1]+bx.z*kx); g.rotate(-(bx.r||0)); g.fillRect(-bx.hw*kx,-bx.hd*kx,bx.hw*2*kx,bx.hd*2*kx); g.restore(); }); } } }catch(e){} }
   // graticule
   const span=w*kpp/111.32/cl, step=[0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.25,0.5,1,2,5,10,20,30].find(v=>v>=span/5)||30, dec=step>=1?0:step>=0.1?1:step>=0.01?2:3;
   g.strokeStyle='rgba(160,200,240,0.18)'; g.lineWidth=1; g.font='9px JetBrains Mono, monospace'; g.fillStyle='rgba(190,215,240,0.6)';

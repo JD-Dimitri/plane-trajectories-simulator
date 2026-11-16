@@ -289,7 +289,17 @@ const APTS={
     ['09L','27R',49.024719,2.524892,49.026694,2.561689,197],['09R','27L',49.020617,2.513058,49.023253,2.562117,148]]},
   KJRB:{n:'Downtown Manhattan Heliport',lat:40.7012,lon:-74.0090,elev:2,rw:[],heli:true}
 };
-function elevAt(lat,lon){ let e=0; for(const k in APTS){ const a=APTS[k], d=gcKm(lat,lon,a.lat,a.lon); if(d<12) e=Math.max(e,a.elev*clamp((12-d)/5,0,1)); } return e; }
+/* relief : massifs et sommets principaux sur les trajets du simulateur, modélisés par des dômes gaussiens [SIMPLIFIÉ]
+   [lat, lon, altitude du sommet (m), rayon caractéristique (km)] — altitudes des sommets publiées (IGN, SRTM) ; formes approchées.
+   La Réunion : Piton des Neiges 3 070 m, Piton de la Fournaise 2 632 m, Grand Bénare 2 898 m, Maïdo 2 205 m, socle de l'île.
+   Alpes : Mont Blanc 4 808 m, Mont Rose 4 634 m, Cervin 4 478 m, Barre des Écrins 4 102 m, Grand Paradis 4 061 m, Jungfrau 4 158 m + socle.
+   Afrique de l'Est : Kilimandjaro 5 895 m, mont Kenya 5 199 m, plateau éthiopien (Addis-Abeba ≈ 2 350 m). */
+const RELIEF=[[-21.13,55.53,1400,10],[-21.0989,55.4781,1500,6],[-21.10,55.425,900,4],[-21.07,55.38,900,4],[-21.2443,55.7092,2200,6],[-21.20,55.62,700,8],
+  [45.8326,6.8652,3380,5],[45.9369,7.8668,2500,5],[45.9763,7.6586,2300,4],[44.9223,6.3597,2200,6],[45.517,7.266,2000,6],[46.5367,7.9629,2200,6],
+  [45.9,7.0,1500,40],[46.5,8.6,1500,45],[46.8,10.6,1400,45],[47.2,12.3,1300,40],[44.7,6.6,1300,35],
+  [-3.0674,37.3556,4000,12],[-3.07,37.36,1100,30],[-0.1521,37.3084,3200,10],[-0.15,37.3,900,30],[9.0,38.8,2000,260]];
+function reliefAt(lat,lon){ let e=0; for(const p of RELIEF){ const dla=(lat-p[0])*110.57; if(Math.abs(dla)>p[3]*4) continue; const dlo=(lon-p[1])*111.32*Math.cos(lat*D2R); if(Math.abs(dlo)>p[3]*4) continue; const d2=dla*dla+dlo*dlo; e+=p[2]*Math.exp(-d2/(2*p[3]*p[3])); } return e<4?0:e; }
+function elevAt(lat,lon){ let e=reliefAt(lat,lon); for(const k in APTS){ const a=APTS[k], d=gcKm(lat,lon,a.lat,a.lon); if(d<12){ const w=clamp((11-d)/4,0,1); e=e*(1-w)+a.elev*w; if(!e&&d<12) e=Math.max(e,a.elev*clamp((12-d)/5,0,1)); } } return e; }
 
 /* ====================== appareils ====================== */
 // Valeurs publiques arrondies (masse, voilure, poussée, limites). Coefficients aérodynamiques : [ESTIMÉ] pour un comportement crédible.
@@ -348,24 +358,33 @@ const texDay=TL.load(window.__GLOBE.day), texNight=TL.load(window.__GLOBE.night)
 [texDay,texNight].forEach(t=>{ t.anisotropy=renderer.capabilities.getMaxAnisotropy(); t.wrapS=THREE.RepeatWrapping; });
 const earthU={lk:{value:1},org:{value:new THREE.Vector3()},dayT:{value:texDay},nightT:{value:texNight},sunDir:{value:new THREE.Vector3(1,0,0)},fogC:{value:new THREE.Color(0x9fb8cc)},fogD:{value:80000},night:{value:0}};
 const earthMat=new THREE.ShaderMaterial({uniforms:earthU,
-  vertexShader:`uniform vec3 org; varying vec2 vUv; varying vec3 vN; varying float vD;
+  vertexShader:`uniform vec3 org; attribute float hgt; attribute float hsd; varying vec2 vUv; varying vec3 vN; varying float vS; varying float vH; varying float vD;
     #include <common>
     #include <logdepthbuf_pars_vertex>
-    void main(){ vUv=uv; vN=normalize(position+org); vec4 mv=modelViewMatrix*vec4(position,1.); vD=length(mv.xyz); gl_Position=projectionMatrix*mv;
+    void main(){ vUv=uv; vN=normalize(position+org); vS=hsd; vH=hgt; vec4 mv=modelViewMatrix*vec4(position,1.); vD=length(mv.xyz); gl_Position=projectionMatrix*mv;
     #include <logdepthbuf_vertex>
     }`,
-  fragmentShader:`uniform sampler2D dayT; uniform sampler2D nightT; uniform vec3 sunDir; uniform float lk; uniform vec3 fogC; uniform float fogD; varying vec2 vUv; varying vec3 vN; varying float vD;
+  fragmentShader:`uniform sampler2D dayT; uniform sampler2D nightT; uniform vec3 sunDir; uniform float lk; uniform vec3 fogC; uniform float fogD; varying vec2 vUv; varying vec3 vN; varying float vS; varying float vH; varying float vD;
     #include <common>
     #include <logdepthbuf_pars_fragment>
     void main(){
     #include <logdepthbuf_fragment>
       float d=dot(vN,sunDir); float k=smoothstep(-0.10,0.10,d);
-      vec3 day=texture2D(dayT,vUv).rgb*(0.28+0.85*max(d,0.)); vec3 nig=texture2D(nightT,vUv).rgb*1.25*lk+vec3(0.004,0.008,0.016);
+      vec3 tex=texture2D(dayT,vUv).rgb; float rl=clamp(vH/20.,0.,1.);
+      vec3 land=mix(vec3(0.36,0.50,0.26),vec3(0.52,0.46,0.32),smoothstep(600.,1800.,vH)); land=mix(land,vec3(0.60,0.58,0.55),smoothstep(1800.,2700.,vH)); land=mix(land,vec3(0.93,0.95,0.97),smoothstep(3300.,3900.,vH));
+      float sh=max(d,0.)*(0.55+0.75*vS);
+      vec3 day=mix(tex*(0.28+0.85*max(d,0.)),land*(0.42+0.8*sh),rl); vec3 nig=texture2D(nightT,vUv).rgb*1.25*lk+vec3(0.004,0.008,0.016);
       vec3 c=mix(nig,day,k); float f=1.-exp(-pow(vD/fogD,1.4)); gl_FragColor=vec4(mix(c,fogC,clamp(f,0.,0.93)),1.); }`});
-function sphereGrid(lat0,lat1,lon0,lon1,nLat,nLon,hFn,O){ const pos=[],uv=[],idx=[]; O=O||[0,0,0];
-  for(let i=0;i<=nLat;i++){ const la=lat0+(lat1-lat0)*i/nLat; for(let j=0;j<=nLon;j++){ const lo=lon0+(lon1-lon0)*j/nLon; const p=ecef(la,lo,hFn?hFn(la,lo):0); pos.push(p[0]-O[0],p[1]-O[1],p[2]-O[2]); uv.push((lo+180)/360,(la+90)/180); } }
+function sphereGrid(lat0,lat1,lon0,lon1,nLat,nLon,hFn,O){ const pos=[],uv=[],idx=[],hs=[]; O=O||[0,0,0];
+  for(let i=0;i<=nLat;i++){ const la=lat0+(lat1-lat0)*i/nLat; for(let j=0;j<=nLon;j++){ const lo=lon0+(lon1-lon0)*j/nLon; const hh=hFn?hFn(la,lo):0; hs.push(hFn&&hh>-100&&typeof reliefAt==='function'?reliefAt(la,lo):0); const p=ecef(la,lo,hh); pos.push(p[0]-O[0],p[1]-O[1],p[2]-O[2]); uv.push((lo+180)/360,(la+90)/180); } }
   for(let i=0;i<nLat;i++) for(let j=0;j<nLon;j++){ const a=i*(nLon+1)+j, b=a+nLon+1; idx.push(a,a+1,b, a+1,b+1,b); }
-  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); return g; }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('hgt',new THREE.Float32BufferAttribute(hs,1));
+  // ombrage du relief (lumière du nord-ouest, 45°) calculé sur la grille : pentes éclairées / à l'ombre
+  const sd=new Float32Array(hs.length), dyM=(lat1-lat0)/nLat*110570, H=[]; for(let i=0;i<=nLat;i++) for(let j=0;j<=nLon;j++){ const la=lat0+(lat1-lat0)*i/nLat; H.push(hFn?hFn(la,lon0+(lon1-lon0)*j/nLon):0); }
+  for(let i=0;i<=nLat;i++){ const la=lat0+(lat1-lat0)*i/nLat, dxM=(lon1-lon0)/nLon*111320*Math.cos(la*D2R)||1; for(let j=0;j<=nLon;j++){ const k=i*(nLon+1)+j, e=H[k];
+    const zx=((j<nLon?H[k+1]:e)-(j>0?H[k-1]:e))/(dxM*((j>0&&j<nLon)?2:1)), zy=((i<nLat?H[k+nLon+1]:e)-(i>0?H[k-nLon-1]:e))/(dyM*((i>0&&i<nLat)?2:1)); const nl=Math.hypot(zx,zy,1);
+    sd[k]=Math.max(0,Math.min(1,(0.5*zx-0.5*zy+0.707)/nl)); } }
+  g.setAttribute('hsd',new THREE.BufferAttribute(sd,1)); g.setIndex(idx); return g; }
 // globe entier, 600 m sous la surface (les facettes ne dépassent jamais le sol réel)
 const globe=new THREE.Mesh(sphereGrid(-90,90,-180,180,180,360,()=>-650),earthMat); world.add(globe);
 // pièce de terrain précise autour de l'appareil (± 0,9°), reconstruite quand on s'éloigne
@@ -373,7 +392,7 @@ const PATCH={mesh:null,lat:999,lon:999};
 function patchUpdate(lat,lon){ if(gcKm(lat,lon,PATCH.lat,PATCH.lon)<30) return; PATCH.lat=lat; PATCH.lon=lon;
   if(PATCH.mesh){ world.remove(PATCH.mesh); PATCH.mesh.geometry.dispose(); }
   const dl=0.9, dlo=0.9/Math.max(0.2,Math.cos(lat*D2R));
-  const O=ecef(lat,lon,0); PATCH.mat=PATCH.mat||earthMat.clone(); PATCH.mat.uniforms=Object.assign({},earthU,{org:{value:new THREE.Vector3(...O)}});
+  const O=ecef(lat,lon,0); if(!PATCH.mat){ PATCH.mat=earthMat.clone(); PATCH.mat.uniforms=Object.assign({},earthU,{org:{value:new THREE.Vector3()}}); } PATCH.mat.uniforms.org.value.set(...O);   // mise à jour de la valeur (remplacer l'objet laissait l'ancienne origine dans le shader : terrain noir loin du départ)
   PATCH.mesh=new THREE.Mesh(sphereGrid(lat-dl,lat+dl,lon-dlo,lon+dlo,120,120,elevAt,O),PATCH.mat); PATCH.mesh.position.set(...O); world.add(PATCH.mesh); }
 /* ---- pistes : marquages dessinés en canvas, balisage lumineux ---- */
 function rwTex(ra,rb,Lft,Wft){ const W=64,H=Math.min(4096,Math.round(W*Lft/Wft)),c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d'), u=H/Lft;
@@ -937,11 +956,11 @@ const WB={
    lemac:17.8,mac:4.19,dowArm:18.9,zones:[['Cabine avant (rangs 1-10)',14.0,0.30],['Cabine arrière (rangs 11-30)',22.0,0.70],['Soute avant',11.5,0.45],['Soute arrière',25.5,0.55]],fuelArm:18.6,cgLim:[18,40],crewMass:0},
  lj60:{unit:'kg',dow:6750,seats:8,pax:4,stdPax:96,child:35,bag:10,cargo:50,mzfw:7257,mtow:10660,mlw:8845,fuelMax:3588,burn:620,taxi:45,alt:300,res30:280,gs:430,
    lemac:7.1,mac:2.2,dowArm:7.6,zones:[['Cabine avant',6.5,0.5],['Cabine arrière',8.4,0.5],['Soute',11.0,1]],fuelArm:7.7,cgLim:[14,32],crewMass:0},
- s76:{unit:'kg',dow:3250,seats:12,pax:6,stdPax:92,child:35,bag:8,cargo:40,mzfw:4900,mtow:5307,mlw:5307,fuelMax:860,burn:310,taxi:15,alt:90,res30:155,gs:140,
+ s76:{unit:'kg',dow:3250,seats:12,pax:6,stdPax:92,child:35,bag:8,cargo:40,mzfw:4900,mtow:5307,mlw:5307,fuelMax:860,burn:310,taxi:15,alt:90,res30:103,gs:140,
    datum:true,dowArm:5.95,zones:[['Cabine',5.4,1],['Soute',8.0,1]],fuelArm:6.35,armLim:[5.69,6.20],crewMass:0},
- h125:{unit:'kg',dow:1320,seats:5,pax:3,stdPax:104,child:35,bag:6,cargo:20,mzfw:2250,mtow:2250,mlw:2250,fuelMax:426,burn:175,taxi:5,alt:60,res30:88,gs:120,
+ h125:{unit:'kg',dow:1320,seats:5,pax:3,stdPax:104,child:35,bag:6,cargo:20,mzfw:2250,mtow:2250,mlw:2250,fuelMax:426,burn:175,taxi:5,alt:60,res30:58,gs:120,
    datum:true,dowArm:3.45,zones:[['Banquette arrière',4.2,1],['Coffres latéraux',3.9,1]],fuelArm:3.35,armLim:[3.17,3.53],crewMass:0},
- r44:{unit:'kg',dow:768,seats:3,pax:1,stdPax:104,child:35,bag:5,cargo:0,mzfw:1134,mtow:1134,mlw:1134,fuelMax:127,burn:42,taxi:2,alt:0,res30:21,gs:105,
+ r44:{unit:'kg',dow:768,seats:3,pax:1,stdPax:104,child:35,bag:5,cargo:0,mzfw:1134,mtow:1134,mlw:1134,fuelMax:127,burn:42,taxi:2,alt:0,res30:14,gs:105,
    datum:true,dowArm:2.65,zones:[['Siège avant gauche',2.21,1],['Sièges arrière',2.99,1]],fuelArm:2.68,armLim:[2.36,2.59],crewMass:0}
 };
 const LS={};   // devis de masse en cours
@@ -1105,7 +1124,7 @@ function stepsFor(){ const L=LS, k=ACK, W=WB[k]; const C=commonFirst(); let P=[]
   {ph:'Atterrissage',t:'Atterrissage, roulage, arrêt',txt:'Arrondi, réduction, freinage ; au parking : frein de parc, manettes CUTOFF, BATT OFF.',items:[['Posé',()=>S.onGround&&S.V<60*KT,null],['Manettes CUTOFF',()=>SYS.thr1==='CUTOFF'&&SYS.thr2==='CUTOFF',()=>{pedSet('thr1','CUTOFF'); pedSet('thr2','CUTOFF');}],['BATT OFF',()=>!SYS.batt1&&!SYS.batt2,()=>{pedSet('batt1',false); pedSet('batt2',false);}]]}];
  else if(k==='r44') P=[
   {ph:'Cockpit',t:'Avant la mise en route (POH R44 II §4)',txt:'Ceintures attachées, robinet carburant ON, disjoncteurs enfoncés ; collectif en bas, friction serrée ; cyclique au neutre ; palonniers au neutre ; frein rotor desserré ; embrayage débrayé ; HYD et gouverneur ON.',items:[['Frein rotor desserré',is('rbrake','OFF'),()=>pedSet('rbrake','OFF'),'[data-pd="rbrake"]'],['Embrayage débrayé',is('clutch','DISENGAGE'),()=>pedSet('clutch','DISENGAGE'),'[data-pd="clutch"]'],['HYD ON',on('hyd'),()=>pedSet('hyd',true),'[data-pd="hyd"]'],['Gouverneur ON',on('gov'),()=>pedSet('gov',true),'[data-pd="gov"]']]},
-  {ph:'Mise en route',t:'Démarrage du moteur',txt:'Batterie et strobe ON, zone dégagée, mélange riche, contact sur START jusqu\'au démarrage, puis BOTH. Régime 50 à 60 %, chauffe à 60–70 % (POH).',items:[['MASTER BAT ON',on('bat1'),setS('bat1',true),'[data-sw="bat1"]'],['STROBE ON',on('beacon'),setS('beacon',true),'[data-sw="beacon"]'],['Mélange RICH',is('mix','RICH'),()=>pedSet('mix','RICH'),'[data-pd="mix"]'],['Contact START',()=>S.eng[0]||SYS.ign==='START',()=>pedSet('ign','START'),'[data-pd="ign"]'],['Moteur tournant',()=>S.eng[0],null]]},
+  {ph:'Mise en route',t:'Démarrage du moteur',txt:'Batterie et strobe ON, zone dégagée, mélange tiré (OFF) pendant le lancement, contact sur START ; dès le démarrage, mélange plein riche puis magnétos sur BOTH. Régime 50 à 60 %, chauffe à 60–70 % (POH).',items:[['MASTER BAT ON',on('bat1'),setS('bat1',true),'[data-sw="bat1"]'],['STROBE ON',on('beacon'),setS('beacon',true),'[data-sw="beacon"]'],['Mélange RICH',is('mix','RICH'),()=>pedSet('mix','RICH'),'[data-pd="mix"]'],['Contact START',()=>S.eng[0]||SYS.ign==='START',()=>pedSet('ign','START'),'[data-pd="ign"]'],['Moteur tournant',()=>S.eng[0],null]]},
   {ph:'Mise en route',t:'Embrayage et montée en régime',txt:'Embrayage sur ENGAGE : les pales doivent tourner dans les 5 secondes ; attendre l\'extinction du voyant CLUTCH. Alternateur ON ; pression d\'huile ≥ 25 psi en 30 s. Gouverneur ON : 101–102 % (POH).',items:[['CLUTCH ENGAGE',is('clutch','ENGAGE'),()=>pedSet('clutch','ENGAGE'),'[data-pd="clutch"]'],['ALT ON',on('alt1'),setS('alt1',true),'[data-sw="alt1"]'],['Rotor à 101–102 %',()=>S.nr>0.99,()=>{S.nr=1.01;}]]},
   {ph:'Décollage',t:'Décollage (POH)',txt:'Portes fermées, gouverneur ON, régime 101–102 %. Collectif (PgUp) jusqu\'à « léger sur les patins », stationnaire, contrôle des instruments ; puis piquer légèrement (↑) et accélérer vers 60 KIAS (Vy 55).',items:[['En vol',air,null],['Au-dessus de 500 ft',alt(500),null]]},
   {ph:'Croisière',t:'Croisière vers JFK (calcul carburant)',txt:'Régime dans l\'arc vert, MAP au collectif ; vitesse de croisière ≤ 110 KIAS en air calme ; mélange toujours riche en vol (POH).',calc:'cruise',items:[['À moins de 2 km de l\'aire H de JFK',()=>gcKm(S.lat,S.lon,APTS.JFKH.lat,APTS.JFKH.lon)<2,()=>{const p=offsetLL(APTS.JFKH.lat,APTS.JFKH.lon,1500,-1500); S.lat=p[0]; S.lon=p[1]; PATCH.lat=999;}]]},
@@ -3432,7 +3451,7 @@ const PHX={
 const EXTRA=[
  [/Briefing et dossier/,{why:'Un vol se décide au sol : la météo de départ, de destination et de dégagement détermine le carburant, la piste, l\'approche. Les NOTAM signalent pistes fermées, balisages en panne, zones réglementées.',err:'Ne lire que la météo de destination ; oublier le dégagement ; ne pas vérifier l\'heure de validité des prévisions (TAF).'}],
  [/Devis de masse/,{why:'Trop lourd, l\'avion décolle plus long, monte moins bien, freine plus long. Centrage trop arrière : instable en tangage ; trop avant : rotation difficile. Les limites MZFW / MTOW / MLW sont des limites de structure certifiées.',err:'Oublier les bagages cabine, prendre une masse passager non réglementaire, ne pas recalculer après ajout de carburant.'}],
- [/Bilan carburant/,{why:'La réglementation impose de quoi aller à destination, faire face aux imprévus, rejoindre le dégagement et voler encore 30 min. On ne « finit » jamais réservoirs secs : la réserve finale n\'est pas faite pour être consommée.',err:'Confondre carburant bloc et carburant au décollage (le roulage est consommé avant) ; oublier la réserve de route.'}],
+ [/Bilan carburant/,{why:'La réglementation impose de quoi aller à destination, faire face aux imprévus, rejoindre le dégagement et voler encore 30 min (avion de ligne : 30 min d\'attente à 1 500 ft). En VFR non commercial : avion 30 min de jour, 45 min de nuit ; hélicoptère 20 min (NCO.OP.125). On ne « finit » jamais réservoirs secs : la réserve finale n\'est pas faite pour être consommée.',err:'Confondre carburant bloc et carburant au décollage (le roulage est consommé avant) ; oublier la réserve de route.'}],
  [/Arrivée au parking/,{why:'On arrive à l\'avion par le côté, gilet haute visibilité, en restant hors des zones de danger (aspiration réacteur, souffle, hélices / rotors, véhicules).',err:'Passer devant une entrée d\'air ou sous une aile pendant l\'avitaillement.'}],
  [/Tour avion|visite/,{why:'Dernière occasion de voir de ses yeux ce qu\'aucun voyant ne montre : un impact d\'oiseau, une sonde bouchée par un insecte, une fuite hydraulique, un pneu entaillé, une trappe restée ouverte.',err:'Aller trop vite ; ne pas se baisser pour voir le train ; oublier de vérifier que les caches et goupilles rouges sont retirés.'}],
  [/cold & dark|Monter à bord/,{why:'« Cold & dark » = avion entièrement éteint. Avant tout, on vérifie le frein de parc, les manettes au ralenti / coupées et le train verrouillé — puis on met sous tension.',err:'Mettre les batteries avant d\'avoir vérifié les sécurités (train, manettes).'}],
@@ -3445,7 +3464,7 @@ const EXTRA=[
  [/Démarrage du moteur 2/,{why:'On démarre d\'abord le moteur 2 sur A320 : il alimente le circuit hydraulique jaune, qui sert au frein de parc et au repoussage.',err:'Ne pas surveiller l\'EGT : un démarrage chaud se voit à l\'EGT qui monte trop vite.'}],
  [/Démarrage du moteur 1/,{why:'Après les deux démarrages, ENG MODE revient sur NORM (sinon allumage continu) et APU BLEED OFF (l\'air vient désormais des moteurs).',err:'Oublier ENG MODE NORM.'}],
  [/Démarrage des réacteurs|Démarrage des turbines|Démarrage de la turbine/,{why:'Une turbine démarre en trois temps : le démarreur entraîne le compresseur, l\'allumage s\'enclenche, le carburant arrive ; elle accélère seule jusqu\'au ralenti.',err:'Ne pas surveiller la température (ITT / T4 / T5) : risque de démarrage chaud.'}],
- [/Démarrage du moteur$/,{why:'Moteur à pistons : mélange riche, contact sur START, puis BOTH (deux magnétos).',err:'Laisser le contact sur START après le démarrage.'}],
+ [/Démarrage du moteur$/,{why:'Moteur à pistons à injection (R44 II, POH section 4) : mélange tiré (OFF) pendant le lancement, contact sur START ; dès que le moteur part, mélange poussé plein riche, puis magnétos sur BOTH.',err:'Laisser le contact sur START après le démarrage.'}],
  [/Embrayage/,{why:'Sur R44, l\'embrayage met progressivement le rotor en rotation par des courroies.',err:'Décoller avant l\'extinction du voyant CLUTCH.'}],
  [/roulage|Roulage/,{why:'Le roulage est une phase à risque (incursions de piste). On suit exactement la clairance, on s\'arrête aux barres rouges des points d\'arrêt, on ne traverse une piste qu\'avec autorisation.',err:'Rouler trop vite en virage ; franchir un point d\'arrêt sans autorisation ; oublier les volets de décollage.'}],
  [/Before Takeoff|^Décollage/,{why:'V1 est la vitesse de décision : avant, on peut arrêter sur la piste restante ; après, on décolle même avec une panne moteur. VR : on tire. V2 : vitesse de sécurité à 35 ft avec un moteur en panne.',err:'Tirer avant VR (risque de toucher la queue) ; trop cabrer ; hésiter après V1.'}],
@@ -3494,7 +3513,7 @@ TOW = ZFW + carburant au décollage (bloc − roulage) = ${kg(L.zfw)} + ${kg(L.b
 LW  = TOW − carburant d'étape ${kg(L.trip)} = ${kg(L.lw)}</div><p>Chaque masse est comparée à sa limite (MZFW, MTOW, MLW). Centrage : chaque masse multipliée par sa distance à une référence donne un moment ; le centre de gravité = somme des moments ÷ somme des masses. Il doit rester entre les limites avant et arrière. <b>Les valeurs sont modifiables ici</b> : elles seront reprises pendant le vol.</p></div>`;
   if(kind==='fuel') return `<div id="br-calc" data-k="fuel">${calcHTML('fuel')}</div><div class="box why"><b class="t">Lecture ligne par ligne</b><ul>
    <li><b>Roulage</b> : consommé avant le décollage (moteurs au ralenti ≈ ${fw?'10 à 15':'5'} min).</li><li><b>Étape (trip)</b> : temps de vol = distance ÷ vitesse sol (+ 15 min de montée/descente) × consommation horaire = ${L.tripH.toFixed(2)} h × ${fmt(w.burn,0)} kg/h.</li>
-   <li><b>Réserve de route 5 %</b> : vent plus fort que prévu, déroutement en route, attente.</li><li><b>Dégagement</b> : rejoindre un autre aéroport si la destination ferme.</li><li><b>Réserve finale</b> : 30 min de vol en attente à 1 500 ft — on ne la consomme qu'en urgence (« MAYDAY FUEL »).</li>
+   <li><b>Réserve de route 5 %</b> : vent plus fort que prévu, déroutement en route, attente.</li><li><b>Dégagement</b> : rejoindre un autre aéroport si la destination ferme.</li><li><b>Réserve finale</b> : avion de ligne 30 min en attente à 1 500 ft (VFR non commercial : avion 30 min de jour / 45 min de nuit, hélicoptère 20 min) — on ne la consomme qu'en urgence (« MAYDAY FUEL »).</li>
    <li><b>Supplément commandant</b> : à son jugement (orages, trafic, givrage).</li></ul></div>`;
   if(kind==='perf'){ const dep=depIcao(), rw=MI.full?'31L':null, h=rw?rwyHdg(dep,rw):(MI.start?MI.start().hdg:null);
     return (fw?calcHTML('perf'):'')+(fw?`<div class="box why"><b class="t">Les trois vitesses du décollage</b><ul><li><b>V1 (${L.v1} kt)</b> — décision : panne avant V1 → on interrompt ; après → on décolle quoi qu'il arrive.</li><li><b>VR (${L.vr} kt)</b> — rotation : on tire doucement vers ~15° d'assiette (≈ 3° par seconde).</li><li><b>V2 (${L.v2} kt)</b> — sécurité au décollage : vitesse de montée garantie même sur un moteur.</li></ul><p>Plus l'avion est lourd, plus ces vitesses sont élevées. Ici : formule linéaire simplifiée sur la masse [ESTIMÉ].</p></div>`:'')+windHTML(dep,h,'départ '+(dep||'')+(rw?' piste '+rw:'')); }
@@ -3508,7 +3527,7 @@ Distance de descente ≈ 3 × ${(hh/1000).toFixed(1)} = ${fmt(tod,0)} NM (≈ ${
 Taux de descente ≈ vitesse sol × 5 = ${gs} × 5 = ${fmt(gs*5,0)} ft/min
 Durée ≈ ${fmt(hh/(gs*5),0)} min</div><p>Pourquoi ×3 ? Une pente de 3° fait perdre environ 300 ft par mille nautique : 1 000 ft ↔ 3 NM. Vent arrière : commencer plus tôt.</p></div>`; }
   if(kind==='landing'){ const dr=MI.destRw, dh=dr?rwyHdg(MI.dest,dr):null; let vapp=''; try{ vapp=fw?vlsNow(L.lw)+5:''; }catch(e){}
-    return `<div class="box"><b class="t">Approche</b><div class="f">Masse à l'atterrissage prévue : ${kg(L.lw)} (MLW ${kg(w.mlw)})${fw?`\nVAPP = VLS + 5 kt ≈ ${vapp} kt [ESTIMÉ]  (+ ⅓ du vent de face, + rafales, max +15 kt)`:''}
+    return `<div class="box"><b class="t">Approche</b><div class="f">Masse à l'atterrissage prévue : ${kg(L.lw)} (MLW ${kg(w.mlw)})${fw?`\nVAPP = VLS + 5 kt ≈ ${vapp} kt [ESTIMÉ]  (correction = le plus grand de 5 kt et du ⅓ du vent de face établi, plafonnée à VLS + 15 kt ; les rafales sont prises en compte par la fonction « ground speed mini », pas ajoutées à VAPP)`:''}
 Plan de descente 3° ≈ 318 ft par NM  →  à 3 NM du seuil : ≈ 950 ft
 Taux en finale ≈ vitesse sol × 5 = ${fw?140:60} kt × 5 = ${fw?700:300} ft/min</div></div>`+windHTML(MI.dest,dh,'arrivée '+MI.dest+(dr?' piste '+dr:'')); }
   if(kind==='end') return `<div class="box"><b class="t">Débriefing chiffré</b><p>À l'arrivée, le panneau compare : carburant bloc (${kg(L.block)}), consommé réel, étape prévue (${kg(L.trip)}). Un écart s'explique (vent, altitude, attente) et se note.</p></div>`;
@@ -4554,7 +4573,7 @@ const PARTS=[
  <div class="box"><b class="t">Dans le simulateur</b>Le tour avion de l'étape 4 vous fait passer devant chacun de ces organes : nez et sondes, train avant, aile, train principal, empennage, cône de queue (APU).</div>`,
   quiz:[Q('Quelle gouverne fait pencher l\'avion pour virer ?',['La gouverne de direction','Les ailerons','Les volets'],1,'Les ailerons, en bout d\'aile, braquent en sens opposé : une aile monte, l\'autre descend → roulis.'),Q('À quoi servent les volets ?',['À voler plus vite en croisière','À voler lentement en gardant assez de portance','À diriger l\'avion au sol'],1,'Ils augmentent la courbure et la surface de l\'aile : on peut voler plus lentement au décollage et à l\'atterrissage.'),Q('Où se trouve la majeure partie du carburant d\'un avion de ligne ?',['Dans les ailes','Dans le cockpit','Dans la dérive'],0,'Les réservoirs principaux sont dans la voilure (et un réservoir central sous le fuselage).')]},
  {id:'vol',t:'Comment un avion vole',h:`<p>Un avion ne « flotte » pas : il vole parce que son aile, inclinée face à l'air qui arrive, <b>dévie l'air vers le bas</b>. En retour l'air pousse l'aile vers le haut : c'est la <b>portance</b>.</p>${SVG_FORCES}
- <h3>Les quatre forces</h3><ul><li><b>Portance</b> ↑ : dépend de la densité de l'air, de la <b>vitesse au carré</b>, de la surface de l'aile et de l'<b>incidence</b> (angle entre l'aile et l'air). Formule : ½ ρ V² S Cz.</li><li><b>Poids</b> ↓ : la masse de l'avion (structure, passagers, bagages, carburant). D'où le <b>devis de masse</b>.</li><li><b>Poussée</b> → : fournie par les moteurs.</li><li><b>Traînée</b> ← : la résistance de l'air, qui augmente avec la vitesse.</li></ul>
+ <h3>Les quatre forces</h3><ul><li><b>Portance</b> ↑ : dépend de la densité de l'air, de la <b>vitesse au carré</b>, de la surface de l'aile et de l'<b>incidence</b> (angle entre l'aile et l'air). Formule : ½ ρ V² S Cz.</li><li><b>Poids</b> ↓ : la masse de l'avion (structure, passagers, bagages, carburant). D'où le <b>devis de masse</b>.</li><li><b>Poussée</b> → : fournie par les moteurs.</li><li><b>Traînée</b> ← : la résistance de l'air. Elle a deux parts : la traînée <i>parasite</i> (frottement, forme), qui croît comme le carré de la vitesse, et la traînée <i>induite</i> (due à la portance), qui diminue quand la vitesse augmente. Leur somme passe par un minimum : c'est la vitesse de finesse maximale.</li></ul>
  <div class="box am"><b class="t">Le décrochage</b>Si l'incidence devient trop forte (vitesse trop faible, nez trop haut), l'air ne suit plus le dessus de l'aile : la portance chute brutalement. C'est le <b>décrochage</b>. Remède : <b>rendre la main</b> (baisser le nez) pour diminuer l'incidence, puis remettre la puissance. Les avions ont une alarme (« STALL ») et l'A320 une protection automatique.</div>
  <h3>Les trois axes</h3>${SVG_AXES}<p>Pour virer, on <b>incline</b> avec les ailerons : la portance, penchée, tire l'avion dans le virage. Les palonniers servent surtout à garder le vol « symétrique » (la bille au centre) et à rouler au sol.</p>
  <h3>Les vitesses à connaître</h3><table><tr><th>Sigle</th><th>Nom</th><th>Sens</th></tr><tr><td>V1</td><td>Vitesse de décision</td><td>Au-delà, on décolle même en cas de panne moteur.</td></tr><tr><td>VR</td><td>Rotation</td><td>On tire doucement sur le manche : le nez se lève.</td></tr><tr><td>V2</td><td>Sécurité au décollage</td><td>Vitesse de montée garantie même sur un moteur.</td></tr><tr><td>VLS / VAPP</td><td>Vitesse mini / d'approche</td><td>VAPP ≈ VLS + 5 kt en finale.</td></tr></table><p class="src">Le nœud (kt) = 1 mille nautique (1 852 m) par heure. L'altitude se compte en pieds (ft) : 1 000 ft ≈ 305 m.</p>`,
@@ -7317,7 +7336,7 @@ function heliAcc(key,nrN){ const M=MOD[key]; if(!M) return; const engOff=s=>{ s.
    Q('Anneau tourbillonnaire','Les tourbillons de bout de pale se referment : la portance chute, vibrations, le vario s\'emballe.',FX('warn','ANNEAU TOURBILLONNAIRE',{d:3})),
    Q('Plus de collectif','Le pilote lève le collectif : cela aggrave l\'anneau.',{err:1,run:s=>{ s.coll=2; },fl:{tAlt:0,rate:60},w:s=>s.fl.alt<=40}),
    Q('Impact','',FX('impact','IMPACT',{fl:{env:'pad',alt:0,tIas:0},run:s=>{ s.ground=true; },d:4})),
-   AN('Entrée en anneau tourbillonnaire en descente lente à faible vitesse.','Descente supérieure à environ 300 ft/min sous 30 nœuds, réflexe de lever le collectif.','Éviter les descentes verticales rapides ; en anneau, sortir latéralement ou vers l\'avant au cyclique (méthode Vuichard / prise de vitesse) avant de remettre du collectif.')]},
+   AN('Entrée en anneau tourbillonnaire en descente lente à faible vitesse.','Conditions réunies : vitesse sous la portance de translation (≈ 10 à 15 kt), vario de 300 ft/min ou plus, puissance partielle (au moins 20 %) ; réflexe dangereux : lever le collectif.','Éviter les descentes verticales rapides ; en anneau, sortir latéralement ou vers l\'avant au cyclique (méthode Vuichard / prise de vitesse) avant de remettre du collectif.')]},
   accVrs_ok:{n:'Version corrigée : sortie au cyclique',hide:1,pre:'run',init:hInit(600,10),st:()=>[
    Q('Début d\'anneau','Vibrations, vario qui augmente.',{ph:'Vol',fl:{tAlt:420,rate:30,tIas:5},w:s=>s.fl.alt<=430}),K('cyc','F','Cyclique en avant : l\'hélicoptère prend de la vitesse et sort de son souffle.'),
    Q('Sortie de l\'anneau','À partir d\'environ 20 nœuds, le rotor retrouve de l\'air « propre » : la portance revient.',{fl:{tAlt:500,rate:40,tIas:40},w:s=>s.fl.ias>=35,say:[['CDB','Sortis, on reprend une approche normale.']]})]}}); }
@@ -8193,6 +8212,21 @@ window.PHYS={HULL,blocked,obsHit,fixPoints};
 
 </script>
 <script>
+/* ===== BRUME ATMOSPHÉRIQUE DES OBJETS (bâtiments, tours, décor) =====
+   Le terrain avait déjà sa brume (shader du globe) mais pas les objets 3D : de loin, les immeubles de Manhattan ressortaient en
+   silhouette noire sur l'horizon brumeux. Les objets suivent maintenant la même brume (couleur et distance) que le terrain.
+   Les feux (balisage, feux de navigation) restent visibles de loin la nuit. */
+(function(){
+if(typeof scene==='undefined'||typeof THREE==='undefined') return;
+scene.fog=new THREE.Fog(0x9fb8cc,20000,90000);
+scene.traverse(o=>{ const m=o.material; (Array.isArray(m)?m:m?[m]:[]).forEach(x=>{ if(x.isSpriteMaterial) x.fog=false; x.needsUpdate=true; }); });
+const _pc=placeCamera; placeCamera=function(){ _pc.apply(this,arguments); try{ const c=earthU.fogC.value, d=earthU.fogD.value; scene.fog.color.copy(c); scene.fog.near=d*0.2; scene.fog.far=d*1.6; }catch(e){} };
+// nouveaux feux créés plus tard : sans brume
+if(typeof mkLight==='function'){ const _mk=mkLight; mkLight=function(){ const s=_mk.apply(this,arguments); try{ if(s&&s.material) s.material.fog=false; }catch(e){} return s; }; }
+})();
+
+</script>
+<script>
 /* ===== CRASH : EXPLOSION ET DISLOCATION SCHÉMATISÉES =====
    À l'impact, l'appareil ne reste plus « posé » intact : il se disloque et la scène montre ce qui se passe réellement,
    de façon schématique (aucune image réelle) et selon le lieu :
@@ -8353,6 +8387,12 @@ function draw(){ if(!ST.on||!W||W.hidden) return; const r=cv.getBoundingClientRe
     const sx=(lon0-dLon/2+180)/360*IW, sy=(90-(lat0+dLat/2))/180*IH, sw=dLon/360*IW, sh=dLat/180*IH;
     try{ g.imageSmoothingEnabled=true; g.drawImage(im,sx,sy,sw,sh,0,0,w,h); if(sx<0) g.drawImage(im,sx+IW,sy,sw,sh,0,0,w,h); if(sx+sw>IW) g.drawImage(im,sx-IW,sy,sw,sh,0,0,w,h); }catch(e){}
     g.fillStyle='rgba(4,14,26,0.28)'; g.fillRect(0,0,w,h); }
+  // à fort zoom : fond schématique net (le planisphère devient flou) — voies de circulation et bâtiments du décor en vectoriel
+  if(kpp<0.4){ g.fillStyle=`rgba(28,44,30,${Math.min(0.85,(0.4-kpp)/0.25)})`; g.fillRect(0,0,w,h);
+    try{ for(const k in GN){ const G=GN[k]; if(!G||!G.n||!G.a) continue; const c=P(G.n[0][0],G.n[0][1]); if(c[0]<-3000||c[0]>w+3000||c[1]<-3000||c[1]>h+3000) continue;
+        g.strokeStyle='rgba(255,214,90,0.55)'; g.lineWidth=Math.max(1,23/1000/kpp); g.beginPath(); G.a.forEach(e=>{ const A1=G.n[e[0]], B1=G.n[e[1]]; if(!A1||!B1) return; const p=P(A1[0],A1[1]), q=P(B1[0],B1[1]); g.moveTo(p[0],p[1]); g.lineTo(q[0],q[1]); }); g.stroke(); } }catch(e){}
+    try{ if(window.OBS){ g.fillStyle='rgba(170,182,196,0.75)'; for(const o of OBS){ const c=P(o.lat,o.lon), rr=o.rad/1000/kpp; if(c[0]+rr<0||c[0]-rr>w||c[1]+rr<0||c[1]-rr>h) continue;
+        const kx=1/1000/kpp; o.boxes.forEach(bx=>{ if(bx.hw*kx<0.6&&bx.hd*kx<0.6) return; g.save(); g.translate(c[0]+bx.x*kx,c[1]+bx.z*kx); g.rotate(-(bx.r||0)); g.fillRect(-bx.hw*kx,-bx.hd*kx,bx.hw*2*kx,bx.hd*2*kx); g.restore(); }); } } }catch(e){} }
   // graticule
   const span=w*kpp/111.32/cl, step=[0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.25,0.5,1,2,5,10,20,30].find(v=>v>=span/5)||30, dec=step>=1?0:step>=0.1?1:step>=0.01?2:3;
   g.strokeStyle='rgba(160,200,240,0.18)'; g.lineWidth=1; g.font='9px JetBrains Mono, monospace'; g.fillStyle='rgba(190,215,240,0.6)';
