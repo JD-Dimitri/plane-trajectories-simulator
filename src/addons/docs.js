@@ -28,20 +28,21 @@ const pad2=n=>String(n).padStart(2,'0');
 function ctx(){ const k=(typeof ACK!=='undefined'&&ACK)||(typeof selAC!=='undefined'&&selAC)||'a320', a=AC[k]||{}, fw=a.kind==='fw';
  let mi=(typeof MI!=='undefined'&&MI&&MI.start)?MI:MISSIONS[fw?'jfk-cdg':'heli-ny'];
  if(fw&&mi.rw) mi=MISSIONS['jfk-cdg']; if(!fw&&mi.fw) mi=MISSIONS['heli-ny'];
- const dep=fw?(mi===MISSIONS['cdg-jfk']?'LFPG':'KJFK'):(mi===MISSIONS['heli-cdg']?'LFPG':'KJRB'), dest=mi.dest||'LFPG';
+ const dep=mi.dep||(fw&&mi.start&&!mi.full?(()=>{ try{ const s=mi.start(); let bk=null,bd=1e9; for(const q in APTS){ const a=APTS[q]; if(a.heli||!(a.rw||[]).length) continue; const x=gcKm(s.lat,s.lon,a.lat,a.lon); if(x<bd){ bd=x; bk=q; } } return bk; }catch(e){ return null; } })():null)||(fw?(mi===MISSIONS['cdg-jfk']?'LFPG':'KJFK'):(mi===MISSIONS['heli-cdg']?'LFPG':'KJRB')), dest=mi.dest||'LFPG';
  let L={}; try{ if(typeof ACK!=='undefined'&&ACK===k&&LS&&LS.block) L=LS; else { const sv=[ACK,A,MI], keep=Object.assign({},LS); ACK=k; A=a; MI=mi; lsInit(); L=Object.assign({},LS); ACK=sv[0]; A=sv[1]; MI=sv[2]; Object.keys(LS).forEach(x=>delete LS[x]); Object.assign(LS,keep); } }catch(e){ L={}; }
  let crew={}; try{ crew=JSON.parse(localStorage.getItem('sa-crew')||'{}'); }catch(e){}
  const d=new Date(), date=`${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`, dof=`${String(d.getUTCFullYear()).slice(2)}${pad2(d.getUTCMonth()+1)}${pad2(d.getUTCDate())}`;
  const W=WB[k]||{}, etd=fw?'1830':'1500', fh=L.tripH||(fw?7.3:0.3), eta=(()=>{ const m=18*60+30+Math.round(fh*60); return pad2(Math.floor(m/60)%24)+pad2(m%60); })();
- return {k,a,fw,mi,dep,dest,altn:fw?(dest==='LFPG'?'LFPO':'KEWR'):(dest==='KJFK'?'KLGA':'LFPB'),L,W,crew,date,dof,etd,eta,fh,flt:crew.vol?String(crew.vol).replace(/\s/g,''):'PTA722',cs:(typeof CSN==='function'?CSN():'SIMU 320'),reg:crew.imm||({a320:'F-HTRJ',lj60:'N60PT',s76:'N76PT',h125:'F-HPTJ',r44:'F-HPTR'}[k]),type:{a320:'A320',lj60:'LJ60',s76:'S76',h125:'AS50',r44:'R44'}[k],name:a.name||k}; }
-const apN=c=>(APTS[c]&&APTS[c].n)||({KJRB:'Downtown Manhattan Heliport',LFPO:'Paris-Orly',KEWR:'Newark',KLGA:'LaGuardia',LFPB:'Paris-Le Bourget'}[c]||c);
+ return {k,a,fw,mi,dep,dest,altn:fw?(dest==='LFPG'?'LFPO':dest==='LFPO'?'LFPG':dest==='FMEE'?'FIMP':'KEWR'):(dest==='KJFK'?'KLGA':'LFPB'),L,W,crew,date,dof,etd,eta,fh,flt:crew.vol?String(crew.vol).replace(/\s/g,''):'PTA722',cs:(typeof CSN==='function'?CSN():'SIMU 320'),reg:crew.imm||({a320:'F-HTRJ',lj60:'N60PT',s76:'N76PT',h125:'F-HPTJ',r44:'F-HPTR'}[k]),type:{a320:'A320',lj60:'LJ60',s76:'S76',h125:'AS50',r44:'R44'}[k],name:a.name||k}; }
+const apN=c=>(APTS[c]&&APTS[c].n)||({FIMP:'Maurice — Sir Seewoosagur Ramgoolam',KJRB:'Downtown Manhattan Heliport',LFPO:'Paris-Orly',KEWR:'Newark',KLGA:'LaGuardia',LFPB:'Paris-Le Bourget'}[c]||c);
 function metar(c){ try{ const m=WXS.met[c]; if(m&&m.raw) return 'METAR '+m.raw.replace(/^METAR /,''); }catch(e){} return {LFPO:'METAR LFPO 030200Z 20005KT CAVOK 08/06 Q1019 NOSIG',KEWR:'METAR KEWR 021851Z 21011KT 10SM FEW050 15/04 A3024',KLGA:'METAR KLGA 021851Z 20009KT 10SM FEW050 14/05 A3025',KJRB:'METAR KJRB (pas de station : voir KJFK / KLGA)',LFPB:'METAR LFPB 030200Z 21005KT CAVOK 07/06 Q1019'}[c]||'METAR '+c+' NIL'; }
 /* itinéraire (exemple pédagogique) */
 const RT={fw:[['KJFK',40.64,-73.78,'DÉP'],['BETTE',41.0,-69.5,'SID'],['YQX',48.95,-54.57,'VOR'],['50N050W',50,-50,''],['51N040W',51,-40,'NAT'],['52N030W',52,-30,'NAT'],['52N020W',52,-20,'NAT'],['MALOT',53,-15,'Shanwick'],['LND',50.13,-5.64,'VOR'],['ABB',50.13,1.85,'VOR'],['LFPG',49.01,2.55,'ARR']],
  rw:[['KJRB',40.701,-74.009,'DÉP'],['STATUE',40.69,-74.045,'VRP'],['VZ',40.607,-74.045,'Verrazano'],['CI',40.575,-73.98,'Coney Island'],['RCKY',40.6,-73.88,'VRP'],['KJFK',40.64,-73.78,'ARR']]};
 const gc=(a,b)=>{ const R=6371,r=Math.PI/180, dl=(b[2]-a[2])*r, p1=a[1]*r, p2=b[1]*r; return Math.acos(Math.min(1,Math.sin(p1)*Math.sin(p2)+Math.cos(p1)*Math.cos(p2)*Math.cos(dl)))*R; };
 const brg=(a,b)=>{ const r=Math.PI/180, y=Math.sin((b[2]-a[2])*r)*Math.cos(b[1]*r), x=Math.cos(a[1]*r)*Math.sin(b[1]*r)-Math.sin(a[1]*r)*Math.cos(b[1]*r)*Math.cos((b[2]-a[2])*r); return (Math.atan2(y,x)/r+360)%360; };
-function route(c){ let r=RT[c.fw?'fw':'rw']; if(c.fw&&c.dep==='LFPG') r=r.slice().reverse(); return r; }
+function route(c){ try{ if(c.fw&&MI&&MI.route&&APTS[c.dep]&&APTS[c.dest]){ const a=APTS[c.dep], b=APTS[c.dest]; return [[c.dep,a.lat,a.lon,'DÉP']].concat(MI.route.map(p=>[p[2],p[0],p[1],'point péd.'])).concat([[c.dest,b.lat,b.lon,'ARR']]); } }catch(e){}
+  let r=RT[c.fw?'fw':'rw']; if(c.fw&&c.dep==='LFPG') r=r.slice().reverse(); return r; }
 /* ---------- générateurs ---------- */
 const NOTE='EXEMPLE PÉDAGOGIQUE — ne pas utiliser pour la navigation réelle. Valeurs de masse, carburant et vitesses : calculées par le simulateur (formules simplifiées [ESTIMÉ]).';
 const D={};
@@ -367,10 +368,10 @@ function render(soft){ const v=document.getElementById('docv'), c=ctx(), doc=D[C
 const esc=s=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 /* ---------- export ---------- */
 function save(name,blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500); }
-function dl(kind){ const c=ctx(), doc=D[CUR], out=doc.gen(c), base=`${c.flt}_${CUR}`; const txt=`${doc.t}\n${c.flt} ${c.type} ${c.reg} ${c.dep}-${c.dest} ${c.date}\n${'='.repeat(70)}\n\n${out.txt||''}\n\n${CUR==='plan'?'':NOTE}`;
- if(kind==='txt') save(base+'.txt',new Blob(['\ufeff'+txt],{type:'text/plain;charset=utf-8'}));
+function dl(kind){ const c=ctx(), doc=D[CUR], out=doc.gen(c), base=`${c.flt}_${CUR}`; const txt=`${doc.t}\n${c.flt} ${c.type} ${c.reg} ${c.dep}-${c.dest} ${c.date}\n${'='.repeat(70)}\n\n${out.txt||''}\n\n${CUR==='plan'?'':NOTE}`; const txt2=window.BRANDTX?BRANDTX(txt):txt;
+ if(kind==='txt') save(base+'.txt',new Blob(['\ufeff'+txt2],{type:'text/plain;charset=utf-8'}));
  else if(kind==='svg'&&out.svg) save(base+'.svg',new Blob([out.svg],{type:'image/svg+xml'}));
- else if(kind==='pdf') save(base+'.pdf',pdf(txt)); flashMsg('Téléchargement : '+base+'.'+kind); }
+ else if(kind==='pdf') save(base+'.pdf',pdf(txt2)); flashMsg('Téléchargement : '+base+'.'+kind); }
 function flashMsg(t){ try{ flash(t,'am'); }catch(e){} }
 /* générateur PDF minimal : texte monospace (Courier, WinAnsi), A4, pagination */
 function pdf(text){ const MAP={'→':'->','←':'<-','≥':'>=','≤':'<=','⚠':'!','✓':'v','✗':'x','○':'o','·':'\u00b7','’':"'",'‘':"'",'“':'"','”':'"','…':'\u0085','–':'\u0096','—':'\u0097','œ':'\u009c','Œ':'\u008c','€':'\u0080','\u202f':' ','\u00a0':' ','📌':'*','📁':'','🖨':'','′':"'"};

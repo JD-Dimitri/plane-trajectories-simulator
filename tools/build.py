@@ -8,7 +8,7 @@ Usage :
 import pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-ORDER = ["audio", "brief", "bubble", "drag", "close", "view", "frames", "scn", "exam", "acad", "models", "decor", "zoom", "guard", "vis", "jump", "fms", "b777", "menu2", "systems", "systems2", "systems3", "back", "check", "manual", "duree", "docs", "physics"]   # l'ordre compte : chaque module s'appuie sur les précédents
+ORDER = ["audio", "brief", "bubble", "drag", "close", "view", "frames", "scn", "exam", "acad", "models", "decor", "zoom", "guard", "vis", "jump", "fms", "b777", "menu2", "systems", "systems2", "systems3", "back", "check", "manual", "duree", "docs", "physics", "brand"]   # l'ordre compte : chaque module s'appuie sur les précédents
 ANCHOR = "selMI=null; resetState(); setModel(); sysDefaults(); resize(); openMenu(); requestAnimationFrame(loop);\n\n</script>"
 CDN = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
 

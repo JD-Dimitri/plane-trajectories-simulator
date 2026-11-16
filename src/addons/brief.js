@@ -279,7 +279,7 @@ function dom(){ let b=$('brief'); if(b) return b; b=document.createElement('sect
     if(t.dataset.go!=null){ BR.all=false; $('br-all').classList.remove('on'); go(+t.dataset.go); }
     else if(t.dataset.snd){ SND.unlock&&SND.unlock(); setTimeout(()=>SND.play(t.dataset.snd),60); }
     else if(t.dataset.mode){ setMode(t.dataset.mode); render(); }
-    else if(t.dataset.full){ selMI=A.kind==='fw'?'full-fw':'full-rw'; renderMenu(); prep(); render(); } });
+    else if(t.dataset.full){ selMI=window.FULLOF?FULLOF(selAC||ACK):(A.kind==='fw'?'full-fw':'full-rw'); renderMenu(); prep(); render(); } });
   b.addEventListener('keydown',e=>{ const t=e.target.closest&&e.target.closest('[data-mode]'); if(t&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); setMode(t.dataset.mode); render(); } });
   b.addEventListener('input',e=>{ const k=e.target.dataset.ls; if(!k) return; LS[k]=Math.max(0,+e.target.value||0); lsCalc(); BR.keep={ack:ACK,mi:selMI,vals:{pax:LS.pax,child:LS.child,bag:LS.bag,cargo:LS.cargo,extra:LS.extra}};
     const box=e.target.closest('#br-calc'); if(box){ const f=k; box.innerHTML=calcHTML(box.dataset.k); const n=box.querySelector(`[data-ls="${f}"]`); if(n){ n.focus(); const v=n.value; n.value=''; n.value=v; } } });
@@ -305,7 +305,7 @@ function prep(){ if(!BR.fromSim){ ACK=selAC; A=AC[ACK]; MI=MISSIONS[selMI]; } bu
 function show(fromSim,page){ BR.fromSim=!!fromSim; if(fromSim){ BR.wasPaused=paused; paused=true; } prep(); BR.i=page||0; BR.all=false; dom().hidden=false; $('br-all').classList.remove('on'); render(); try{ SND.unlock&&SND.unlock(); }catch(e){} }
 function close(){ const b=$('brief'); if(b) b.hidden=true; if(BR.fromSim){ paused=BR.wasPaused; } }
 // bouton « Lancer » de chaque carte : démarre directement le parcours correspondant
-function launchMode(id){ const fw=(AC[selAC]||A).kind==='fw', full=fw?'full-fw':'full-rw', libre=fw?'jfk-cdg':'heli-ny';
+function launchMode(id){ const fw=(AC[selAC]||A).kind==='fw', full=window.FULLOF?FULLOF(selAC):(fw?'full-fw':'full-rw'), libre=selAC==='b777'?'af-cdg-run':fw?'jfk-cdg':'heli-ny';
   if(BR.fromSim){ BR.fromSim=false; paused=false; }
   let m='guide';
   if(['guide','auto','free','exam'].includes(id)){ if(!MISSIONS[selMI]||!MISSIONS[selMI].full) selMI=full; m=id==='exam'?'guide':id; window.EXAM_PENDING=id==='exam'; }

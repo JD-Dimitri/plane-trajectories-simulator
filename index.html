@@ -891,7 +891,7 @@ function showRoute(R){ if(TX.routeObj){ world.remove(TX.routeObj); TX.routeObj=n
   const dots=[]; for(let i=0;i<pts.length-1;i++){ const d=pts[i].distanceTo(pts[i+1]), k=Math.max(1,Math.round(d/15)); for(let j=0;j<k;j++) dots.push(pts[i].clone().lerp(pts[i+1],j/k)); }
   const pg=new THREE.BufferGeometry().setFromPoints(dots); g.add(new THREE.Points(pg,new THREE.PointsMaterial({color:0x2bff6a,size:4,sizeAttenuation:false,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   TX.routeObj=g; world.add(g); }
-function routeText(R,dest){ if(!R) return 'Itinéraire indisponible'; return `${dest} via ${R.names.join(', ')||'—'} (${fmt(R.len/1000,1)} km)`; }
+function routeText(R,dest){ if(!R) return 'Itinéraire indisponible'; const nm=R.names.filter(x=>!/^\d+$/.test(x)); return `${dest} via ${nm.join(', ')||'voies de circulation'} (${fmt(R.len/1000,1)} km)`; }
 /* ---- roulage automatique (suit l'itinéraire, 15 kt en ligne droite, 8 kt en virage, arrêt au point d'arrêt) ---- */
 function arcOf(code,u,w){ for(const [x,k] of gnAdj(code)[u]) if(x===w) return GN[code].a[k]; return null; }
 function enOf(code,i,lat0,lon0){ const n=GN[code].n[i]; return [(n[1]-lon0)*D2R*RE*Math.cos(lat0*D2R),(n[0]-lat0)*D2R*RE]; }
@@ -966,11 +966,12 @@ function lsCalc(){ const w=WB[ACK], L=LS; const tripH=L.dist/1.852/w.gs+0.25, tr
 /* VLS = 1,23 × vitesse de décrochage du modèle à la masse actuelle (cohérent avec la simulation) [CALCULÉ] */
 function vlsNow(m){ m=m||S.mass||LS.tow||A.m; const fl=A.flaps[A.flaps.length-1], CL=A.CLmax+fl.b, vs=Math.sqrt(2*m*G0/(1.225*A.S*CL)); return Math.round(1.23*vs/KT); }
 /* ---- postes de stationnement / pistes de la mission complète ---- */
+function DEP(){ return (MI&&MI.dep)||'KJFK'; } function DRW(){ return (MI&&MI.depRw)||'31L'; } function DST(){ return (MI&&MI.dest)||'LFPG'; } function ARW(){ return (MI&&MI.destRw)||'08L'; }
 function standOf(apt){ if(apt==='KJFK'||apt==='LFPG'){ const rw=apt==='KJFK'?'31L':'08L'; GD.stands=GD.stands||{}; if(!GD.stands[apt]) GD.stands[apt]=setStandFromGN(apt,rw); const s=GD.stands[apt]; if(s) return Object.assign({rw:rwStart(apt,rw)},s); }
   if(apt==='KJFK'||apt==='LFPG'){ const r=rwStart(apt,apt==='KJFK'?'31L':'08L'); return {lat:r.lat,lon:r.lon,hdg:r.hdg,elev:r.elev,rw:r}; }
   if(apt==='KJRB') return {lat:40.7012,lon:-74.0090,hdg:200,elev:2}; if(apt==='JFKH') return {lat:APTS.JFKH.lat,lon:APTS.JFKH.lon,hdg:300,elev:4}; }
 APTS.JFKH={n:'JFK — aire hélicoptères (pédagogique)',lat:40.6352,lon:-73.7905,elev:4,rw:[],heli:true}; buildAirport('JFKH');
-MISSIONS['full-fw']={n:'Parcours pilote complet JFK → CDG',d:'Arrivée au parking à pied, tour avion, cockpit « cold & dark », devis de masse et carburant, mise en route, roulage, décollage 31L, croisière, approche et atterrissage 08L à CDG, roulage, parking.',fw:true,full:true,start:()=>standOf('KJFK'),dest:'LFPG',destRw:'08L'};
+MISSIONS['full-fw']={dep:'KJFK',depRw:'31L',n:'Parcours pilote complet JFK → CDG',d:'Arrivée au parking à pied, tour avion, cockpit « cold & dark », devis de masse et carburant, mise en route, roulage, décollage 31L, croisière, approche et atterrissage 08L à CDG, roulage, parking.',fw:true,full:true,start:()=>standOf('KJFK'),dest:'LFPG',destRw:'08L'};
 MISSIONS['full-rw']={n:'Parcours pilote complet Manhattan → JFK',d:'Arrivée à l\'héliport à pied, visite pré-vol, cold & dark, devis de masse, mise en route, vol vers JFK, approche et posé sur l\'aire hélicoptères, arrêt et sécurisation.',rw:true,full:true,start:()=>standOf('KJRB'),dest:'JFKH'};
 /* ---- tour avion : points de contrôle (repère du modèle : nez vers −z, mètres) ---- */
 const WALKPTS={
@@ -1057,7 +1058,7 @@ function pedSync(){ const el=$('ped'); if(!el) return; el.querySelectorAll('[dat
     if(c.tagName==='SELECT'){ const v=id==='flapL'?A.flaps[S.flap].n:id==='gearL'?(S.gear?'DOWN':'UP'):(SYS[id]??c.options[0].value); if(c.value!==String(v)) c.value=v; }
     else if(c.dataset.t==='btn') c.classList.toggle('g',!!SYS[id]);
     else { const v=pedGet(id); c.classList.toggle('on',!!v); const s=el.querySelector(`[data-pst="${id}"]`); if(s) s.textContent=v?'ON':'OFF'; } });
-  const m=$('mcdu'); if(m){ const L=LS; m.textContent=SYS.fmsInit?`INIT  ${MI.start&&'KJFK'}/${MI.dest||''}  CRZ FL${Math.round((AP.alt||35000)/100)}\nZFW ${(L.zfw/1000).toFixed(1)}  ZFWCG ${L.cg!=null?L.cg.toFixed(1):'--'}\nBLOCK ${(L.block/1000).toFixed(1)}  TRIP ${(L.trip/1000).toFixed(1)}\nPERF TO  V1 ${L.v1}  VR ${L.vr}  V2 ${L.v2}\nFLAPS/THS 1/${L.trim}UP${L.trim}`:'INIT  ----/----\nZFW ---.-  ZFWCG --.-\nBLOCK --.-\nPERF TO  V1 ---  VR ---  V2 ---\n(appuyer sur « Saisir »)'; } }
+  const m=$('mcdu'); if(m){ const L=LS; m.textContent=SYS.fmsInit?`INIT  ${MI.full?DEP():(S320.mcdu&&S320.mcdu.f&&S320.mcdu.f.from)||''}/${MI.dest||''}  CRZ FL${Math.round((AP.alt||35000)/100)}\nZFW ${(L.zfw/1000).toFixed(1)}  ZFWCG ${L.cg!=null?L.cg.toFixed(1):'--'}\nBLOCK ${(L.block/1000).toFixed(1)}  TRIP ${(L.trip/1000).toFixed(1)}\nPERF TO  V1 ${L.v1}  VR ${L.vr}  V2 ${L.v2}\nFLAPS/THS 1/${L.trim}UP${L.trim}`:'INIT  ----/----\nZFW ---.-  ZFWCG --.-\nBLOCK --.-\nPERF TO  V1 ---  VR ---  V2 ---\n(appuyer sur « Saisir »)'; } }
 /* ---- mode pédagogique : étapes numérotées 0 → N ---- */
 const sel=(s)=>s;   // sélecteur CSS de l'élément à mettre en évidence
 const on=id=>()=>!!SYS[id], is=(id,v)=>()=>SYS[id]===v, setS=(id,v)=>()=>{ SYS[id]=v; sysEffect(id); ovhSync(); pedSync(); }, notS=id=>()=>!SYS[id];
@@ -1074,21 +1075,21 @@ function stepsFor(){ const L=LS, k=ACK, W=WB[k]; const C=commonFirst(); let P=[]
  if(AL(k)) P=[
   {ph:'Cockpit',t:'Alimentation : batteries',txt:'Panneau ELEC (plafonnier) : BAT 1 et BAT 2 sur AUTO (voyant OFF éteint). Vérifiez la tension (> 25,5 V) sur l\'afficheur BAT du panneau ELEC. Comme sur l\'avion réel, les six écrans restent noirs sur batteries seules au sol : ils s\'allument avec le groupe de parc ou la génératrice APU.',items:[['BAT 1 AUTO',notS('bat1'),setS('bat1',false),'[data-sw="bat1"]'],['BAT 2 AUTO',notS('bat2'),setS('bat2',false),'[data-sw="bat2"]']]},
   {ph:'Cockpit',t:'Alimentation sol ou APU',txt:'Groupe de parc (EXT PWR) s\'il est branché, puis démarrage de l\'APU : MASTER SW puis START. L\'APU est disponible en environ 1 minute (« APU AVAIL »).',items:[['APU MASTER SW ON',on('apuMaster'),setS('apuMaster',true),'[data-sw="apuMaster"]'],['APU START',()=>SYS.apuStart||SYS.apuAvail,setS('apuStartBtn',true),'[data-sw="apuStartBtn"]'],['APU AVAIL',()=>SYS.apuAvail,()=>{SYS.apuAvail=true;SYS.apuStart=false;}]]},
-  {ph:'Cockpit',t:'Centrales inertielles (ADIRS)',txt:'Les trois IR sur NAV. L\'alignement dure environ 6 min à l\'équateur et 10 min au-delà de 45° de latitude, avion immobile (≈ 9,6 min à JFK) : durée réelle. Utilisez l\'accélération du temps (×16, permise à l\'arrêt) pour patienter. Sans alignement, PFD et ND affichent des drapeaux.',items:[['IR 1, 2, 3 sur NAV',()=>SYS.ir1==='NAV'&&SYS.ir2==='NAV'&&SYS.ir3==='NAV',()=>{SYS.ir1=SYS.ir2=SYS.ir3='NAV'; buildOVH();},'[data-sw="ir1"]'],['Alignement terminé',irOK,()=>{SYS.irAl=1;}]]},
+  {ph:'Cockpit',t:'Centrales inertielles (ADIRS)',txt:'Les trois IR sur NAV. L\'alignement dure environ 6 min à l\'équateur et 10 min au-delà de 45° de latitude, avion immobile (≈ 9,6 min à JFK, ≈ 10,5 min à Paris) : durée réelle. Utilisez l\'accélération du temps (×16, permise à l\'arrêt) pour patienter. Sans alignement, PFD et ND affichent des drapeaux.',items:[['IR 1, 2, 3 sur NAV',()=>SYS.ir1==='NAV'&&SYS.ir2==='NAV'&&SYS.ir3==='NAV',()=>{SYS.ir1=SYS.ir2=SYS.ir3='NAV'; buildOVH();},'[data-sw="ir1"]'],['Alignement terminé',irOK,()=>{SYS.irAl=1;}]]},
   {ph:'Cockpit',t:'Feux, consignes, carburant',txt:'EXT LT : NAV & LOGO sur 1 (ou 2). SIGNS : SEAT BELTS ON, NO SMOKING AUTO. Pompes carburant : AUTO (voyants éteints). APU BLEED ON pour la climatisation et le démarrage des moteurs.',items:[['NAV & LOGO ON',()=>SYS.navLt!=='OFF',setS('navLt','1'),'[data-sw="navLt"]'],['SEAT BELTS ON',is('belts','ON'),setS('belts','ON'),'[data-sw="belts"]'],['APU BLEED ON',on('apuBl'),setS('apuBl',true),'[data-sw="apuBl"]']]},
   {ph:'Cockpit',t:'FMS : initialisation et performances',txt:`MCDU (pédestal) : INIT (départ/arrivée, niveau de croisière), INIT B (ZFW ${fmt(L.zfw/1000,1)} t, centrage, carburant bloc ${fmt(L.block/1000,1)} t) et PERF TAKE OFF : V1 ${L.v1} · VR ${L.vr} · V2 ${L.v2} kt, volets 1, plan horizontal ${L.trim} [ESTIMÉ, formule simplifiée].`,calc:'perf',items:[['INIT / PERF saisis',on('fmsInit'),()=>{SYS.fmsInit=true; pedSync();},'#mcdu-init']]},
   {ph:'Cockpit',t:'Check-list « Before Start »',txt:'Lecture « challenge / response » : briefing départ fait, carburant à bord, devis signé, portes fermées, balise anticollision (BEACON) ON avant la mise en route, transpondeur, frein de parc serré.',items:[['BEACON ON',on('beacon'),setS('beacon',true),'[data-sw="beacon"]'],['Frein de parc serré',()=>S.pbrake,()=>{S.pbrake=true; pedSync();},'[data-pd="pbrake"]'],['Carburant à bord ≥ devis',()=>S.fuel>=L.block*0.98,()=>{S.fuel=L.block;}]]},
   {ph:'Mise en route',t:'Démarrage du moteur 2',txt:'ENG MODE sur IGN START, puis ENG MASTER 2 ON. Le démarreur pneumatique (air de l\'APU) entraîne N2 ; l\'allumage et le carburant arrivent automatiquement (FADEC). Stabilisation au ralenti en ~45 s. Surveillez N1, EGT, N2, FF.',items:[['ENG MODE IGN START',is('engMode','IGN START'),()=>pedSet('engMode','IGN START'),'[data-pd="engMode"]'],['ENG MASTER 2 ON',on('master2'),()=>pedSet('master2',true),'[data-pd="master2"]'],['Moteur 2 stabilisé',()=>S.eng[1],null]]},
   {ph:'Mise en route',t:'Démarrage du moteur 1',txt:'Même séquence avec ENG MASTER 1. Après les deux démarrages : ENG MODE NORM, APU BLEED OFF.',items:[['ENG MASTER 1 ON',on('master1'),()=>pedSet('master1',true),'[data-pd="master1"]'],['Moteur 1 stabilisé',()=>S.eng[0],null],['ENG MODE NORM',is('engMode','NORM'),()=>{ if(S.eng[0]&&S.eng[1]) pedSet('engMode','NORM'); },'[data-pd="engMode"]']]},
-  {ph:'Roulage',t:'Après mise en route, roulage sur les vraies voies',fly:'taxiOut',txt:`Volets de décollage, auto-frein, transpondeur. Clairance de roulage : <b>${routeText(taxiOutRoute(),'point d\'arrêt piste 31L')}</b>. Suivez la ligne verte (« follow the greens ») sur l\'axe jaune des voies ; panneaux de voie à fond jaune, points d\'arrêt (barres rouges la nuit). Roulage manuel : PgUp/PgDn et Q/D, freins B ; ou roulage automatique. Vitesse maximale ≈ 20 kt en ligne droite, 10 kt en virage.`,items:[['Volets 1',()=>S.flap===1,()=>pedSet('flapL','1'),'[data-pd="flapL"]'],['Auto-frein MAX',is('abrk','MAX'),()=>pedSet('abrk','MAX'),'[data-pd="abrk"]'],['Frein de parc desserré',()=>!S.pbrake,()=>{S.pbrake=false; pedSync();},'[data-pd="pbrake"]'],['Itinéraire de roulage reçu',()=>TX.route&&TX.route.kind==='out',()=>{ const R=taxiOutRoute(); if(R){ R.kind='out'; showRoute(R); TX.stopMsg='Point d\'arrêt 31L : attendre l\'autorisation'; } }],['Roulage jusqu\'au point d\'arrêt 31L',()=>atHold('KJFK','31L'),()=>{ if(TX.route) TX.auto=true; }],['Alignement sur la piste 31L',()=>nearRunway(S.lat,S.lon)&&Math.abs(wrapPi(S.psi-rwStart('KJFK','31L').hdg*D2R))<0.12,()=>{ lineUp('KJFK','31L'); }]]},
+  {ph:'Roulage',t:'Après mise en route, roulage sur les vraies voies',fly:'taxiOut',txt:`Volets de décollage, auto-frein, transpondeur. Clairance de roulage : <b>${routeText(taxiOutRoute(),'point d\'arrêt piste '+DRW())}</b>. Suivez la ligne verte (« follow the greens ») sur l\'axe jaune des voies ; panneaux de voie à fond jaune, points d\'arrêt (barres rouges la nuit). Roulage manuel : PgUp/PgDn et Q/D, freins B ; ou roulage automatique. Vitesse maximale ≈ 20 kt en ligne droite, 10 kt en virage.`,items:[['Volets 1',()=>S.flap===1,()=>pedSet('flapL','1'),'[data-pd="flapL"]'],['Auto-frein MAX',is('abrk','MAX'),()=>pedSet('abrk','MAX'),'[data-pd="abrk"]'],['Frein de parc desserré',()=>!S.pbrake,()=>{S.pbrake=false; pedSync();},'[data-pd="pbrake"]'],['Itinéraire de roulage reçu',()=>TX.route&&TX.route.kind==='out',()=>{ const R=taxiOutRoute(); if(R){ R.kind='out'; showRoute(R); TX.stopMsg='Point d\'arrêt '+DRW()+' : attendre l\'autorisation'; } }],['Roulage jusqu\'au point d\'arrêt '+DRW(),()=>atHold(DEP(),DRW()),()=>{ if(TX.route) TX.auto=true; }],['Alignement sur la piste '+DRW(),()=>nearRunway(S.lat,S.lon)&&Math.abs(wrapPi(S.psi-rwStart(DEP(),DRW()).hdg*D2R))<0.12,()=>{ lineUp(DEP(),DRW()); }]]},
   {ph:'Décollage',t:'Check-list « Before Takeoff », décollage',txt:`Feux : STROBE ON, LAND ON. Poussée FLX/MCT ou TOGA (bouton du pédestal ou PgUp) ; « 100 kt », « V1 » (${L.v1}), « Rotate » à VR ${L.vr} kt : flèche ↓ jusqu\'à ~15° d\'assiette ; V2 ${L.v2} + 10 kt en montée initiale.`,items:[['STROBE ON',()=>SYS.strobe!=='OFF',setS('strobe','ON'),'[data-sw="strobe"]'],['LAND ON',is('landL','ON'),setS('landL','ON'),'[data-sw="landL"]'],['En vol',air,null]]},
   {ph:'Après décollage',t:'Après décollage : train, volets, poussée de montée',txt:'« Positive climb » → train rentré (G). À l\'altitude de réduction (1 500 ft sol) : manettes sur CL (automanette). Volets rentrés à F puis S (vitesses F et S). Pilote automatique AP1 (A) au-dessus de 100 ft.',calc:'after',items:[['Train rentré',()=>!S.gear,()=>{S.gear=false; pedSync();},'[data-pd="gearL"]'],['Manettes CL / A/THR',()=>AP.ath||SYS.thrSel==='CL',()=>{pedSet('thrSel','CL'); AP.ath=true;},'[data-pd="thrSel"]'],['Volets 0',()=>S.flap===0,()=>pedSet('flapL','0'),'[data-pd="flapL"]'],['AP1 engagé',()=>AP.on,()=>{AP.alt=AP.alt<10000?35000:AP.alt; fcuCmd('ap');}]]},
   {ph:'Montée',t:'Montée vers le niveau de croisière',txt:'FCU : ALT 35 000 ft (FL350), NAV (route vers la destination), vitesse 290 kt puis Mach 0,78. Au passage du FL100 : LAND OFF. Au niveau de transition : calage altimétrique standard 1013 hPa.',items:[['Mode NAV',()=>AP.lat==='NAV',()=>{AP.lat='NAV';}],['Passage FL100 : LAND OFF',()=>S.alt/FT<10000||SYS.landL!=='ON',setS('landL','OFF'),'[data-sw="landL"]'],['FL350 atteint',()=>S.alt/FT>34500,null]]},
-  {ph:'Croisière',t:'Croisière : contrôle carburant (calcul papier)',txt:'Toutes les heures, le pilote compare le carburant restant au carburant prévu au même point. Utilisez l\'accélération du temps (X, ×64 maximum sous pilote auto).',calc:'cruise',items:[['À moins de 250 km de la destination',()=>MI.dest&&gcKm(S.lat,S.lon,APTS[MI.dest].lat,APTS[MI.dest].lon)<250,()=>{ const r=rwStart('LFPG','08L'); const p=offsetLL(r.lat,r.lon,-240000*Math.cos(r.hdg*D2R),-240000*Math.sin(r.hdg*D2R)); S.lat=p[0]; S.lon=p[1]; S.psi=r.hdg*D2R; PATCH.lat=999; }]]},
-  {ph:'Descente',t:'Préparation et début de descente (calcul du point de descente)',txt:'Règle des 3 : distance de descente (NM) ≈ 3 × hauteur à perdre en milliers de ft. Taux ≈ vitesse sol × 5 (ft/min). Briefing approche ILS 08L, VAPP, auto-frein, remise des gaz.',calc:'descent',items:[['FCU : ALT 3 000 ft',()=>AP.alt<=3000,()=>{AP.alt=3000;}],['En descente sous FL100',()=>S.alt/FT<10000,null]]},
-  {ph:'Approche',t:'Approche ILS 08L : configuration',txt:`Volets 1 puis 2, 3, FULL selon la vitesse ; train sorti vers 2 000 ft ; LAND ON ; spoilers armés. Vitesse d'approche VAPP ${L.vapp} kt [ESTIMÉ]. Mode APPR : guidage sur l\'axe (LOC) et le plan à 3° (G/S).`,calc:'landing',items:[['Mode APPR, vitesse VAPP',()=>AP.appr,()=>{AP.appr=true; AP.on=true; AP.ath=true; AP.spd=vlsNow(S.mass)+5;}],['Train sorti',()=>S.gear,()=>{S.gear=true; pedSync();},'[data-pd="gearL"]'],['Volets FULL',()=>S.flap===4,()=>pedSet('flapL','FULL'),'[data-pd="flapL"]'],['Spoilers armés',is('spdbrk','ARMED'),()=>pedSet('spdbrk','ARMED'),'[data-pd="spdbrk"]']]},
-  {ph:'Atterrissage',t:'Atterrissage',txt:'Annonces radiosonde 100, 50, 40, 30, 20 et « RETARD » à 20 ft : manettes au ralenti (PgDn). L\'atterrissage automatique gère l\'arrondi en mode APPR ; en manuel, arrondi à ~30 ft (↓ léger). Inverseurs, auto-frein.',items:[['Posé',()=>S.onGround&&S.V<70*KT&&gcKm(S.lat,S.lon,APTS.LFPG.lat,APTS.LFPG.lon)<6,null]]},
-  {ph:'Roulage',t:'Après l\'atterrissage, dégagement et roulage vers le poste',fly:'taxiIn',txt:`Dégagez la piste dès que possible, puis spoilers rentrés, volets 0, STROBE AUTO, LAND OFF, APU START. Clairance : <b>${routeText(taxiInRoute(),'poste '+((standOf('LFPG')||{}).gate||''))}</b>. Suivez la ligne verte.`,items:[['Volets 0',()=>S.flap===0,()=>pedSet('flapL','0'),'[data-pd="flapL"]'],['Itinéraire vers le poste',()=>TX.route&&TX.route.kind==='in',()=>{ const R=taxiInRoute(); if(R){ R.kind='in'; showRoute(R); TX.stopMsg='Au poste : frein de parc'; } }],['Roulage jusqu\'au poste',()=>atStand(35),()=>{ if(TX.route) TX.auto=true; }]]},
+  {ph:'Croisière',t:'Croisière : contrôle carburant (calcul papier)',txt:'Toutes les heures, le pilote compare le carburant restant au carburant prévu au même point. Utilisez l\'accélération du temps (X, ×64 maximum sous pilote auto).',calc:'cruise',items:[['À moins de 250 km de la destination',()=>MI.dest&&gcKm(S.lat,S.lon,APTS[MI.dest].lat,APTS[MI.dest].lon)<250,()=>{ const r=rwStart(DST(),ARW()); const p=offsetLL(r.lat,r.lon,-240000*Math.cos(r.hdg*D2R),-240000*Math.sin(r.hdg*D2R)); S.lat=p[0]; S.lon=p[1]; S.psi=r.hdg*D2R; PATCH.lat=999; }]]},
+  {ph:'Descente',t:'Préparation et début de descente (calcul du point de descente)',txt:'Règle des 3 : distance de descente (NM) ≈ 3 × hauteur à perdre en milliers de ft. Taux ≈ vitesse sol × 5 (ft/min). Briefing approche ILS '+ARW()+', VAPP, auto-frein, remise des gaz.',calc:'descent',items:[['FCU : ALT 3 000 ft',()=>AP.alt<=3000,()=>{AP.alt=3000;}],['En descente sous FL100',()=>S.alt/FT<10000,null]]},
+  {ph:'Approche',t:'Approche ILS '+ARW()+' : configuration',txt:`Volets 1 puis 2, 3, FULL selon la vitesse ; train sorti vers 2 000 ft ; LAND ON ; spoilers armés. Vitesse d'approche VAPP ${L.vapp} kt [ESTIMÉ]. Mode APPR : guidage sur l\'axe (LOC) et le plan à 3° (G/S).`,calc:'landing',items:[['Mode APPR, vitesse VAPP',()=>AP.appr,()=>{AP.appr=true; AP.on=true; AP.ath=true; AP.spd=vlsNow(S.mass)+5;}],['Train sorti',()=>S.gear,()=>{S.gear=true; pedSync();},'[data-pd="gearL"]'],['Volets FULL',()=>S.flap===4,()=>pedSet('flapL','FULL'),'[data-pd="flapL"]'],['Spoilers armés',is('spdbrk','ARMED'),()=>pedSet('spdbrk','ARMED'),'[data-pd="spdbrk"]']]},
+  {ph:'Atterrissage',t:'Atterrissage',txt:'Annonces radiosonde 100, 50, 40, 30, 20 et « RETARD » à 20 ft : manettes au ralenti (PgDn). L\'atterrissage automatique gère l\'arrondi en mode APPR ; en manuel, arrondi à ~30 ft (↓ léger). Inverseurs, auto-frein.',items:[['Posé',()=>S.onGround&&S.V<70*KT&&gcKm(S.lat,S.lon,APTS[DST()].lat,APTS[DST()].lon)<6,null]]},
+  {ph:'Roulage',t:'Après l\'atterrissage, dégagement et roulage vers le poste',fly:'taxiIn',txt:`Dégagez la piste dès que possible, puis spoilers rentrés, volets 0, STROBE AUTO, LAND OFF, APU START. Clairance : <b>${routeText(taxiInRoute(),'poste '+((standOf(DST())||{}).gate||''))}</b>. Suivez la ligne verte.`,items:[['Volets 0',()=>S.flap===0,()=>pedSet('flapL','0'),'[data-pd="flapL"]'],['Itinéraire vers le poste',()=>TX.route&&TX.route.kind==='in',()=>{ const R=taxiInRoute(); if(R){ R.kind='in'; showRoute(R); TX.stopMsg='Au poste : frein de parc'; } }],['Roulage jusqu\'au poste',()=>atStand(35),()=>{ if(TX.route) TX.auto=true; }]]},
   {ph:'Parking',t:'Parking et arrêt des moteurs',txt:'Frein de parc serré, ENG MASTER 1 et 2 OFF, BEACON OFF après l\'arrêt des moteurs, SEAT BELTS OFF, carburant restant noté.',items:[['Frein de parc',()=>S.pbrake,()=>{S.pbrake=true; pedSync();},'[data-pd="pbrake"]'],['ENG MASTER 1 OFF',()=>!SYS.master1,()=>pedSet('master1',false),'[data-pd="master1"]'],['ENG MASTER 2 OFF',()=>!SYS.master2,()=>pedSet('master2',false),'[data-pd="master2"]'],['BEACON OFF',()=>!SYS.beacon,setS('beacon',false),'[data-sw="beacon"]']]},
   {ph:'Parking',t:'Sécurisation de l\'appareil',txt:'IR sur OFF, APU BLEED OFF, APU MASTER OFF, feux OFF, BAT 1 et 2 OFF : retour au « cold & dark ». Saisie du compte rendu matériel (techlog) et du carburant restant.',calc:'end',items:[['IR 1, 2, 3 OFF',()=>SYS.ir1==='OFF'&&SYS.ir2==='OFF'&&SYS.ir3==='OFF',()=>{SYS.ir1=SYS.ir2=SYS.ir3='OFF'; buildOVH();},'[data-sw="ir1"]'],['APU MASTER OFF',()=>!SYS.apuMaster,setS('apuMaster',false),'[data-sw="apuMaster"]'],['BAT 1 et 2 OFF',()=>SYS.bat1&&SYS.bat2,()=>{SYS.bat1=SYS.bat2=true; sysEffect('bat1'); ovhSync();},'[data-sw="bat1"]']]}];
  else if(k==='lj60') P=[
@@ -1096,7 +1097,7 @@ function stepsFor(){ const L=LS, k=ACK, W=WB[k]; const C=commonFirst(); let P=[]
   {ph:'Cockpit',t:'AHRS, feux, consignes',txt:'AHRS sur ON (alignement ~20 s [SIMULÉ]) ; NAV et BEACON ON ; SEAT BELT ON.',items:[['AHRS 1 ON',is('ir1','ON'),setS('ir1','ON'),'[data-sw="ir1"]'],['NAV ON',()=>!!SYS.navLt,setS('navLt',true),'[data-sw="navLt"]'],['BEACON ON',on('beacon'),setS('beacon',true),'[data-sw="beacon"]']]},
   {ph:'Cockpit',t:'Performances (calcul papier)',txt:`Vitesses de décollage [ESTIMÉ, formule simplifiée] : V1 ${L.v1} · VR ${L.vr} · V2 ${L.v2} kt ; volets 8°. Pas d'automanette sur le Learjet 60 : la poussée se gère à la main.`,calc:'perf',items:[['Vitesses affichées (bugs)',()=>GD.bugs,()=>{GD.bugs=true;}]]},
   {ph:'Mise en route',t:'Démarrage des réacteurs',txt:'Manette sur IDLE, IGN ON, bouton ENG START : le démarreur-générateur entraîne N2 ; stabilisation ~30 s ; surveiller ITT. Puis GEN ON.',items:[['IGN ON',on('ignL'),()=>pedSet('ignL',true),'[data-pd="ignL"]'],['THROTTLE R IDLE',is('thr2','IDLE'),()=>pedSet('thr2','IDLE'),'[data-pd="thr2"]'],['ENG START R',()=>SYS.start2||S.eng[1],()=>{SYS.start2=true;},'[data-pd="start2"]'],['Réacteur droit stabilisé',()=>S.eng[1],null],['THROTTLE L IDLE',is('thr1','IDLE'),()=>pedSet('thr1','IDLE'),'[data-pd="thr1"]'],['ENG START L',()=>SYS.start1||S.eng[0],()=>{SYS.start1=true;},'[data-pd="start1"]'],['Réacteur gauche stabilisé',()=>S.eng[0],null],['GEN L et R ON',()=>SYS.genL&&SYS.genR,()=>{SYS.genL=SYS.genR=true; pedSync();},'[data-pd="genL"]']]},
-  {ph:'Roulage',t:'Après mise en route, roulage sur les vraies voies',fly:'taxiOut',txt:`Volets de décollage, auto-frein, transpondeur. Clairance de roulage : <b>${routeText(taxiOutRoute(),'point d\'arrêt piste 31L')}</b>. Suivez la ligne verte (« follow the greens ») sur l\'axe jaune des voies ; panneaux de voie à fond jaune, points d\'arrêt (barres rouges la nuit). Roulage manuel : PgUp/PgDn et Q/D, freins B ; ou roulage automatique. Vitesse maximale ≈ 20 kt en ligne droite, 10 kt en virage.`,items:[['Volets 8',()=>S.flap===1,()=>pedSet('flapL','8'),'[data-pd="flapL"]'],['STROBE ON',is('strobe','ON'),setS('strobe','ON'),'[data-sw="strobe"]'],['Frein de parc desserré',()=>!S.pbrake,()=>{S.pbrake=false; pedSync();},'[data-pd="pbrake"]'],['Itinéraire de roulage reçu',()=>TX.route&&TX.route.kind==='out',()=>{ const R=taxiOutRoute(); if(R){ R.kind='out'; showRoute(R); TX.stopMsg='Point d\'arrêt 31L : attendre l\'autorisation'; } }],['Roulage jusqu\'au point d\'arrêt 31L',()=>atHold('KJFK','31L'),()=>{ if(TX.route) TX.auto=true; }],['Alignement sur la piste 31L',()=>nearRunway(S.lat,S.lon)&&Math.abs(wrapPi(S.psi-rwStart('KJFK','31L').hdg*D2R))<0.12,()=>{ lineUp('KJFK','31L'); }]]},
+  {ph:'Roulage',t:'Après mise en route, roulage sur les vraies voies',fly:'taxiOut',txt:`Volets de décollage, auto-frein, transpondeur. Clairance de roulage : <b>${routeText(taxiOutRoute(),'point d\'arrêt piste '+DRW())}</b>. Suivez la ligne verte (« follow the greens ») sur l\'axe jaune des voies ; panneaux de voie à fond jaune, points d\'arrêt (barres rouges la nuit). Roulage manuel : PgUp/PgDn et Q/D, freins B ; ou roulage automatique. Vitesse maximale ≈ 20 kt en ligne droite, 10 kt en virage.`,items:[['Volets 8',()=>S.flap===1,()=>pedSet('flapL','8'),'[data-pd="flapL"]'],['STROBE ON',is('strobe','ON'),setS('strobe','ON'),'[data-sw="strobe"]'],['Frein de parc desserré',()=>!S.pbrake,()=>{S.pbrake=false; pedSync();},'[data-pd="pbrake"]'],['Itinéraire de roulage reçu',()=>TX.route&&TX.route.kind==='out',()=>{ const R=taxiOutRoute(); if(R){ R.kind='out'; showRoute(R); TX.stopMsg='Point d\'arrêt '+DRW()+' : attendre l\'autorisation'; } }],['Roulage jusqu\'au point d\'arrêt '+DRW(),()=>atHold(DEP(),DRW()),()=>{ if(TX.route) TX.auto=true; }],['Alignement sur la piste '+DRW(),()=>nearRunway(S.lat,S.lon)&&Math.abs(wrapPi(S.psi-rwStart(DEP(),DRW()).hdg*D2R))<0.12,()=>{ lineUp(DEP(),DRW()); }]]},
   {ph:'Décollage',t:'Décollage',txt:`Pleins gaz (PgUp), rotation à VR ${L.vr} kt, montée à V2+10, train rentré, volets 0 à 140 kt.`,items:[['En vol',air,null],['Train rentré',()=>!S.gear,()=>{S.gear=false; pedSync();}],['Volets 0',()=>S.flap===0,()=>pedSet('flapL','0')]]},
   {ph:'Après décollage',t:'Montée, pilote automatique, carburant',txt:'AP ENG au-dessus de 1 000 ft, ALT SEL FL410 ; vérifier le carburant après la montée (calcul).',calc:'after',items:[['AP engagé',()=>AP.on,()=>{AP.alt=41000; fcuCmd('ap');}]]},
   {ph:'Croisière',t:'Croisière : contrôle carburant',txt:'Le Learjet 60 ne relie pas JFK à Paris sans escale (autonomie ≈ 4 400 km) : le calcul le montre. Escale réelle : Gander (CYQX) ou Keflavik (BIKF).',calc:'cruise',items:[['Calcul vu',()=>GD.cruiseSeen,()=>{GD.cruiseSeen=true;}]]},
@@ -1171,8 +1172,8 @@ function walkCheck(){ (WALKPTS[ACK]||[]).forEach((p,i)=>{ if(GD.seen.has(i)) ret
 function walkBox(i){ const p=WALKPTS[ACK][i], w=$('g-wp'); if(w) w.innerHTML=`<div class="wbox"><span class="gn">${i+1}</span><b>${p[2]}</b><p>${p[3]}</p></div>`; flash(`Point ${i+1} : ${p[2]}`,'am'); }
 function placeWalkCam(){ camera.position.set(GD.walk.x,1.7,GD.walk.z); eLook.set(LK.pitch*-0.8,GD.walk.yaw+LK.yaw,0,'YXZ'); camera.quaternion.setFromEuler(eLook); if(Math.abs(camera.fov-70)>0.01){ camera.fov=70; camera.updateProjectionMatrix(); } }
 /* ---- roulage : itinéraires réels ---- */
-function taxiOutRoute(){ const s=standOf('KJFK'); if(!s||s.node==null) return null; const h=holdFor('KJFK','31L'); return h<0?null:gnRoute('KJFK',s.node,h,false); }
-function taxiInRoute(){ const s=standOf('LFPG'); if(!s||s.node==null) return null; const n=GN.LFPG.n, from=gnNearest('LFPG',S.lat,S.lon,i=>!n[i][2]); return gnRoute('LFPG',from,s.node,false); }
+function taxiOutRoute(){ const d=DEP(); if(!GN[d]) return null; const s=standOf(d); if(!s||s.node==null) return null; const h=holdFor(d,DRW()); return h<0?null:gnRoute(d,s.node,h,false); }
+function taxiInRoute(){ const d=DST(); if(!GN[d]) return null; const s=standOf(d); if(!s||s.node==null) return null; const n=GN[d].n, from=gnNearest(d,S.lat,S.lon,i=>!n[i][2]); return gnRoute(d,from,s.node,false); }
 function atHold(code,rw){ const h=holdFor(code,rw); if(h<0) return false; const n=GN[code].n[h]; return S.onGround&&S.V<1&&gcKm(S.lat,S.lon,n[0],n[1])*1000<25; }
 function lineUp(code,rw){ const r=rwStart(code,rw); const p=offsetLL(r.lat,r.lon,60*Math.cos(r.hdg*D2R),60*Math.sin(r.hdg*D2R)); S.lat=p[0]; S.lon=p[1]; S.psi=r.hdg*D2R; S.V=0; TX.auto=false; showRoute(null); flash('Aligné piste '+rw,'am'); }
 /* ---- démarrage d'une mission complète ---- */
@@ -1908,10 +1909,14 @@ const STN={ JFK_ATIS:{n:'Kennedy ATIS',f:128.725,atis:'KJFK',ref:'AirNav'}, JFK_
   CZQX:{n:'Gander Oceanic',f:0,dl:1}, EGGX:{n:'Shanwick Oceanic',f:0,dl:1}, BREST:{n:'Brest Control',f:132.865,est:1}, PARIS:{n:'Paris Control',f:128.105,est:1},
   CDG_ATIS:{n:'De Gaulle ATIS',f:127.130,atis:'LFPG',ref:'AIP (anglais)'}, CDG_DEL:{n:'De Gaulle Delivery',f:121.840,ref:'AIP (PRÉVOL)'}, CDG_GND:{n:'De Gaulle Ground',f:121.610,ref:'AIP (SOL, une des 4 fréquences)'},
   CDG_TWR:{n:'De Gaulle Tower',f:120.900,ref:'AIP : pistes 08/26'}, CDG_TWR2:{n:'De Gaulle Tower',f:119.250,ref:'AIP : pistes 09/27'}, CDG_DEP:{n:'De Gaulle Departure',f:124.355,ref:'AIP'},
-  CDG_APP:{n:'De Gaulle Approach',f:119.850,ref:'AIP'}, JRB:{n:'Downtown Traffic',f:123.075,ctaf:1,est:1} };
+  CDG_APP:{n:'De Gaulle Approach',f:119.850,ref:'AIP'},
+  ORY_ATIS:{n:'Orly ATIS',f:131.355,atis:'LFPO',ref:'SIA AD 2 LFPO COM (anglais)'}, ORY_DEL:{n:'Orly Delivery',f:121.555,ref:'SIA (Prévol)'}, ORY_GND:{n:'Orly Ground',f:121.705,ref:'SIA (Sol)'}, ORY_TWR:{n:'Orly Tower',f:118.700,ref:'SIA (Tour)'},
+  ORY_DEP:{n:'Orly Departure',f:127.750,ref:'SIA'}, ORY_APP:{n:'Orly Approach',f:123.875,ref:'SIA'},
+  RUN_ATIS:{n:'Gillot ATIS',f:126.800,atis:'FMEE',est:1}, RUN_GND:{n:'Gillot Ground',f:121.900,ref:'SIA / IVAO FMEE'}, RUN_TWR:{n:'Gillot Tower',f:118.400,ref:'SIA / IVAO FMEE'}, RUN_APP:{n:'Gillot Approach',f:119.400,est:1},
+  MRS:{n:'Marseille Control',f:132.290,est:1}, ROMA:{n:'Roma Control',f:132.905,est:1}, HLLL:{n:'Tripoli Control',f:0,dl:1}, HSSS:{n:'Khartoum Control',f:0,dl:1}, HAAA:{n:'Addis Ababa Control',f:0,dl:1}, HKNA:{n:'Nairobi Control',f:0,dl:1}, FMMM:{n:'Antananarivo Control',f:0,dl:1}, JRB:{n:'Downtown Traffic',f:123.075,ctaf:1,est:1} };
 const ATC={seq:[],i:0,state:'idle',log:[],done:new Set(),q:[],cur:null,sq:2000,t:0,want:null,assist:false,co:false,voice:false,fr:true,snd:true,miss:0,flown:false,ver:0,f:118.9,curSt:null,dep:null,dest:null};
 const fq=k=>STN[k].f.toFixed(3).replace(/0+$/,'').replace(/\.$/,'.0');
-const aName=c=>({KJFK:'Kennedy',LFPG:'Charles de Gaulle',JFKH:'Kennedy helicopter area',KJRB:'Downtown Manhattan heliport'}[c]||c);
+const aName=c=>({LFPO:'Orly',FMEE:'Reunion Roland Garros',KJFK:'Kennedy',LFPG:'Charles de Gaulle',JFKH:'Kennedy helicopter area',KJRB:'Downtown Manhattan heliport'}[c]||c);
 function sqGen(){ let s; do{ s=''+(1+Math.floor(rnd()*6))+[0,0,0].map(()=>Math.floor(rnd()*8)).join(''); } while(['7500','7600','7700','2000','1200','7000'].includes(s)); return +s; }
 function altTxt(){ const a=S.alt/FT; return a>18000?'flight level '+Math.round(a/100):Math.round(a/100)*100+' feet'; }
 function altFr(){ const a=S.alt/FT; return a>18000?'niveau '+Math.round(a/100):Math.round(a/100)*100+' ft'; }
@@ -1925,8 +1930,15 @@ function atcTune(st){ const f=STN[st].f; if(AL()){ SYS.rmpStby=SYS.rmpAct; SYS.r
 const X=o=>Object.assign({type:'req',trig:()=>true,skip:()=>false},o);
 function qnhOf(c){ const m=WXS.met[c]; return m?m.qnh:1013; }
 function qnhTxt(c){ const m=WXS.met[c]; return m&&m.inHg?'altimeter '+m.inHg.toFixed(2):'QNH '+qnhOf(c); }
-function atcSeqFW(dep,dest){ const fl=AL()?350:410, K=dep==='KJFK'?{del:'JFK_DEL',gnd:'JFK_GND',twr:'JFK_TWR',dp:'NY_DEP',ctr:'ZNY',atis:'JFK_ATIS'}:{del:'CDG_DEL',gnd:'CDG_GND',twr:'CDG_TWR2',dp:'CDG_DEP',ctr:'PARIS',atis:'CDG_ATIS'},
-    Kd=dest==='KJFK'?{gnd:'JFK_GND',twr:'JFK_TWR',app:'NY_APP',ctr:'ZNY',atis:'JFK_ATIS'}:{gnd:'CDG_GND',twr:'CDG_TWR',app:'CDG_APP',ctr:'PARIS',atis:'CDG_ATIS'}, rwD=dep==='KJFK'?'31L':'27L', rwA=MI.destRw||null, cs=CSN,
+const ATCK={ KJFK:{d:{del:'JFK_DEL',gnd:'JFK_GND',twr:'JFK_TWR',dp:'NY_DEP',ctr:'ZNY',atis:'JFK_ATIS'},a:{gnd:'JFK_GND',twr:'JFK_TWR',app:'NY_APP',ctr:'ZNY',atis:'JFK_ATIS'}},
+  LFPG:{d:{del:'CDG_DEL',gnd:'CDG_GND',twr:'CDG_TWR2',dp:'CDG_DEP',ctr:'PARIS',atis:'CDG_ATIS'},a:{gnd:'CDG_GND',twr:'CDG_TWR',app:'CDG_APP',ctr:'PARIS',atis:'CDG_ATIS'}},
+  LFPO:{d:{del:'ORY_DEL',gnd:'ORY_GND',twr:'ORY_TWR',dp:'ORY_DEP',ctr:'PARIS',atis:'ORY_ATIS'},a:{gnd:'ORY_GND',twr:'ORY_TWR',app:'ORY_APP',ctr:'PARIS',atis:'ORY_ATIS'}},
+  FMEE:{d:{del:'RUN_GND',gnd:'RUN_GND',twr:'RUN_TWR',dp:'RUN_APP',ctr:'FMMM',atis:'RUN_ATIS'},a:{gnd:'RUN_GND',twr:'RUN_TWR',app:'RUN_APP',ctr:'RUN_APP',atis:'RUN_ATIS'}} };
+// tour de CDG selon le doublet de pistes : 08/26 (sud) → CDG_TWR, 09/27 (nord) → CDG_TWR2
+const cdgTwr=rw=>/^(08|26)/.test(rw||'')?'CDG_TWR':'CDG_TWR2';
+function atcSeqFW(dep,dest){ const fl=AL()?350:410, rwD=MI.depRw||(dep==='KJFK'?'31L':'27L'), K=Object.assign({},(ATCK[dep]||ATCK.LFPG).d), Kd=Object.assign({},(ATCK[dest]||ATCK.LFPG).a);
+    if(dep==='LFPG'&&MI.depRw) K.twr=cdgTwr(rwD); if(dest==='LFPG'&&MI.destRw) Kd.twr=cdgTwr(MI.destRw);
+    const rwA=MI.destRw||null, cs=CSN,
     dD=()=>gcKm(S.lat,S.lon,APTS[dep].lat,APTS[dep].lon), dA=()=>gcKm(S.lat,S.lon,APTS[dest].lat,APTS[dest].lon), air=()=>!S.onGround, east=dep==='KJFK';
   const rwyEn=rwA?'ILS approach runway '+rwA:'the ILS approach', rwyFr=rwA?'l\'ILS piste '+rwA:'l\'ILS', s=[];
   const hand=(k,from,to,trig)=>s.push(X({k,st:from,type:'ini',trig,next:to,a:()=>STN[to].dl?[`${cs()}, contact ${STN[to].n} via datalink, log on ${to}. Good day.`,`Contactez ${STN[to].n} par liaison de données (CPDLC), connexion ${to}. Bonne journée.`]:[`${cs()}, contact ${STN[to].n} ${fq(to)}.`,`Contactez ${STN[to].n} sur ${fq(to)}.`],rb:()=>STN[to].dl?`Log on ${to}, ${cs()}.`:`${fq(to)}, ${cs()}.`}));
@@ -1946,7 +1958,7 @@ function atcSeqFW(dep,dest){ const fl=AL()?350:410, K=dep==='KJFK'?{del:'JFK_DEL
   hand('depH',K.twr,K.dp,()=>air()&&aglFt()>1000);
   s.push(X({k:'depIn',st:K.dp,p:()=>`${STN[K.dp].n}, ${cs()}, passing ${altTxt()}, climbing 5000 feet.`,pf:()=>`Passant ${altFr()}, en montée vers 5 000 ft.`,
     a:()=>[`${cs()}, ${STN[K.dp].n}, radar contact, climb flight level ${fl}, resume own navigation.`,`Contact radar, montez au niveau ${fl}, reprenez votre navigation.`],rb:()=>`Climb flight level ${fl}, own navigation, ${cs()}.`}));
-  if(K.dp!==K.ctr){ hand('ctrH',K.dp,K.ctr,()=>dD()>110&&S.alt/FT>10000); checkin('ctrIn',K.ctr,'identified','Identifié.'); }
+  if(K.dp!==K.ctr){ hand('ctrH',K.dp,K.ctr,()=>dD()>110&&S.alt/FT>10000); if(!STN[K.ctr].dl) checkin('ctrIn',K.ctr,'identified','Identifié.'); }
   const dl=(k,st,trig,en,fr)=>s.push(X({k,st,type:'dl',trig,a:()=>[en,fr]}));
   if(east){ hand('oceH','ZNY','CZQX',()=>S.lon>-66&&air());
     dl('cz','CZQX',()=>true,`CLEARED TO LFPG VIA OCEANIC TRACK. MAINTAIN FL${fl}. MAINTAIN M.78.`,`Autorisé vers LFPG via la route océanique. Maintenez le niveau ${fl}. Maintenez Mach 0,78. [SIMULÉ]`);
@@ -1954,15 +1966,22 @@ function atcSeqFW(dep,dest){ const fl=AL()?350:410, K=dep==='KJFK'?{del:'JFK_DEL
     dl('brH','EGGX',()=>S.lon>-12,`CONTACT BREST CONTROL ${fq('BREST')}.`,`Contactez Brest Contrôle sur ${fq('BREST')}.`);
     checkin('brIn','BREST','identified, maintain flight level '+fl,'Identifié, maintenez le niveau '+fl+'.');
     hand('paH','BREST','PARIS',()=>S.lon>-2.5); checkin('paIn','PARIS','identified','Identifié.'); }
-  else if(dep==='LFPG'){ hand('brH','PARIS','BREST',()=>S.lon<-2.5&&air()); checkin('brIn','BREST','identified','Identifié.');
+  else if(dep==='LFPG'&&dest==='KJFK'){ hand('brH','PARIS','BREST',()=>S.lon<-2.5&&air()); checkin('brIn','BREST','identified','Identifié.');
     dl('gg','EGGX',()=>S.lon<-12,`CURRENT ATC UNIT EGGX. MAINTAIN FL${fl}. MAINTAIN M.78.`,`Organisme actuel : Shanwick. Maintenez le niveau ${fl}, Mach 0,78.`);
     dl('cz','CZQX',()=>S.lon<-30,`CURRENT ATC UNIT CZQX. MAINTAIN FL${fl}.`,`Organisme actuel : Gander. Maintenez le niveau ${fl}.`);
     dl('nyH','CZQX',()=>S.lon<-62,`CONTACT NEW YORK CENTER ${fq('ZNY')}.`,`Contactez New York Centre sur ${fq('ZNY')}.`); checkin('nyIn','ZNY','identified','Identifié.'); }
+  else if(MI.route){ // Paris ↔ La Réunion : régions d'information de vol traversées (Europe en VHF, Afrique en liaison de données CPDLC) [SIMPLIFIÉ]
+    const S_=[['MRS',45.8],['ROMA',43.5],['HLLL',34.5],['HSSS',22],['HAAA',14.5],['HKNA',4.5],['FMMM',-10]], south=APTS[dest].lat<APTS[dep].lat;
+    const seq=south?S_:S_.slice().reverse().map(([k,l],i,a)=>[a[i+1]?a[i+1][0]:'PARIS',l]);
+    let prev=K.ctr; seq.forEach(([k,l],i)=>{ if(k===prev) return; const trig=south?()=>air()&&S.lat<l:()=>air()&&S.lat>l, p=prev;
+      if(STN[k].dl) dl(k+'H',p,trig,`CURRENT ATC UNIT ${k}. MAINTAIN FL${fl}.`,`Organisme de contrôle actuel : ${STN[k].n} (liaison de données). Maintenez le niveau ${fl}.`);
+      else { hand(k+'H',p,k,trig); checkin(k+'In',k,'identified, maintain flight level '+fl,'Identifié, maintenez le niveau '+fl+'.'); } prev=k; });
+    if(prev!==Kd.ctr){ const to=Kd.ctr; hand('finH',prev,to,()=>air()&&dA()<320); if(!STN[to].dl) checkin('finIn',to,'identified','Identifié.'); } }
   const last=Kd.ctr;
   s.push(X({k:'desc',st:last,type:'ini',trig:()=>air()&&S.alt/FT>12000&&dA()/1.852<3*(S.alt/FT-3000)/1000+25,
     a:()=>[`${cs()}, descend when ready to altitude 3000 feet, ${qnhTxt(dest)}, expect ${rwyEn}.`,`Descendez quand vous êtes prêt vers 3 000 ft, QNH ${qnhOf(dest)}, prévoyez ${rwyFr}.`],rb:()=>`Descend when ready 3000 feet, ${qnhTxt(dest)}, ${cs()}.`}));
   s.push(X({k:'atisA',st:Kd.atis,type:'atis',trig:air,lab:'ATIS arrivée',a:()=>{ const A_=atisFor(dest,rwA); ATC.infoA=A_?A_.L:null; return A_?[A_.en,A_.fr]:['ATIS unavailable','ATIS indisponible']; }}));
-  hand('appH',last,Kd.app,()=>air()&&dA()<110);
+  if(last!==Kd.app) hand('appH',last,Kd.app,()=>air()&&dA()<110);
   s.push(X({k:'appIn',st:Kd.app,p:()=>`${STN[Kd.app].n}, ${cs()}, ${altTxt()}, descending 3000 feet, information ${ATC.infoA?ALPHA[ATC.infoA.charCodeAt(0)-65]:'received'}.`,pf:()=>`${altFr()}, en descente vers 3 000 ft.`,
     a:()=>[`${cs()}, ${STN[Kd.app].n}, radar contact, cleared ${rwyEn}, maintain 3000 feet until established.`,`Contact radar, autorisé ${rwyFr}, maintenez 3 000 ft jusqu'à l'établissement.`],rb:()=>`Cleared ${rwyEn}, 3000 feet until established, ${cs()}.`}));
   hand('twrA',Kd.app,Kd.twr,()=>air()&&dA()<26);
@@ -2338,7 +2357,7 @@ function parseMetar(raw){ const t=String(raw||'').trim().toUpperCase().replace(/
   if(m.qnh==null) m.qnh=1013; if(m.temp==null) m.temp=15; if(m.vis==null) m.vis=10000; return m; }
 function wxSet(raw,src){ const m=parseMetar(raw); if(!m){ flash('METAR illisible','am'); return false; } WXS.met[m.icao]=m; if(src) WXS.src=src; WXS.ver++; if(!APTS[m.icao]&&src==='user') flash('METAR '+m.icao+' enregistré (aéroport hors simulateur : sert de référence seulement)','am'); return true; }
 function wxInit(){ for(const k in METAR_SAMPLES) if(!WXS.met[k]||WXS.src==='samples') wxSet(METAR_SAMPLES[k]); try{ const s=localStorage.getItem('sim-metar'); if(s) JSON.parse(s).forEach(r=>wxSet(r,'user')); }catch(e){} }
-async function wxLive(){ const ids=Object.keys(APTS).filter(k=>/^[KL][A-Z]{3}$/.test(k)).join(','); try{ const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),6000);
+async function wxLive(){ const ids=Object.keys(APTS).filter(k=>/^([KL][A-Z]{3}|FMEE)$/.test(k)).join(','); try{ const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),6000);
     const r=await fetch('https://aviationweather.gov/api/data/metar?ids='+ids+'&format=raw',{signal:ctl.signal}); clearTimeout(to); if(!r.ok) throw 0; const txt=await r.text(); let n=0;
     txt.split('\n').forEach(l=>{ if(/^(METAR |SPECI )?[A-Z]{4} \d{6}Z/.test(l.trim())&&wxSet(l)) n++; }); if(n){ WXS.live=true; WXS.liveT=new Date(); WXS.src='live'; flash('Météo réelle en direct chargée ('+n+' METAR)','am'); } }
   catch(e){ WXS.live=false; } }
@@ -3566,7 +3585,7 @@ function dom(){ let b=$('brief'); if(b) return b; b=document.createElement('sect
     if(t.dataset.go!=null){ BR.all=false; $('br-all').classList.remove('on'); go(+t.dataset.go); }
     else if(t.dataset.snd){ SND.unlock&&SND.unlock(); setTimeout(()=>SND.play(t.dataset.snd),60); }
     else if(t.dataset.mode){ setMode(t.dataset.mode); render(); }
-    else if(t.dataset.full){ selMI=A.kind==='fw'?'full-fw':'full-rw'; renderMenu(); prep(); render(); } });
+    else if(t.dataset.full){ selMI=window.FULLOF?FULLOF(selAC||ACK):(A.kind==='fw'?'full-fw':'full-rw'); renderMenu(); prep(); render(); } });
   b.addEventListener('keydown',e=>{ const t=e.target.closest&&e.target.closest('[data-mode]'); if(t&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); setMode(t.dataset.mode); render(); } });
   b.addEventListener('input',e=>{ const k=e.target.dataset.ls; if(!k) return; LS[k]=Math.max(0,+e.target.value||0); lsCalc(); BR.keep={ack:ACK,mi:selMI,vals:{pax:LS.pax,child:LS.child,bag:LS.bag,cargo:LS.cargo,extra:LS.extra}};
     const box=e.target.closest('#br-calc'); if(box){ const f=k; box.innerHTML=calcHTML(box.dataset.k); const n=box.querySelector(`[data-ls="${f}"]`); if(n){ n.focus(); const v=n.value; n.value=''; n.value=v; } } });
@@ -3592,7 +3611,7 @@ function prep(){ if(!BR.fromSim){ ACK=selAC; A=AC[ACK]; MI=MISSIONS[selMI]; } bu
 function show(fromSim,page){ BR.fromSim=!!fromSim; if(fromSim){ BR.wasPaused=paused; paused=true; } prep(); BR.i=page||0; BR.all=false; dom().hidden=false; $('br-all').classList.remove('on'); render(); try{ SND.unlock&&SND.unlock(); }catch(e){} }
 function close(){ const b=$('brief'); if(b) b.hidden=true; if(BR.fromSim){ paused=BR.wasPaused; } }
 // bouton « Lancer » de chaque carte : démarre directement le parcours correspondant
-function launchMode(id){ const fw=(AC[selAC]||A).kind==='fw', full=fw?'full-fw':'full-rw', libre=fw?'jfk-cdg':'heli-ny';
+function launchMode(id){ const fw=(AC[selAC]||A).kind==='fw', full=window.FULLOF?FULLOF(selAC):(fw?'full-fw':'full-rw'), libre=selAC==='b777'?'af-cdg-run':fw?'jfk-cdg':'heli-ny';
   if(BR.fromSim){ BR.fromSim=false; paused=false; }
   let m='guide';
   if(['guide','auto','free','exam'].includes(id)){ if(!MISSIONS[selMI]||!MISSIONS[selMI].full) selMI=full; m=id==='exam'?'guide':id; window.EXAM_PENDING=id==='exam'; }
@@ -4979,6 +4998,9 @@ strip([40.7010,-74.0140],[40.7980,-73.9490],[900,1300,1700,2000,2300,2300,2300,2
 city(40.6800,-74.0000,40.7000,-73.9500,110,10,45,23,5,0);       // Brooklyn
 landmark('1wtc',40.7127,-74.0134,5); landmark('esb',40.7484,-73.9857,5); landmark('chrysler',40.7516,-73.9755,5);
 /* ---------- Paris : Roissy-CDG et la ville ---------- */
+// Orly et La Réunion Roland-Garros : tour et aérogares, positions approchées [SIMPLIFIÉ]
+setTimeout(()=>{ try{ if(APTS.LFPO){ place(tower(45,'slim'),48.7312,2.3725,89); [[48.7300,2.3590,420,90,22,0],[48.7262,2.3666,380,110,24,0]].forEach(([la,lo,l,dd,h,hd])=>place(terminal(l,dd,h,true),la,lo,89,hd)); }
+if(APTS.FMEE){ place(tower(40,'slim'),-20.8946,55.5163,20); place(terminal(320,80,18,true),-20.8940,55.5205,20,-12); place(hangar(70,80,22),-20.8948,55.5110,20,-12); } }catch(e){} },0);
 place(tower(112,'slim'),49.0186,2.5350,110); place(tower(90,'slim'),48.9985,2.5560,110); place(tower(75,'wide'),49.0090,2.5505,110); place(tower(60,'slim'),49.00597,2.59729,110);
 { const t1=new T.Group(); const ring=new T.Mesh(new T.CylinderGeometry(96,96,40,40),CONC); ring.position.y=20; t1.add(ring); const top=new T.Mesh(new T.CylinderGeometry(70,96,4,40),ROOF); top.position.y=42; t1.add(top);
   for(let i=0;i<7;i++){ const a=i/7*Math.PI*2; const sat=box(26,10,26,WHITE,Math.cos(a)*210,Math.sin(a)*210); t1.add(sat); } t1.userData.parts=[{x:0,z:0,hw:92,hd:92,h:44,r:0}].concat([...Array(7).keys()].map(i=>{ const an=i/7*Math.PI*2; return {x:Math.cos(an)*210,z:Math.sin(an)*210,hw:13,hd:13,h:10,r:0}; })); place(t1,49.0144,2.5418,110); }
@@ -5437,6 +5459,34 @@ const _sm=startMission; startMission=function(){ flapOpts(selAC); const m=MISSIO
   try{ if(MI&&MI.route&&APTS[MI.dest]){ const D=APTS[MI.dest], st=MI.start(); window.FPLN={pts:[[st.lat,st.lon,'']].concat(MI.route.map(p=>p.slice())).concat([[D.lat,D.lon,MI.dest]]),i:1}; } }catch(e){}
   return r; };
 
+
+/* ---- météo de référence (exemples réalistes, remplacés par la météo en direct si disponible) ---- */
+try{ METAR_SAMPLES.FMEE=METAR_SAMPLES.FMEE||'METAR FMEE 160600Z 12015KT 9999 FEW025 SCT040 26/19 Q1016 NOSIG'; METAR_SAMPLES.LFPO=METAR_SAMPLES.LFPO||'METAR LFPO 160600Z 24008KT 9999 FEW030 09/05 Q1019 NOSIG';
+  ['FMEE','LFPO'].forEach(k=>{ if(!WXS.met[k]) wxSet(METAR_SAMPLES[k]); }); }catch(e){}
+
+/* ---- parcours complet 777 : Paris-CDG → La Réunion ---- */
+const FULL='Arrivée au parking à pied, tour avion, cockpit, dossier de vol Paris–Réunion, devis de masse et carburant (≈ 93 t), mise en route, roulage réel à CDG, décollage 26R, croisière ≈ 11 h au-dessus de l\'Europe et de l\'Afrique, approche piste 12 à Roland-Garros, roulage simplifié, parking.';
+M('full-777-af',{n:'Parcours pilote complet Paris-CDG → La Réunion · Air France 777',d:FULL,livery:'af',full:true,dep:'LFPG',depRw:'26R',start:()=>standOf('LFPG'),dest:'FMEE',destRw:'12',route:RT});
+M('full-777-uu',{n:'Parcours pilote complet Paris-CDG → La Réunion · Air Austral 777',d:FULL,livery:'uu',full:true,dep:'LFPG',depRw:'26R',start:()=>standOf('LFPG'),dest:'FMEE',destRw:'12',route:RT});
+window.FULLOF=k=>k==='b777'?'full-777-af':((AC[k]||A).kind==='fw'?'full-fw':'full-rw');
+
+/* ---- étapes : vocabulaire Boeing en regard des commandes (le poste reprend la disposition A320 [SIMPLIFICATION]) ---- */
+const BOE=[[/\bECAM\b/,'ECAM (EICAS sur 777)'],[/\bFCU\b/,'FCU (MCP sur 777)'],[/\bMCDU\b/,'MCDU (CDU sur 777)'],[/mini-manche/,'mini-manche (manche classique sur 777)']];
+function boe(t){ if(typeof t!=='string') return t; t=t.replace(/Airbus A320-200|Airbus A320|A320-200|A320/g,'Boeing 777-300ER').replace(/Volets 1 puis 2, 3, FULL/g,'Volets 1, 5, 15, 20, 25 puis 30').replace(/Mach 0,78/g,'Mach 0,84');
+  if(MI&&MI.dest==='FMEE') t=t.replace(/ILS 12/g,'RNP 12 (guidage simulé comme un ILS [SIMPLIFICATION] ; l\'ILS de Roland-Garros dessert la piste 14)');
+  BOE.forEach(([re,r])=>{ t=t.replace(re,r); }); return t; }
+const APRON={FMEE:[-20.8925,55.5195,282],LFPO:[48.7290,2.3640,240]};
+const _sf=stepsFor; stepsFor=function(){ const st=_sf.apply(this,arguments); if(ACK!=='b777') return st;
+  st.forEach(s=>{ s.t=boe(s.t).replace(/RNP 12 \(.*\)/,'RNP 12'); s.txt=boe(s.txt); (s.items||[]).forEach(it=>{
+    if(it[0]==='Volets 1'){ it[0]='Volets 15 (décollage 777)'; it[1]=()=>S.flap===3; it[2]=()=>pedSet('flapL','15'); }
+    else if(it[0]==='Volets FULL'){ it[0]='Volets 30 (atterrissage 777)'; it[1]=()=>S.flap===A.flaps.length-1; it[2]=()=>pedSet('flapL','30'); }
+    else it[0]=boe(it[0]); });
+    // arrivée sans plan de roulage détaillé (La Réunion, Orly) : roulage simplifié vers l'aire de trafic
+    if(s.fly==='taxiIn'&&MI&&!GN[MI.dest]&&APRON[MI.dest]){ const ap=APRON[MI.dest];
+      s.txt='Dégagez la piste, spoilers rentrés, volets 0, STROBE AUTO, LAND OFF, APU START. Roulez vers l\'aire de trafic indiquée par le contrôle (plan de roulage détaillé de cet aéroport non modélisé : roulage simplifié [SIMPLIFICATION]).';
+      s.items=[s.items[0],['Roulage jusqu\'à l\'aire de trafic',()=>S.onGround&&S.V<1&&gcKm(S.lat,S.lon,ap[0],ap[1])<0.25,()=>{ S.lat=ap[0]; S.lon=ap[1]; S.psi=ap[2]*D2R; S.V=0; flash('Arrivé sur l\'aire de trafic','am'); }]]; } });
+  return st; };
+
 /* ---- vitesses de décollage 777 (formule pédagogique [ESTIMÉ], pas les tables Boeing) ---- */
 const _lc=lsCalc; lsCalc=function(){ const L=_lc.apply(this,arguments); if(ACK==='b777'&&LS.tow){ const t=LS.tow/1000; LS.vr=Math.round(120+(t-170)*0.32); LS.v1=LS.vr-6; LS.v2=LS.vr+6; LS.vapp=LS.vls+5; LS.trim=(5.0-(LS.cg-25)*0.15).toFixed(1); } return L||LS; };
 // débit carburant : GE90 ≈ 2,6 × CFM56
@@ -5450,7 +5500,7 @@ const _ed=engData; engData=function(){ const d=_ed.apply(this,arguments); if(ACK
    - Ligne directrice : pour chaque appareil, ses étapes sur une ligne ——|——|——, chaque repère mène directement à l'étape dans la simulation.
    - Réinitialiser : arrête tout et repart de zéro. Les vols libres et les scénarios restent accessibles pendant le vol (boutons « Scénarios », « Procédures »). */
 (function(){
-const FULL=k=>AC[k].kind==='fw'?'full-fw':'full-rw';
+const FULL=k=>window.FULLOF?FULLOF(k):(AC[k].kind==='fw'?'full-fw':'full-rw');
 const css=document.createElement('style'); css.textContent=`
 #menu .m2-hide{display:none!important}
 #menu .ld{margin:6px 0 4px}#menu .ld-row{border:1px solid var(--line);border-radius:12px;background:#0a141e;padding:10px 12px;margin:8px 0}
@@ -7509,20 +7559,21 @@ const pad2=n=>String(n).padStart(2,'0');
 function ctx(){ const k=(typeof ACK!=='undefined'&&ACK)||(typeof selAC!=='undefined'&&selAC)||'a320', a=AC[k]||{}, fw=a.kind==='fw';
  let mi=(typeof MI!=='undefined'&&MI&&MI.start)?MI:MISSIONS[fw?'jfk-cdg':'heli-ny'];
  if(fw&&mi.rw) mi=MISSIONS['jfk-cdg']; if(!fw&&mi.fw) mi=MISSIONS['heli-ny'];
- const dep=fw?(mi===MISSIONS['cdg-jfk']?'LFPG':'KJFK'):(mi===MISSIONS['heli-cdg']?'LFPG':'KJRB'), dest=mi.dest||'LFPG';
+ const dep=mi.dep||(fw&&mi.start&&!mi.full?(()=>{ try{ const s=mi.start(); let bk=null,bd=1e9; for(const q in APTS){ const a=APTS[q]; if(a.heli||!(a.rw||[]).length) continue; const x=gcKm(s.lat,s.lon,a.lat,a.lon); if(x<bd){ bd=x; bk=q; } } return bk; }catch(e){ return null; } })():null)||(fw?(mi===MISSIONS['cdg-jfk']?'LFPG':'KJFK'):(mi===MISSIONS['heli-cdg']?'LFPG':'KJRB')), dest=mi.dest||'LFPG';
  let L={}; try{ if(typeof ACK!=='undefined'&&ACK===k&&LS&&LS.block) L=LS; else { const sv=[ACK,A,MI], keep=Object.assign({},LS); ACK=k; A=a; MI=mi; lsInit(); L=Object.assign({},LS); ACK=sv[0]; A=sv[1]; MI=sv[2]; Object.keys(LS).forEach(x=>delete LS[x]); Object.assign(LS,keep); } }catch(e){ L={}; }
  let crew={}; try{ crew=JSON.parse(localStorage.getItem('sa-crew')||'{}'); }catch(e){}
  const d=new Date(), date=`${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`, dof=`${String(d.getUTCFullYear()).slice(2)}${pad2(d.getUTCMonth()+1)}${pad2(d.getUTCDate())}`;
  const W=WB[k]||{}, etd=fw?'1830':'1500', fh=L.tripH||(fw?7.3:0.3), eta=(()=>{ const m=18*60+30+Math.round(fh*60); return pad2(Math.floor(m/60)%24)+pad2(m%60); })();
- return {k,a,fw,mi,dep,dest,altn:fw?(dest==='LFPG'?'LFPO':'KEWR'):(dest==='KJFK'?'KLGA':'LFPB'),L,W,crew,date,dof,etd,eta,fh,flt:crew.vol?String(crew.vol).replace(/\s/g,''):'PTA722',cs:(typeof CSN==='function'?CSN():'SIMU 320'),reg:crew.imm||({a320:'F-HTRJ',lj60:'N60PT',s76:'N76PT',h125:'F-HPTJ',r44:'F-HPTR'}[k]),type:{a320:'A320',lj60:'LJ60',s76:'S76',h125:'AS50',r44:'R44'}[k],name:a.name||k}; }
-const apN=c=>(APTS[c]&&APTS[c].n)||({KJRB:'Downtown Manhattan Heliport',LFPO:'Paris-Orly',KEWR:'Newark',KLGA:'LaGuardia',LFPB:'Paris-Le Bourget'}[c]||c);
+ return {k,a,fw,mi,dep,dest,altn:fw?(dest==='LFPG'?'LFPO':dest==='LFPO'?'LFPG':dest==='FMEE'?'FIMP':'KEWR'):(dest==='KJFK'?'KLGA':'LFPB'),L,W,crew,date,dof,etd,eta,fh,flt:crew.vol?String(crew.vol).replace(/\s/g,''):'PTA722',cs:(typeof CSN==='function'?CSN():'SIMU 320'),reg:crew.imm||({a320:'F-HTRJ',lj60:'N60PT',s76:'N76PT',h125:'F-HPTJ',r44:'F-HPTR'}[k]),type:{a320:'A320',lj60:'LJ60',s76:'S76',h125:'AS50',r44:'R44'}[k],name:a.name||k}; }
+const apN=c=>(APTS[c]&&APTS[c].n)||({FIMP:'Maurice — Sir Seewoosagur Ramgoolam',KJRB:'Downtown Manhattan Heliport',LFPO:'Paris-Orly',KEWR:'Newark',KLGA:'LaGuardia',LFPB:'Paris-Le Bourget'}[c]||c);
 function metar(c){ try{ const m=WXS.met[c]; if(m&&m.raw) return 'METAR '+m.raw.replace(/^METAR /,''); }catch(e){} return {LFPO:'METAR LFPO 030200Z 20005KT CAVOK 08/06 Q1019 NOSIG',KEWR:'METAR KEWR 021851Z 21011KT 10SM FEW050 15/04 A3024',KLGA:'METAR KLGA 021851Z 20009KT 10SM FEW050 14/05 A3025',KJRB:'METAR KJRB (pas de station : voir KJFK / KLGA)',LFPB:'METAR LFPB 030200Z 21005KT CAVOK 07/06 Q1019'}[c]||'METAR '+c+' NIL'; }
 /* itinéraire (exemple pédagogique) */
 const RT={fw:[['KJFK',40.64,-73.78,'DÉP'],['BETTE',41.0,-69.5,'SID'],['YQX',48.95,-54.57,'VOR'],['50N050W',50,-50,''],['51N040W',51,-40,'NAT'],['52N030W',52,-30,'NAT'],['52N020W',52,-20,'NAT'],['MALOT',53,-15,'Shanwick'],['LND',50.13,-5.64,'VOR'],['ABB',50.13,1.85,'VOR'],['LFPG',49.01,2.55,'ARR']],
  rw:[['KJRB',40.701,-74.009,'DÉP'],['STATUE',40.69,-74.045,'VRP'],['VZ',40.607,-74.045,'Verrazano'],['CI',40.575,-73.98,'Coney Island'],['RCKY',40.6,-73.88,'VRP'],['KJFK',40.64,-73.78,'ARR']]};
 const gc=(a,b)=>{ const R=6371,r=Math.PI/180, dl=(b[2]-a[2])*r, p1=a[1]*r, p2=b[1]*r; return Math.acos(Math.min(1,Math.sin(p1)*Math.sin(p2)+Math.cos(p1)*Math.cos(p2)*Math.cos(dl)))*R; };
 const brg=(a,b)=>{ const r=Math.PI/180, y=Math.sin((b[2]-a[2])*r)*Math.cos(b[1]*r), x=Math.cos(a[1]*r)*Math.sin(b[1]*r)-Math.sin(a[1]*r)*Math.cos(b[1]*r)*Math.cos((b[2]-a[2])*r); return (Math.atan2(y,x)/r+360)%360; };
-function route(c){ let r=RT[c.fw?'fw':'rw']; if(c.fw&&c.dep==='LFPG') r=r.slice().reverse(); return r; }
+function route(c){ try{ if(c.fw&&MI&&MI.route&&APTS[c.dep]&&APTS[c.dest]){ const a=APTS[c.dep], b=APTS[c.dest]; return [[c.dep,a.lat,a.lon,'DÉP']].concat(MI.route.map(p=>[p[2],p[0],p[1],'point péd.'])).concat([[c.dest,b.lat,b.lon,'ARR']]); } }catch(e){}
+  let r=RT[c.fw?'fw':'rw']; if(c.fw&&c.dep==='LFPG') r=r.slice().reverse(); return r; }
 /* ---------- générateurs ---------- */
 const NOTE='EXEMPLE PÉDAGOGIQUE — ne pas utiliser pour la navigation réelle. Valeurs de masse, carburant et vitesses : calculées par le simulateur (formules simplifiées [ESTIMÉ]).';
 const D={};
@@ -7848,10 +7899,10 @@ function render(soft){ const v=document.getElementById('docv'), c=ctx(), doc=D[C
 const esc=s=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 /* ---------- export ---------- */
 function save(name,blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500); }
-function dl(kind){ const c=ctx(), doc=D[CUR], out=doc.gen(c), base=`${c.flt}_${CUR}`; const txt=`${doc.t}\n${c.flt} ${c.type} ${c.reg} ${c.dep}-${c.dest} ${c.date}\n${'='.repeat(70)}\n\n${out.txt||''}\n\n${CUR==='plan'?'':NOTE}`;
- if(kind==='txt') save(base+'.txt',new Blob(['\ufeff'+txt],{type:'text/plain;charset=utf-8'}));
+function dl(kind){ const c=ctx(), doc=D[CUR], out=doc.gen(c), base=`${c.flt}_${CUR}`; const txt=`${doc.t}\n${c.flt} ${c.type} ${c.reg} ${c.dep}-${c.dest} ${c.date}\n${'='.repeat(70)}\n\n${out.txt||''}\n\n${CUR==='plan'?'':NOTE}`; const txt2=window.BRANDTX?BRANDTX(txt):txt;
+ if(kind==='txt') save(base+'.txt',new Blob(['\ufeff'+txt2],{type:'text/plain;charset=utf-8'}));
  else if(kind==='svg'&&out.svg) save(base+'.svg',new Blob([out.svg],{type:'image/svg+xml'}));
- else if(kind==='pdf') save(base+'.pdf',pdf(txt)); flashMsg('Téléchargement : '+base+'.'+kind); }
+ else if(kind==='pdf') save(base+'.pdf',pdf(txt2)); flashMsg('Téléchargement : '+base+'.'+kind); }
 function flashMsg(t){ try{ flash(t,'am'); }catch(e){} }
 /* générateur PDF minimal : texte monospace (Courier, WinAnsi), A4, pagination */
 function pdf(text){ const MAP={'→':'->','←':'<-','≥':'>=','≤':'<=','⚠':'!','✓':'v','✗':'x','○':'o','·':'\u00b7','’':"'",'‘':"'",'“':'"','”':'"','…':'\u0085','–':'\u0096','—':'\u0097','œ':'\u009c','Œ':'\u008c','€':'\u0080','\u202f':' ','\u00a0':' ','📌':'*','📁':'','🖨':'','′':"'"};
@@ -7958,6 +8009,51 @@ setInterval(()=>{ try{ if(typeof S==='undefined'||!MI){ fog.style.opacity=0; ret
   const oat=15-2*(S.alt/0.3048/1000); if(now&&oat<=0){ icing+=1; if(icing===10) try{ flash('Nuage à '+Math.round(oat)+' °C : risque de givrage — antigivrage voilure et moteurs !','am'); }catch(e){} } else icing=0; }catch(e){} },300);
 if(typeof placeCamera==='function'){ const _pc=placeCamera; placeCamera=function(){ _pc.apply(this,arguments); if(shake&&!paused){ camera.rotateX((Math.random()-0.5)*shake); camera.rotateZ((Math.random()-0.5)*shake); } }; }
 window.PHYS={HULL,blocked,obsHit,fixPoints};
+})();
+
+</script>
+<script>
+/* ===== MARQUES FICTIVES =====
+   Bascule « Noms réels » ↔ « Marques fictives » : les parcours, procédures, valeurs et directives restent EXACTEMENT les mêmes ;
+   seuls les noms de constructeurs, d'appareils, de motoristes et de compagnies sont remplacés à l'affichage (textes, menus,
+   documents exportés). Les aéroports, codes OACI, fréquences et la réglementation restent réels (données publiques factuelles).
+   Noms fictifs inventés : à faire vérifier (recherche d'antériorité INPI / EUIPO) avant toute exploitation commerciale. */
+(function(){
+const MAP=[
+ [/Airbus A320-200/g,'Aéralis AL-20'],[/\bA320-200\b/g,'AL-20'],[/\bA320\b/g,'AL-20'],[/\bA32[01N]\b/g,'AL-20'],
+ [/Boeing 777-300ER/g,'Celestra C-77 LR'],[/\b777-300ER\b/g,'C-77 LR'],[/\b777\b/g,'C-77'],[/\bBoeing\b/g,'Celestra'],
+ [/Airbus H125/g,'Héliane H-25'],[/\bH125\b/g,'H-25'],[/Écureuil/g,'Héliane'],[/\s*\(AS ?350 ?B3e?\)/g,''],[/\bAS ?350( ?B3e?)?\b/g,'H-25'],[/\bAirbus\b/g,'Aéralis'],
+ [/Learjet 60/g,'Stratus SJ-6'],[/\bLearjet\b/g,'Stratus'],[/\bLJ60\b/g,'SJ-6'],
+ [/Sikorsky S-76[A-D+]*/g,'Orion HB-7'],[/\bS-76[A-D+]*\b/g,'HB-7'],[/\bSikorsky\b/g,'Orion'],
+ [/Robinson R44 Raven II/g,'Colibri C-4 II'],[/\bR44\b/g,'C-4'],[/\bRaven II\b/g,'II'],[/\bRobinson\b/g,'Colibri'],
+ [/GE90-115B/g,'turbofan T-115'],[/\bGE90\b/g,'T-115'],[/CFM56(-5B)?/g,'turbofan R-56'],[/\bCFM\b/g,'R-56'],[/Safran Arriel 2D/g,'turbine Arvel'],[/\bArriel\b/g,'Arvel'],[/\bSafran\b/g,'le motoriste'],
+ [/Pratt & Whitney( Canada)?/g,'le motoriste'],[/Rolls-Royce/g,'le motoriste'],[/\bLycoming\b/g,'motoriste à pistons'],[/Collins Pro Line 4/g,'avionique intégrée'],[/\bCollins\b/g,'avionique'],
+ [/Air France/g,'Air Hexagone'],[/Air Austral/g,'Air Lagon'],[/Germanwings( vol)?\s*/g,'Vol '],[/US Airways( vol)?\s*/g,'Vol '],[/American Airlines/g,'une compagnie américaine']];
+const tx=s=>{ if(typeof s!=='string'||!s) return s; for(const [re,r] of MAP) s=s.replace(re,r); return s; };
+let ON=false; try{ ON=localStorage.getItem('sim-brand')==='fict'; }catch(e){}
+window.BRANDTX=s=>ON?tx(s):s;
+// données : noms d'appareils et de missions (originaux conservés pour revenir aux noms réels)
+const ORIG={ac:{},mi:{}};
+function data(){ for(const k in AC){ const a=AC[k]; if(!ORIG.ac[k]) ORIG.ac[k]={name:a.name,sub:a.sub}; a.name=ON?tx(ORIG.ac[k].name):ORIG.ac[k].name; a.sub=ON?tx(ORIG.ac[k].sub):ORIG.ac[k].sub; }
+  for(const k in MISSIONS){ const m=MISSIONS[k]; if(!ORIG.mi[k]) ORIG.mi[k]={n:m.n,d:m.d}; m.n=ON?tx(ORIG.mi[k].n):ORIG.mi[k].n; m.d=ON?tx(ORIG.mi[k].d):ORIG.mi[k].d; } }
+// étapes de parcours
+const _sf=stepsFor; stepsFor=function(){ const st=_sf.apply(this,arguments); if(!ON) return st; st.forEach(s=>{ s.t=tx(s.t); s.txt=tx(s.txt); (s.items||[]).forEach(it=>{ it[0]=tx(it[0]); }); }); return st; };
+// filet de sécurité : tout texte affiché (menus, atelier, documents, bulles, fiches)
+const SKIP=new Set(['SCRIPT','STYLE','TEXTAREA','INPUT','CODE']);
+function fixNode(n){ if(n.nodeType===3){ const p=n.parentNode; if(p&&SKIP.has(p.nodeName)) return; const v=n.nodeValue, w=tx(v); if(w!==v) n.nodeValue=w; return; }
+  if(n.nodeType!==1||SKIP.has(n.nodeName)) return; if(n.title){ const w=tx(n.title); if(w!==n.title) n.title=w; }
+  const it=document.createTreeWalker(n,NodeFilter.SHOW_TEXT); let t; const L=[]; while((t=it.nextNode())) L.push(t); L.forEach(x=>fixNode(x)); }
+const OBS=new MutationObserver(ms=>{ if(!ON) return; for(const m of ms){ if(m.type==='characterData') fixNode(m.target); else m.addedNodes.forEach(fixNode); } });
+function apply(){ data(); try{ document.title=ON?'Simulateur PLANE TRAJECTORIES — marques fictives':'Simulateur PLANE TRAJECTORIES'; }catch(e){}
+  if(ON){ OBS.observe(document.body,{childList:true,subtree:true,characterData:true}); fixNode(document.body); } else OBS.disconnect();
+  try{ renderMenu(); }catch(e){} btn(); }
+function set(v){ ON=!!v; try{ localStorage.setItem('sim-brand',ON?'fict':'real'); }catch(e){} if(!ON){ location.reload(); return; } apply(); flash('Marques fictives : mêmes parcours et procédures, noms de constructeurs et compagnies remplacés','am'); }
+function btn(){ const m=document.getElementById('menu'); if(!m) return; let b=document.getElementById('b-brand');
+  if(!b){ b=document.createElement('button'); b.type='button'; b.id='b-brand'; b.style.cssText='position:absolute;top:10px;right:12px;z-index:5;background:#132232;color:#e8eef2;border:1px solid #2b3d50;border-radius:8px;padding:6px 10px;font:700 13px "Barlow Condensed",sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer';
+    b.onclick=()=>set(!ON); if(getComputedStyle(m).position==='static') m.style.position='relative'; m.appendChild(b); }
+  b.textContent=ON?'🏷 Marques fictives ✓ (revenir aux noms réels)':'🏷 Passer en marques fictives'; }
+setTimeout(apply,0);
+window.BRAND={set,get on(){ return ON; },tx};
 })();
 
 </script>

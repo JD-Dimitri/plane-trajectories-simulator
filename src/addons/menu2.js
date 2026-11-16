@@ -3,7 +3,7 @@
    - Ligne directrice : pour chaque appareil, ses étapes sur une ligne ——|——|——, chaque repère mène directement à l'étape dans la simulation.
    - Réinitialiser : arrête tout et repart de zéro. Les vols libres et les scénarios restent accessibles pendant le vol (boutons « Scénarios », « Procédures »). */
 (function(){
-const FULL=k=>AC[k].kind==='fw'?'full-fw':'full-rw';
+const FULL=k=>window.FULLOF?FULLOF(k):(AC[k].kind==='fw'?'full-fw':'full-rw');
 const css=document.createElement('style'); css.textContent=`
 #menu .m2-hide{display:none!important}
 #menu .ld{margin:6px 0 4px}#menu .ld-row{border:1px solid var(--line);border-radius:12px;background:#0a141e;padding:10px 12px;margin:8px 0}

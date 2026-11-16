@@ -72,6 +72,9 @@ strip([40.7010,-74.0140],[40.7980,-73.9490],[900,1300,1700,2000,2300,2300,2300,2
 city(40.6800,-74.0000,40.7000,-73.9500,110,10,45,23,5,0);       // Brooklyn
 landmark('1wtc',40.7127,-74.0134,5); landmark('esb',40.7484,-73.9857,5); landmark('chrysler',40.7516,-73.9755,5);
 /* ---------- Paris : Roissy-CDG et la ville ---------- */
+// Orly et La Réunion Roland-Garros : tour et aérogares, positions approchées [SIMPLIFIÉ]
+setTimeout(()=>{ try{ if(APTS.LFPO){ place(tower(45,'slim'),48.7312,2.3725,89); [[48.7300,2.3590,420,90,22,0],[48.7262,2.3666,380,110,24,0]].forEach(([la,lo,l,dd,h,hd])=>place(terminal(l,dd,h,true),la,lo,89,hd)); }
+if(APTS.FMEE){ place(tower(40,'slim'),-20.8946,55.5163,20); place(terminal(320,80,18,true),-20.8940,55.5205,20,-12); place(hangar(70,80,22),-20.8948,55.5110,20,-12); } }catch(e){} },0);
 place(tower(112,'slim'),49.0186,2.5350,110); place(tower(90,'slim'),48.9985,2.5560,110); place(tower(75,'wide'),49.0090,2.5505,110); place(tower(60,'slim'),49.00597,2.59729,110);
 { const t1=new T.Group(); const ring=new T.Mesh(new T.CylinderGeometry(96,96,40,40),CONC); ring.position.y=20; t1.add(ring); const top=new T.Mesh(new T.CylinderGeometry(70,96,4,40),ROOF); top.position.y=42; t1.add(top);
   for(let i=0;i<7;i++){ const a=i/7*Math.PI*2; const sat=box(26,10,26,WHITE,Math.cos(a)*210,Math.sin(a)*210); t1.add(sat); } t1.userData.parts=[{x:0,z:0,hw:92,hd:92,h:44,r:0}].concat([...Array(7).keys()].map(i=>{ const an=i/7*Math.PI*2; return {x:Math.cos(an)*210,z:Math.sin(an)*210,hw:13,hd:13,h:10,r:0}; })); place(t1,49.0144,2.5418,110); }

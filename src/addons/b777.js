@@ -64,6 +64,34 @@ const _sm=startMission; startMission=function(){ flapOpts(selAC); const m=MISSIO
   try{ if(MI&&MI.route&&APTS[MI.dest]){ const D=APTS[MI.dest], st=MI.start(); window.FPLN={pts:[[st.lat,st.lon,'']].concat(MI.route.map(p=>p.slice())).concat([[D.lat,D.lon,MI.dest]]),i:1}; } }catch(e){}
   return r; };
 
+
+/* ---- météo de référence (exemples réalistes, remplacés par la météo en direct si disponible) ---- */
+try{ METAR_SAMPLES.FMEE=METAR_SAMPLES.FMEE||'METAR FMEE 160600Z 12015KT 9999 FEW025 SCT040 26/19 Q1016 NOSIG'; METAR_SAMPLES.LFPO=METAR_SAMPLES.LFPO||'METAR LFPO 160600Z 24008KT 9999 FEW030 09/05 Q1019 NOSIG';
+  ['FMEE','LFPO'].forEach(k=>{ if(!WXS.met[k]) wxSet(METAR_SAMPLES[k]); }); }catch(e){}
+
+/* ---- parcours complet 777 : Paris-CDG → La Réunion ---- */
+const FULL='Arrivée au parking à pied, tour avion, cockpit, dossier de vol Paris–Réunion, devis de masse et carburant (≈ 93 t), mise en route, roulage réel à CDG, décollage 26R, croisière ≈ 11 h au-dessus de l\'Europe et de l\'Afrique, approche piste 12 à Roland-Garros, roulage simplifié, parking.';
+M('full-777-af',{n:'Parcours pilote complet Paris-CDG → La Réunion · Air France 777',d:FULL,livery:'af',full:true,dep:'LFPG',depRw:'26R',start:()=>standOf('LFPG'),dest:'FMEE',destRw:'12',route:RT});
+M('full-777-uu',{n:'Parcours pilote complet Paris-CDG → La Réunion · Air Austral 777',d:FULL,livery:'uu',full:true,dep:'LFPG',depRw:'26R',start:()=>standOf('LFPG'),dest:'FMEE',destRw:'12',route:RT});
+window.FULLOF=k=>k==='b777'?'full-777-af':((AC[k]||A).kind==='fw'?'full-fw':'full-rw');
+
+/* ---- étapes : vocabulaire Boeing en regard des commandes (le poste reprend la disposition A320 [SIMPLIFICATION]) ---- */
+const BOE=[[/\bECAM\b/,'ECAM (EICAS sur 777)'],[/\bFCU\b/,'FCU (MCP sur 777)'],[/\bMCDU\b/,'MCDU (CDU sur 777)'],[/mini-manche/,'mini-manche (manche classique sur 777)']];
+function boe(t){ if(typeof t!=='string') return t; t=t.replace(/Airbus A320-200|Airbus A320|A320-200|A320/g,'Boeing 777-300ER').replace(/Volets 1 puis 2, 3, FULL/g,'Volets 1, 5, 15, 20, 25 puis 30').replace(/Mach 0,78/g,'Mach 0,84');
+  if(MI&&MI.dest==='FMEE') t=t.replace(/ILS 12/g,'RNP 12 (guidage simulé comme un ILS [SIMPLIFICATION] ; l\'ILS de Roland-Garros dessert la piste 14)');
+  BOE.forEach(([re,r])=>{ t=t.replace(re,r); }); return t; }
+const APRON={FMEE:[-20.8925,55.5195,282],LFPO:[48.7290,2.3640,240]};
+const _sf=stepsFor; stepsFor=function(){ const st=_sf.apply(this,arguments); if(ACK!=='b777') return st;
+  st.forEach(s=>{ s.t=boe(s.t).replace(/RNP 12 \(.*\)/,'RNP 12'); s.txt=boe(s.txt); (s.items||[]).forEach(it=>{
+    if(it[0]==='Volets 1'){ it[0]='Volets 15 (décollage 777)'; it[1]=()=>S.flap===3; it[2]=()=>pedSet('flapL','15'); }
+    else if(it[0]==='Volets FULL'){ it[0]='Volets 30 (atterrissage 777)'; it[1]=()=>S.flap===A.flaps.length-1; it[2]=()=>pedSet('flapL','30'); }
+    else it[0]=boe(it[0]); });
+    // arrivée sans plan de roulage détaillé (La Réunion, Orly) : roulage simplifié vers l'aire de trafic
+    if(s.fly==='taxiIn'&&MI&&!GN[MI.dest]&&APRON[MI.dest]){ const ap=APRON[MI.dest];
+      s.txt='Dégagez la piste, spoilers rentrés, volets 0, STROBE AUTO, LAND OFF, APU START. Roulez vers l\'aire de trafic indiquée par le contrôle (plan de roulage détaillé de cet aéroport non modélisé : roulage simplifié [SIMPLIFICATION]).';
+      s.items=[s.items[0],['Roulage jusqu\'à l\'aire de trafic',()=>S.onGround&&S.V<1&&gcKm(S.lat,S.lon,ap[0],ap[1])<0.25,()=>{ S.lat=ap[0]; S.lon=ap[1]; S.psi=ap[2]*D2R; S.V=0; flash('Arrivé sur l\'aire de trafic','am'); }]]; } });
+  return st; };
+
 /* ---- vitesses de décollage 777 (formule pédagogique [ESTIMÉ], pas les tables Boeing) ---- */
 const _lc=lsCalc; lsCalc=function(){ const L=_lc.apply(this,arguments); if(ACK==='b777'&&LS.tow){ const t=LS.tow/1000; LS.vr=Math.round(120+(t-170)*0.32); LS.v1=LS.vr-6; LS.v2=LS.vr+6; LS.vapp=LS.vls+5; LS.trim=(5.0-(LS.cg-25)*0.15).toFixed(1); } return L||LS; };
 // débit carburant : GE90 ≈ 2,6 × CFM56
