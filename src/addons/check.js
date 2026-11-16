@@ -34,9 +34,27 @@ function render(msg){ let p=document.getElementById('ckl'); if(!p){ p=document.c
  p.innerHTML=`<div class="w ${bad?'bad':''}"><div class="hd"><div><b>☑ CHECKLIST</b><small>${bad?`${miss.length} sous-étape(s) non faite(s) — touchez une ligne rouge pour aller à la commande`:'Toutes les sous-étapes faites jusqu\'ici ✓'}</small></div><button type="button" data-x style="background:none;border:0;color:#fff;font-size:20px;cursor:pointer">✕</button></div>
   <div class="bd">${msg?`<div class="msg">${msg}</div>`:''}${body}</div>
   <div class="ft">${bad?'<button type="button" class="go" data-first>Faire la première étape manquante</button>':''}${PEND?'<button type="button" class="warn" data-force>Passer quand même</button>':''}<button type="button" data-x>Fermer</button></div></div>`;
- p.hidden=false; setTimeout(()=>{ const c=p.querySelector('.st.cur'); c&&c.scrollIntoView({block:'center'}); },30); }
+ p.dataset.mode='guide'; p.hidden=false; setTimeout(()=>{ const c=p.querySelector('.st.cur'); c&&c.scrollIntoView({block:'center'}); },30); }
 function close(){ const p=document.getElementById('ckl'); if(p) p.hidden=true; PEND=null; }
-function refresh(){ const p=document.getElementById('ckl'); if(p&&!p.hidden) render(); }
+function refresh(){ const p=document.getElementById('ckl'); if(p&&!p.hidden&&p.dataset.mode!=='ref') render(); }
+
+/* ---- checklist de référence (missions sans parcours guidé : vols libres, vols historiques, scénarios) ----
+   Mêmes étapes et sous-étapes que le parcours complet de l'appareil (modèle de référence : A320), état vérifié en direct. */
+const REF={k:null,steps:null};
+function refSteps(){ const k=ACK+'|'+(MI&&MI.n); if(REF.k===k&&REF.steps) return REF.steps; REF.k=k; REF.steps=[];
+ const fk=typeof FULLOF==='function'?FULLOF(ACK):(A.kind==='fw'?'full-fw':'full-rw'), FM=MISSIONS[fk]; if(!FM) return REF.steps;
+ const keep=MI; try{ MI=Object.assign({},FM,{dest:keep.dest||FM.dest,destRw:keep.destRw||FM.destRw}); REF.steps=(stepsFor()||[]).filter(st=>(st.items||[]).length); }catch(e){ REF.steps=[]; } finally{ MI=keep; }
+ return REF.steps; }
+function renderRef(){ let p=document.getElementById('ckl'); if(!p){ render(); p=document.getElementById('ckl'); }
+ const S_=refSteps(); let body='';
+ S_.forEach((st,i)=>{ const ms=st.items.map((it,j)=>({it,j,done:chk(it)})), ok=ms.every(x=>x.done);
+  body+=`<div class="st ${ok?'ok':''}"><b>${ok?'✓ ':''}${i+1}. ${st.ph} · ${st.t}</b>${ms.map(x=>x.done?`<div class="it done">✓ ${x.it[0]}</div>`:`<button type="button" class="it miss" data-ri="${i}" data-rj="${x.j}">✗ ${x.it[0]}<span class="go">${x.it[3]?'Y aller →':x.it[2]?'Faire':'Vérifier'}</span></button>`).join('')}</div>`; });
+ if(!S_.length) body='<div class="msg">Pas de checklist disponible pour cet appareil.</div>';
+ p.innerHTML=`<div class="w"><div class="hd"><div><b>☑ CHECKLIST · ${A.name||ACK}</b><small>Vol sans parcours guidé : checklist de référence de l'appareil (mêmes étapes que son parcours complet), cochée d'après l'état réel des commandes. Touchez une ligne rouge pour aller à la commande.</small></div><button type="button" data-x style="background:none;border:0;color:#fff;font-size:20px;cursor:pointer">✕</button></div>
+  <div class="bd">${body}</div><div class="ft"><button type="button" data-x>Fermer</button></div></div>`;
+ if(!p._ref){ p._ref=1; p.addEventListener('click',e=>{ const b=e.target.closest('button[data-ri]'); if(!b) return; e.stopPropagation(); const st=refSteps()[+b.dataset.ri], it=st&&st.items[+b.dataset.rj]; if(it) gotoItem({i:-1,j:+b.dataset.rj,st,it}); },true); }
+ p.dataset.mode='ref'; p.hidden=false; }
+function refRefresh(){ const p=document.getElementById('ckl'); if(p&&!p.hidden&&p.dataset.mode==='ref'){ const y=(p.querySelector('.bd')||{}).scrollTop||0; renderRef(); const bd=p.querySelector('.bd'); if(bd) bd.scrollTop=y; } }
 /* bouton en haut de l'écran */
 const btn=document.createElement('button'); btn.type='button'; btn.id='b-ckl'; btn.innerHTML='☑ Checklist'; btn.title='Toucher : ouvrir · glisser : déplacer'; document.body.appendChild(btn);
 /* bouton déplaçable : on le glisse où il ne gêne pas ; position mémorisée ; un simple toucher ouvre la checklist */
@@ -45,12 +63,13 @@ const btn=document.createElement('button'); btn.type='button'; btn.id='b-ckl'; b
  try{ const p=JSON.parse(localStorage.getItem('ckl-pos')||'null'); if(p) requestAnimationFrame(()=>apply(p[0],p[1])); }catch(e){}
  btn.addEventListener('pointerdown',e=>{ down=true; drag=false; sx=e.clientX; sy=e.clientY; const r=btn.getBoundingClientRect(); ox=r.left; oy=r.top; btn.setPointerCapture(e.pointerId); });
  btn.addEventListener('pointermove',e=>{ if(!down) return; const dx=e.clientX-sx, dy=e.clientY-sy; if(!drag&&Math.hypot(dx,dy)>8){ drag=true; btn.style.opacity='.85'; } if(drag){ e.preventDefault(); apply(ox+dx,oy+dy); } });
- btn.addEventListener('pointerup',e=>{ if(!down) return; down=false; btn.style.opacity=''; if(drag){ const r=btn.getBoundingClientRect(); try{ localStorage.setItem('ckl-pos',JSON.stringify([r.left,r.top])); }catch(er){} } else render(); });
+ btn.addEventListener('pointerup',e=>{ if(!down) return; down=false; btn.style.opacity=''; if(drag){ const r=btn.getBoundingClientRect(); try{ localStorage.setItem('ckl-pos',JSON.stringify([r.left,r.top])); }catch(er){} } else (typeof GD!=='undefined'&&GD.on&&GD.steps&&GD.steps.length?render():renderRef()); });
  btn.addEventListener('pointercancel',()=>{ down=false; drag=false; btn.style.opacity=''; });
  btn.style.touchAction='none';
  addEventListener('resize',()=>{ if(btn.style.left){ const r=btn.getBoundingClientRect(); apply(r.left,r.top); } }); })();
-setInterval(()=>{ const on=typeof GD!=='undefined'&&GD.on&&GD.steps&&GD.steps.length&&(!document.getElementById('menu')||document.getElementById('menu').hidden)&&!(document.getElementById('sysat')&&!document.getElementById('sysat').hidden);
- btn.style.display=on?'flex':'none'; if(!on) return; rec(); const prev=missing(0,GD.i-1).length, cur=missing(GD.i,GD.i).length;
+setInterval(()=>{ const vis=(!document.getElementById('menu')||document.getElementById('menu').hidden)&&!(document.getElementById('sysat')&&!document.getElementById('sysat').hidden), on=typeof GD!=='undefined'&&GD.on&&GD.steps&&GD.steps.length&&vis;
+ const ref=!on&&vis&&typeof MI!=='undefined'&&MI&&!MI.full&&!(typeof crashed!=='undefined'&&crashed&&false);
+ btn.style.display=on||ref?'flex':'none'; if(ref){ const h='☑ Checklist'; if(btn._h!==h){ btn.innerHTML=h; btn._h=h; } btn.classList.remove('bad'); refRefresh(); return; } if(!on) return; rec(); const prev=missing(0,GD.i-1).length, cur=missing(GD.i,GD.i).length;
  const h=prev?`☑ Checklist <i>${prev}</i>`:`☑ Checklist${cur?'':' ✓'}`; if(btn._h!==h){ btn.innerHTML=h; btn._h=h; } btn.classList.toggle('bad',prev>0); refresh(); },600);
 /* contrôle avant de passer à l'étape suivante */
 const _g=goStep; goStep=function(i){ if(typeof GD!=='undefined'&&GD.on&&i===GD.i+1&&!FORCE&&!window.FF&&!(typeof AUTO!=='undefined'&&AUTO.on)){ rec(); const m=missing(0,GD.i);
@@ -59,3 +78,10 @@ const _g=goStep; goStep=function(i){ if(typeof GD!=='undefined'&&GD.on&&i===GD.i
 const _sm=startMission; startMission=function(){ DONE.clear(); return _sm.apply(this,arguments); };
 window.CKL={done:(i,j)=>{ rec(); const it=GD.steps[i]&&GD.steps[i].items[j]; return DONE.has(key(i,j))||(it?chk(it):false); },go:(i,j)=>gotoItem({i,j,st:GD.steps[i],it:GD.steps[i].items[j]}),open:()=>render(),missing:()=>{ rec(); return missing(0,GD.i).map(m=>m.it[0]); }};
 })();
+/* ---- bouton « Guide » dans une mission sans parcours : bascule vers le parcours guidé équivalent (même appareil, même trajet si possible) ---- */
+(function(){ const gb=document.getElementById('b-guide'); if(!gb) return; const old=gb.onclick;
+ function fullFor(){ const dep=MI.dep||(typeof nearestApt==='function'?nearestApt(S.lat,S.lon):null), dest=MI.dest, L=Object.keys(MISSIONS).filter(k=>MISSIONS[k].full&&((MISSIONS[k].ac||(typeof MI_AC!=='undefined'&&MI_AC[k]))===ACK||(!MISSIONS[k].ac&&!(typeof MI_AC!=='undefined'&&MI_AC[k])&&(MISSIONS[k].fw?'fw':'rw')===A.kind)));
+  const co=(String(selMI).match(/^(af|uu)-/)||[])[1], same=k=>!co||k.includes('-'+co);
+  return L.find(k=>MISSIONS[k].dep===dep&&MISSIONS[k].dest===dest&&same(k))||L.find(k=>MISSIONS[k].dest===dest&&same(k))||L.find(k=>MISSIONS[k].dep===dep&&MISSIONS[k].dest===dest)||L.find(k=>MISSIONS[k].dest===dest)||L.find(k=>MISSIONS[k].dep===dep)||(typeof FULLOF==='function'?FULLOF(ACK):null); }
+ gb.onclick=function(e){ if(typeof MI!=='undefined'&&MI&&!MI.full){ const k=fullFor(); if(k&&MISSIONS[k]){ flash('Mode guidé : parcours « '+MISSIONS[k].n+' »','am'); const ac=ACK; BR.fromSim=true; selAC=ac; selMI=k; try{ renderMenu(); }catch(er){} selAC=ac; selMI=k; BR.launchMode('guide'); return; } }
+  return old&&old.apply(this,arguments); }; })();

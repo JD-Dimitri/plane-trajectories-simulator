@@ -203,7 +203,7 @@ function tick(){ const N=SND.n, P=SND.P; if(!SND.ready) return; const c=SND.ctx;
   const full=!!MI.full;
   for(let i=0;i<2;i++){ const e=P.eng[i]; const exists=A.kind==='fw'||A.twin||i===0; set(e.pn.pan,i?pR:pL,0.2);
     const run=!!(S.eng&&S.eng[i])&&exists, n2raw=full&&S.n2?S.n2[i]:(run?1:0), starting=!run&&n2raw>0.02&&exists;
-    if(ACK==='r44'||!exists){ [e.roarG,e.jetG,e.whG,e.wh2G,e.fanG,e.bzG,e.stG].forEach(g=>set(g.gain,0,0.2)); continue; }
+    if(ACK==='r44'||ACK==='c172'||!exists){ [e.roarG,e.jetG,e.whG,e.wh2G,e.fanG,e.bzG,e.stG].forEach(g=>set(g.gain,0,0.2)); continue; }
     const thr=cl(S.thr||0,0,1), n1t=run?(fw?0.2+0.76*thr+(S.rev&&S.onGround?0.18*thr+0.12:0):0.62+0.38*(S.nr||1)*(0.5+0.5*(S.coll||0))):n2raw*0.24;
     const k=n1t>e.n1?dt/2.2:dt/1.3; e.n1+=(n1t-e.n1)*k; e.n2=run?0.62+0.38*e.n1:n2raw;
     const n1=e.n1, n2=e.n2, lv=att*inK;
@@ -229,7 +229,10 @@ function tick(){ const N=SND.n, P=SND.P; if(!SND.ready) return; const c=SND.ctx;
     set(r.thG.gain,nr>0.05?0.18*nr*load*att:0,0.2); set(r.trG.gain,nr>0.05?0.035*nr*att*(ext||walk?1.6:0.8):0,0.2); }
   else { set(r.depth.gain,0,0.2); set(r.base.gain,0,0.2); set(r.thG.gain,0,0.2); set(r.trG.gain,0,0.2); }
   // ---------- R44 : moteur à pistons ----------
-  const p=P.pis; if(ACK==='r44'){ const crank=!S.eng[0]&&SYS.ign==='START', run=S.eng[0], rpm=run?2718*(S.nr>0.3?S.nr:0.62):crank?260:0, f=rpm/60*3;
+  const p=P.pis; if(ACK==='c172'){ const crank=!S.eng[0]&&SYS.mags==='START'&&SYS.bat1, run=S.eng[0], rpm=run?(S.rpm||800):crank?240:0, f=rpm/60*2;   // Lycoming O-320 : 4 cylindres, 2 explosions par tour
+    set(p.o.frequency,Math.max(5,f),0.15); set(p.o2.frequency,Math.max(3,f/2),0.15); set(p.g.gain,(run?0.08+0.12*(S.thr||0):crank?0.07:0)*att*(ck?1:1.4),0.15); set(p.g2.gain,(run||crank)?0.08*att:0,0.15); set(p.f.frequency,run?600+900*(S.thr||0):400,0.2);
+    if(crank&&t-(ST.crk||0)>0.25){ ST.crk=t; burst('brown',0.12,'lowpass',260,0.5,'eng',null,0.005); } }
+  else if(ACK==='r44'){ const crank=!S.eng[0]&&SYS.ign==='START', run=S.eng[0], rpm=run?2718*(S.nr>0.3?S.nr:0.62):crank?260:0, f=rpm/60*3;
     set(p.o.frequency,Math.max(5,f),0.15); set(p.o2.frequency,Math.max(3,f/2),0.15); set(p.g.gain,(run?0.1+0.1*(S.coll||0):crank?0.07:0)*att*(ck?1:1.4),0.15); set(p.g2.gain,(run||crank)?0.08*att:0,0.15); set(p.f.frequency,run?700+600*(S.coll||0):400,0.2);
     if(crank&&t-(ST.crk||0)>0.23){ ST.crk=t; burst('brown',0.12,'lowpass',260,0.5,'eng',null,0.005); } }
   else { set(p.g.gain,0,0.2); set(p.g2.gain,0,0.2); }

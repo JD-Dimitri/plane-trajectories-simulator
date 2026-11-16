@@ -279,7 +279,34 @@ function b777(){ const g=new T.Group(), L={}, LV=window.LIVERY||'', W=mat(0xf4f6
   lights(g,L,{s:4,port:[-32.4,wy(32.4)+0.1,le(30.6)+2.3],tail:[0,2.4,36.95],bcn:[0,3.25,-5],bcn2:[0,-3.25,-2],land:[0,-3.1,-28.4]});
   return {g,L}; }
 
-const BUILD={a320,lj60,h125,r44,s76,b777};
+/* Cessna 172S Skyhawk : aile haute haubanée, train tricycle fixe, Lycoming IO-360 / hélice bipale ∅ 1,93 m (cotes publiques arrondies) */
+function c172(){ const g=new T.Group(), L={}, W=mat(0xf6f7f8), Bl=mat(0x1f4e9c), Dk=mat(0x1c2126), Tyre=mat(0x111316), Hub=mat(0xb9c0c6), Mt=mat(0x9aa1a8), Pr=mat(0x2a2d31);
+  const st=[[-3.32,.06,.06,.0],[-3.22,.36,.34,.0],[-2.9,.48,.48,.02],[-2.25,.54,.58,.08],[-1.65,.56,.66,.18],[-1.0,.57,.72,.28],[0.2,.56,.7,.26],[1.0,.5,.6,.24],[2.0,.36,.44,.26],[3.0,.24,.3,.3],[4.2,.12,.18,.38],[4.75,.05,.08,.42]].map(([z,w,h,y])=>({z,w,h,y}));
+  g.add(new T.Mesh(loft(st,28,(z,a)=>{ const ca=Math.cos(a);
+    if(z>-1.62&&z<-1.02&&ca>0.32) return GLASS;            // pare-brise
+    if(z>-0.98&&z<0.9&&ca>-0.05&&ca<0.6) return GLASS;      // vitres latérales
+    if(ca>-0.42&&ca<-0.24&&z>-2.8&&z<4.4) return 0x1f4e9c;  // liseré
+    return 0xf6f7f8; }),VC()));
+  // aile haute (dièdre 1,7°), haubans
+  pair(wing([{x:0.5,y:1.0,z:-1.08,c:1.63,t:.2},{x:2.6,y:1.06,z:-1.08,c:1.63,t:.19},{x:5.5,y:1.15,z:-0.86,c:1.12,t:.13}]),W,g);
+  [-1,1].forEach(s=>g.add(strut([s*0.55,-0.42,-0.55],[s*2.65,1.0,-0.62],0.035,Mt)));
+  // empennage
+  g.add(new T.Mesh(wing([{x:0,y:0.3,z:3.25,c:1.6,t:.08},{x:0,y:1.6,z:4.35,c:0.78,t:.06}]),W));
+  pair(wing([{x:0,y:0.38,z:3.95,c:1.0,t:.07},{x:1.72,y:0.38,z:4.3,c:0.62,t:.05}]),W,g);
+  // train tricycle fixe (lames d'acier, carénages)
+  const gear=new T.Group(); [-1,1].forEach(s=>{ gear.add(strut([s*0.42,-0.55,0.0],[s*1.25,-0.95,0.1],0.04,Mt)); gear.add(wheel(s*1.25,-0.95,0.1,0.25,0.15,Tyre,Hub)); });
+  gear.add(strut([0,-0.38,-2.55],[0,-0.98,-2.62],0.035,Mt)); gear.add(wheel(0,-1.0,-2.62,0.2,0.12,Tyre,Hub)); g.add(gear); g.userData.gear=gear;
+  // hélice bipale et cône
+  const prop=new T.Group(); prop.position.set(0,0.0,-3.4); prop.add(lathe([[0.17,0],[0.14,-0.12],[0.07,-0.24],[0.0,-0.3]],Pr,16));
+  [-1,1].forEach(s=>{ const b=new T.Mesh(new T.BoxGeometry(0.11,0.84,0.03),Dk); b.position.y=s*0.52; b.rotation.y=s*0.35; prop.add(b); const tip=new T.Mesh(new T.BoxGeometry(0.11,0.08,0.031),mat(0xe8c21a)); tip.position.y=s*0.92; tip.rotation.y=s*0.35; prop.add(tip); });
+  g.add(prop); g.userData.fans=[{o:prop,i:0}];
+  // prise d'air, pot d'échappement, antennes, pitot sous l'aile gauche
+  const air=new T.Mesh(new T.BoxGeometry(0.34,0.12,0.2),Dk); air.position.set(0,-0.3,-3.2); g.add(air);
+  g.add(strut([0.2,-0.45,-2.6],[0.2,-0.5,-2.95],0.025,Mt)); g.add(strut([0,0.98,-0.2],[0,1.3,0.2],0.01,Dk)); g.add(strut([-3.3,1.0,-0.95],[-3.3,0.97,-1.25],0.012,Mt));
+  lights(g,L,{s:1.1,port:[-5.52,1.15,-0.6],tail:[0,1.62,4.78],bcn:[0,1.64,4.4],bcn2:[0,-0.62,0.3],land:[-1.4,0.96,-1.1]});
+  return {g,L}; }
+
+const BUILD={a320,lj60,h125,r44,s76,b777,c172};
 // soufflantes : rotation visuelle proportionnelle au régime (N2), moulinet en vol moteur arrêté [visuel ralenti pour éviter l'effet stroboscopique]
 let _ft=performance.now(); const _lu=lightsUpdate; lightsUpdate=function(){ _lu.apply(this,arguments); try{ const F=MODEL&&MODEL.userData.fans; if(!F) return; const now=performance.now(), dt=Math.min(0.1,(now-_ft)/1000); _ft=now;
   F.forEach(x=>{ const n=(S.n2&&S.n2[x.i])||0, wm=S.onGround?0:Math.min(1,(S.V||0)/120)*1.5; x.o.rotation.z-=(n>0.02?4+n*26:wm)*dt; }); }catch(e){} };

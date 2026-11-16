@@ -12,9 +12,10 @@ const HULL={
  lj60:M2([[0,-8.4,0,8.6,1.0],[0,-9.3,0,-8.4,0.6],[1.0,0.6,3.8,1.2,1.0],[3.8,1.2,6.6,1.7,0.6],[1.65,3.5,1.65,7.6,0.65]]),
  h125:M2([[0,-4.2,0,1.6,1.05],[0,1.6,0,6.6,0.35],[0,6.6,0,7.3,0.45],[1.15,-2.6,1.15,1.6,0.1]]),
  r44:M2([[0,-3.4,0,1.0,0.72],[0,1.0,0,5.4,0.22],[0,5.4,0,5.9,0.3],[1.1,-2.2,1.1,1.2,0.08]]),
+ c172:M2([[0,-3.3,0,0.8,0.62],[0,0.8,0,4.6,0.3],[1.25,-0.2,1.25,0.25,0.05],[0,-3.6,0,-3.3,0.25]]),   // fuselage, cône arrière ; jambes de train ; aile haute : on passe dessous
  s76:M2([[0,-6.0,0,3.0,1.15],[0,-6.7,0,-6.0,0.7],[0,3.0,0,8.3,0.45],[0,8.3,0,8.9,0.5],[1.3,0.6,1.3,1.4,0.3],[0,-4.8,0,-4.3,0.3]])
 };
-const RAD={a320:17.9,b777:32.4,lj60:6.7,h125:5.4,r44:5.0,s76:6.7};   // demi-envergure / rayon rotor : pour les bâtiments
+const RAD={c172:5.5,a320:17.9,b777:32.4,lj60:6.7,h125:5.4,r44:5.0,s76:6.7};   // demi-envergure / rayon rotor : pour les bâtiments
 const MARGIN=0.35;                                          // demi-largeur d'épaules d'un piéton
 function segDist(px,pz,c){ const [x1,z1,x2,z2]=c, dx=x2-x1, dz=z2-z1, L=dx*dx+dz*dz, t=L?Math.max(0,Math.min(1,((px-x1)*dx+(pz-z1)*dz)/L)):0, cx=x1+dx*t, cz=z1+dz*t, d=Math.hypot(px-cx,pz-cz); return [d,px-cx,pz-cz]; }
 function hullHit(mx,mz,k){ let best=null; (HULL[k||ACK]||[]).forEach(c=>{ const [d,nx,nz]=segDist(mx,mz,c), pen=c[4]+MARGIN-d; if(pen>0&&(!best||pen>best.pen)){ const n=d>1e-6?[nx/d,nz/d]:[mx>=0?1:-1,0]; best={pen,n}; } }); return best; }

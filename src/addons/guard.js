@@ -7,7 +7,7 @@
 const ad=()=>{ try{ return airdata(); }catch(e){ return {alt:S.alt/FT,cas:0,gs:0}; } };
 const air=()=>!S.onGround, A_=()=>ad().alt, V=()=>ad().cas, fw=()=>A.kind==='fw';
 const fail=k=>!!(window.FAIL&&FAIL[k]);
-const VFE={a320:{'1':230,'2':200,'3':185,'FULL':177},b777:{'1':255,'5':235,'15':215,'20':195,'25':185,'30':170},lj60:{'8':250,'20':200,'40':150}};
+const VFE={a320:{'1':230,'2':200,'3':185,'FULL':177},b777:{'1':255,'5':235,'15':215,'20':195,'25':185,'30':170},lj60:{'8':250,'20':200,'40':150},c172:{'10':110,'20':85,'30':85}};
 const R=[];   // {ids, bad(next,el), y (titre, texte jaune), r (conséquences), no (impossible : pas de forçage), fx (effet supplémentaire)}
 const rule=(ids,bad,y,r,o)=>R.push(Object.assign({ids:[].concat(ids),bad,y,r},o||{}));
 /* ---- train ---- */

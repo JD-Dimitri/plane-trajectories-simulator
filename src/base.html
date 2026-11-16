@@ -502,7 +502,7 @@ function fwStep(dt){ const a=A, st=S, rho=isaRho(st.alt), sig=rho/1.225, fl=a.fl
   const ice=MI&&typeof ICE!=='undefined'?ICE.a:0, CL0=a.CL0+fl.a, CLmax=(a.CLmax+fl.b)*(1-0.22*ice), CD0=a.CD0+fl.c+(st.gear?a.gearCD:0)+(st.spoil?0.03:0)+0.010*ice;   // givrage : Clmax −22 %, traînée +100 points au maximum [ESTIMÉ, ordres de grandeur publiés]
   const gu=!st.onGround&&MI&&typeof GUST!=='undefined'?GUST:{u:0,w:0}, hw=st.onGround&&MI?windHead():0, V=Math.max(st.V+hw+gu.u,0.1), q=0.5*rho*V*V, alpha=st.th-st.gam+gu.w/Math.max(V,30);   // rafales : incidence et vitesse air   // au sol S.V = vitesse sol ; vitesse air = S.V + vent de face
   let CL=CL0+a.CLa*alpha; st.stall=!st.onGround && CL>CLmax; if(st.stall) CL=CLmax*0.72;
-  const Mm=st.mass||a.m, L=q*a.S*CL, Dg=q*a.S*(CD0+a.k*CL*CL), nEng=st.eng.filter(Boolean).length/2, T=st.thr*a.Tmax*nEng*Math.pow(sig,0.8), W=Mm*G0;
+  const Mm=st.mass||a.m, L=q*a.S*CL, Dg=q*a.S*(CD0+a.k*CL*CL), nEng=a.single?(st.eng[0]?1:0):st.eng.filter(Boolean).length/2, T=a.prop?nEng*a.Tmax*(0.05+0.95*st.thr)*(st.pk??1)*sig*Math.max(0.25,1-V/a.prop):st.thr*a.Tmax*nEng*Math.pow(sig,0.8), W=Mm*G0;   // hélice (moteur à pistons) : traction maximale au point fixe, décroissante avec la vitesse [ESTIMÉ]
   const elev=elevAt(st.lat,st.lon);
   // commandes (pilote ou pilote auto)
   const pin=IN.pitch, rin=IN.roll;
