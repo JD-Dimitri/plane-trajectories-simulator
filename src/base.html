@@ -1631,7 +1631,7 @@ function autoBar(f){ const g=$('guide'); if(!g) return; let b=g.querySelector('.
 function autoWalk(dt){ if(!AUTO.on||view!=='walk'||AUTO.stage==='read') return; const pts=WALKPTS[ACK]||[]; let i=0; while(i<pts.length&&GD.seen.has(i)) i++; if(i>=pts.length) return;
   const q=m2l(pts[i][0],pts[i][1]), dx=q[0]-GD.walk.x, dz=q[1]-GD.walk.z, d=Math.hypot(dx,dz); if(d<0.3) return;
   // contourner l'appareil : ne pas traverser le fuselage
-  const sp=Math.min(d,2.2*dt); GD.walk.x+=dx/d*sp; GD.walk.z+=dz/d*sp; const yaw=Math.atan2(-dx,-dz); GD.walk.yaw+=wrapPi(yaw-GD.walk.yaw-LK.yaw)*Math.min(1,dt*3); }
+  const sp=Math.min(d,0.88*dt); GD.walk.x+=dx/d*sp; GD.walk.z+=dz/d*sp; const yaw=Math.atan2(-dx,-dz); GD.walk.yaw+=wrapPi(yaw-GD.walk.yaw-LK.yaw)*Math.min(1,dt*3); }
 /* ---- pilotage automatique avion ---- */
 function fafOf(code,rw,km){ const r=rwStart(code,rw); const p=offsetLL(r.lat,r.lon,-km*1000*Math.cos(r.hdg*D2R),-km*1000*Math.sin(r.hdg*D2R)); return {lat:p[0],lon:p[1],hdg:r.hdg}; }
 function flyFW(dt){ const L=LS, st=GD.steps[GD.i]||{}, agl=(S.alt-elevAt(S.lat,S.lon))/FT, cas=casFromTas(S.V,S.alt)/KT;

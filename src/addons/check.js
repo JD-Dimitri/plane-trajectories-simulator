@@ -47,5 +47,5 @@ const _g=goStep; goStep=function(i){ if(typeof GD!=='undefined'&&GD.on&&i===GD.i
   if(m.length){ PEND=()=>goStep(i); render(`⚠ Avant de passer à l'étape ${i}, ${m.length} sous-étape(s) ne sont pas faites (en rouge). Faites-les, ou passez quand même.`); return; } }
  return _g.apply(this,arguments); };
 const _sm=startMission; startMission=function(){ DONE.clear(); return _sm.apply(this,arguments); };
-window.CKL={open:()=>render(),missing:()=>{ rec(); return missing(0,GD.i).map(m=>m.it[0]); }};
+window.CKL={done:(i,j)=>{ rec(); const it=GD.steps[i]&&GD.steps[i].items[j]; return DONE.has(key(i,j))||(it?chk(it):false); },go:(i,j)=>gotoItem({i,j,st:GD.steps[i],it:GD.steps[i].items[j]}),open:()=>render(),missing:()=>{ rec(); return missing(0,GD.i).map(m=>m.it[0]); }};
 })();
