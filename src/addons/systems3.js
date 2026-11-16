@@ -5,7 +5,19 @@ if(!window.SYSAT) return;
 const MOD=SYSAT.MOD, mv=(...a)=>SYSAT.moveActor(...a);
 /* ---------- feuille d'équipage et manifeste ---------- */
 const DEF={vol:'AT 123',imm:'F-HTRJ',dep:'KJFK',arr:'LFPG',cdb:'Claire Martin',opl:'Thomas Leroy',cc:'Sarah Benali',pnc2:'Hugo Petit',g2:'Steward',pnc3:'Léa Moreau',g3:'Hôtesse',pnc4:'Inès Faure',g4:'Hôtesse',meca:'Marc Dubois',pax:132,paxl:'DURAND Paul · 3A\nNGUYEN Linh · 3B\nMARTINS Ana · 12C\nKOWALSKI Jan · 18F'};
-let CREW=Object.assign({},DEF); try{ Object.assign(CREW,JSON.parse(localStorage.getItem('sa-crew')||'{}')); }catch(e){}
+// une feuille d'équipage et une liste de passagers PAR APPAREIL (sièges conformes à sa cabine)
+const KEYOF=x=>typeof x==='string'?x:x===6?'lj60':x===5?'h125':x===12?'s76':x===3?'r44':'a320';
+const PERAC={ a320:{vol:'AT 123',imm:'F-HTRJ',dep:'KJFK',arr:'LFPG',pax:132}, lj60:{vol:'AT 60',imm:'F-HTLJ',dep:'KJFK',arr:'LFPG',pax:4,cc:'',pnc2:'',pnc3:'',pnc4:''},
+  h125:{vol:'AT 125',imm:'F-HTEC',dep:'KJRB',arr:'JFKH',pax:4,opl:'',cc:'',pnc2:'',pnc3:'',pnc4:''}, s76:{vol:'AT 76',imm:'F-HTSK',dep:'KJRB',arr:'JFKH',pax:10,cc:'',pnc2:'',pnc3:'',pnc4:''},
+  r44:{vol:'AT 44',imm:'F-HTRB',dep:'KJRB',arr:'JFKH',pax:2,opl:'',cc:'',pnc2:'',pnc3:'',pnc4:''} };
+let CKEY='a320';
+function defFor(k){ const d=Object.assign({},DEF,PERAC[k]||{}); const lay=LAY(k); if(k!=='a320'){ const L=[]; fillPax(lay,L,d.pax); d.paxl=L.map(p=>p.n+' · '+p.s).join('\n'); } return d; }
+// remet chaque passager sur un siège qui existe dans CETTE cabine et limite le nombre à la capacité
+function sanitize(c,k){ const lay=LAY(k); c.pax=Math.max(0,Math.min(lay.all.length,+c.pax||0)); const L=(c.paxl||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{ const p=l.split(/\s*[·|;]\s*/); return {n:p[0],s:(p[1]||'').toUpperCase().replace(/\s/g,'')}; });
+  const seen=new Set(); L.forEach(p=>{ if(!lay.all.includes(p.s)||seen.has(p.s)) p.s=''; else seen.add(p.s); }); const keep=L.slice(0,lay.all.length); fillPax(lay,keep,keep.length); c.paxl=keep.map(p=>p.n+(p.s?' · '+p.s:'')).join('\n'); return c; }
+function useCrew(k){ k=KEYOF(k); CKEY=k; let saved={}; try{ saved=JSON.parse(localStorage.getItem('sa-crew-'+k)||(k==='a320'?localStorage.getItem('sa-crew'):null)||'{}'); }catch(e){}
+  CREW=sanitize(Object.assign(defFor(k),saved),k); return CREW; }
+let CREW=Object.assign({},DEF);
 const last=n=>String(n||'').trim().split(/\s+/).pop();
 const css=document.createElement('style'); css.textContent=`#sacrew{position:fixed;inset:0;z-index:80;background:#000c;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:12px}
 #sacrew .w{width:min(760px,100%);margin:auto 0;background:#f4f1e8;color:#14181c;border-radius:6px;box-shadow:0 10px 40px #000;font:14px/1.4 'Inter',sans-serif}
@@ -16,7 +28,7 @@ const css=document.createElement('style'); css.textContent=`#sacrew{position:fix
 #sacrew textarea{min-height:76px;font:13px 'JetBrains Mono',monospace}#sacrew .ft{display:flex;gap:8px;justify-content:flex-end;padding:10px 14px;border-top:1px solid #c9c2b0;flex-wrap:wrap}
 #sacrew button{border-radius:6px;padding:9px 14px;font:700 14px 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border:1px solid #14181c;background:#fff;color:#14181c}#sacrew .go{background:#1f8a4c;color:#fff;border-color:#1f8a4c}
 #sacrew .note{font-size:12px;color:#5a646e;margin:6px 0 0}
-#sacrew .addp{display:grid;grid-template-columns:1fr 1fr 88px auto;gap:6px;margin-top:6px}#sacrew .addp button,#sacrew .paxb button{padding:6px 10px;font-size:13px}
+#sacrew .addp{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:6px;margin-top:6px}#sacrew .addp>*{min-width:0}#sacrew .addp button,#sacrew .paxb button{padding:6px 10px;font-size:13px}
 #sacrew .paxb{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}#sacrew .paxb span{font:600 12px 'JetBrains Mono',monospace;color:#4a5560}
 #seatmap{position:fixed;inset:0;z-index:86;background:#071019;display:flex;flex-direction:column;align-items:center;overflow:auto;padding:10px;color:#e8eef2;font:13px 'Inter',sans-serif}
 #seatmap .sh{width:min(560px,100%);display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}#seatmap .sh b{font:700 18px 'Barlow Condensed',sans-serif;letter-spacing:.06em}
@@ -24,11 +36,11 @@ const css=document.createElement('style'); css.textContent=`#sacrew{position:fix
 #seatmap .lg{width:min(560px,100%);display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#9fb3c4;margin-bottom:6px}#seatmap .lg i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
 #seatmap .info{width:min(560px,100%);min-height:20px;background:#0d1b28;border:1px solid #1d2f40;border-radius:8px;padding:6px 10px;margin-bottom:6px}
 #seatmap svg{max-width:min(560px,100%);height:auto}#seatmap .seat{cursor:pointer}`; document.head.appendChild(css);
-function form(cb,small){ let m=document.getElementById('sacrew'); if(m) m.remove(); m=document.createElement('div'); m.id='sacrew'; const v=CREW;
+function form(cb,small){ useCrew(small); let m=document.getElementById('sacrew'); if(m) m.remove(); m=document.createElement('div'); m.id='sacrew'; const v=CREW;
  const f=(k,l,t='text',ex='')=>`<label>${l}<input name="${k}" type="${t}" value="${String(v[k]??'').replace(/"/g,'&quot;')}" ${ex}></label>`, g=(k)=>`<select name="${k}">${['Hôtesse','Steward'].map(o=>`<option ${v[k]===o?'selected':''}>${o}</option>`).join('')}</select>`;
- m.innerHTML=`<div class="w"><div class="hd"><b>FEUILLE D'ÉQUIPAGE · MANIFESTE</b><small>GENERAL DECLARATION / CREW LIST</small></div><div class="bd">
+ m.innerHTML=`<div class="w"><div class="hd"><b>FEUILLE D'ÉQUIPAGE · MANIFESTE · ${({a320:'A320',lj60:'LEARJET 60',h125:'H125',s76:'S-76',r44:'R44'})[CKEY]}</b><small>GENERAL DECLARATION / CREW LIST</small></div><div class="bd">
   <h4>Vol</h4><div class="g">${f('vol','N° de vol')}${f('imm','Immatriculation')}${f('dep','Départ (OACI)')}${f('arr','Arrivée (OACI)')}</div>
-  <h4>Équipage technique</h4><div class="g">${f('cdb','Commandant de bord (CDB)')}${f('opl','Officier pilote de ligne (OPL)')}${f('meca','Mécanicien sol')}</div>
+  <h4>Équipage technique</h4><div class="g">${f('cdb','Commandant de bord (CDB)')}${['h125','r44'].includes(CKEY)?'':f('opl',CKEY==='a320'?'Officier pilote de ligne (OPL)':'Copilote')}${f('meca','Mécanicien sol')}</div>
   ${small?'':`<h4>Équipage de cabine (PNC)</h4><div class="g">${f('cc','Chef de cabine')}<label>PNC 2 ${g('g2')}<input name="pnc2" value="${v.pnc2}"></label><label>PNC 3 ${g('g3')}<input name="pnc3" value="${v.pnc3}"></label><label>PNC 4 ${g('g4')}<input name="pnc4" value="${v.pnc4}"></label></div>`}
   <h4>Passagers</h4><div class="g">${f('pax','Nombre de passagers','number',`min="0" max="${small?small:180}"`)}</div><label style="margin-top:8px">Liste nominative (NOM Prénom · siège)<textarea name="paxl" style="min-height:120px">${v.paxl}</textarea></label>
   <div class="addp"><input data-ln placeholder="NOM" aria-label="Nom"><input data-fn placeholder="Prénom" aria-label="Prénom"><select data-se aria-label="Siège"></select><button type="button" data-add>➕ Ajouter</button></div>
@@ -36,16 +48,16 @@ function form(cb,small){ let m=document.getElementById('sacrew'); if(m) m.remove
   <p class="note">Comme la « General Declaration » remise aux autorités : équipage, nombre et liste des passagers. Les noms sont fictifs et modifiables ; ils sont repris par les personnages du schéma et dans les dialogues.</p></div>
   <div class="ft"><button type="button" data-r>Valeurs par défaut</button><button type="button" data-x>Annuler</button><button type="button" class="go" data-ok>✓ Valider et présenter l'équipage</button></div></div>`;
  document.body.appendChild(m); paxUI(m,small); m.querySelector('[name=paxl]').addEventListener('input',()=>paxUI(m,small)); m.querySelector('[name=pax]').addEventListener('input',()=>paxUI(m,small));
- m.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; if(b.dataset.x!=null) m.remove(); if(b.dataset.r!=null){ CREW=Object.assign({},DEF); m.remove(); form(cb,small); }
+ m.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; if(b.dataset.x!=null) m.remove(); if(b.dataset.r!=null){ try{ localStorage.removeItem('sa-crew-'+CKEY); if(CKEY==='a320') localStorage.removeItem('sa-crew'); }catch(e){} m.remove(); form(cb,small); }
   if(b.dataset.add!=null){ const ln=m.querySelector('[data-ln]'), fn=m.querySelector('[data-fn]'), se=m.querySelector('[data-se]'); const nom=(ln.value||'').trim().toUpperCase(), pre=(fn.value||'').trim(); if(!nom){ ln.focus(); return; }
     const L=paxParse(m), seat=se.value||freeSeats(LAY(small),L)[0]||''; L.push({n:(nom+' '+pre).trim(),s:seat}); paxWrite(m,L); ln.value=''; fn.value=''; paxUI(m,small); return; }
   if(b.dataset.fill!=null){ const L=paxParse(m), n=Math.max(+m.querySelector('[name=pax]').value||0,L.length); fillPax(LAY(small),L,n); paxWrite(m,L); paxUI(m,small); return; }
   if(b.dataset.seat!=null){ seatMap(m,small); return; }
-  if(b.dataset.ok!=null){ m.querySelectorAll('[name]').forEach(i=>{ CREW[i.name]=i.type==='number'?Math.max(0,Math.min(+i.max||180,+i.value||0)):i.value; }); try{ localStorage.setItem('sa-crew',JSON.stringify(CREW)); }catch(e){} m.remove(); cb(); } }); }
+  if(b.dataset.ok!=null){ m.querySelectorAll('[name]').forEach(i=>{ CREW[i.name]=i.type==='number'?Math.max(0,Math.min(+i.max||180,+i.value||0)):i.value; }); sanitize(CREW,CKEY); try{ localStorage.setItem('sa-crew-'+CKEY,JSON.stringify(CREW)); }catch(e){} m.remove(); cb(); } }); }
 
 /* ---------- plan de cabine : dispositions types, liste nominative, vue du dessus des sièges ---------- */
 // dispositions [cabine, rangs, groupes de lettres de part et d'autre des couloirs] ; rangées d'issues de secours
-function LAY(small){ const k=small===6?'lj60':small===5?'h125':small===12?'s76':small===3?'r44':(typeof ACK!=='undefined'&&ACK==='b777'?'b777':'a320');
+function LAY(small){ const k=small==null?CKEY:KEYOF(small);
   const R=(c,a,b,g,ex)=>{ const o=[]; for(let r=a;r<=b;r++) o.push({r,c,g,ex:(ex||[]).includes(r)}); return o; };
   const L={ a320:{n:'A320 · 180 sièges (30 rangs, 3-3) · issues au-dessus de l\'aile rangs 11-12',rows:R('Y',1,30,[['A','B','C'],['D','E','F']],[11,12])},
     b777:{n:'777-300ER · 442 sièges type Air Austral (18 J · 40 W · 384 Y)',rows:[...R('J',1,3,[['A','C'],['D','G'],['H','K']]),...R('W',6,10,[['A','C'],['D','E','F','G'],['H','K']]),...R('Y',20,57,[['A','B','C'],['D','E','F','G'],['H','J','K']],[20,33,47]),{r:58,c:'Y',g:[[],['D','E','F','G'],[]]}]},
@@ -88,6 +100,8 @@ function seatMap(m,small){ const lay=LAY(small); let L=paxParse(m), sel=null; le
       if(sel&&sel!==id&&by[sel]!=null&&i==null){ L[by[sel]].s=id; sel=null; draw(); return; }
       sel=sel===id?null:id; draw(); }); };
   draw(); }
+try{ const _op=SYSAT.open; SYSAT.open=function(k){ try{ useCrew(k||'a320'); }catch(e){} return _op.apply(this,arguments); }; }catch(e){}
+useCrew('a320');
 /* ---------- outils de parcours ---------- */
 const Q=(t,n,o)=>Object.assign({t,n},o||{});            // séquence (sans commande)
 const K=(c,v,n,say,w,wt)=>({c,v,n,say,w,wt});            // commande
@@ -99,7 +113,7 @@ const SX={A:183.5,B:188.5,C:193.5,D:206.5,E:211.5,F:216.5};
 function seatOrder(lay){ const named=(CREW.paxl||'').split('\n').map(l=>((l.split(/\s*[·|;]\s*/)[1])||'').toUpperCase().replace(/\s/g,'')).filter(x=>lay.all.includes(x));
   const used=new Set(named), rest=lay.all.filter(x=>!used.has(x)); let seed=12345; const rnd=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
   for(let i=rest.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [rest[i],rest[j]]=[rest[j],rest[i]]; } return named.concat(rest); }
-function seats(n){ const lay=LAY(); if(lay.k!=='a320'){ lay.all=[]; for(let r=1;r<=30;r++) for(const l of 'ABCDEF') lay.all.push(r+l); }
+function seats(n){ const lay=LAY('a320'); if(lay.k!=='a320'){ lay.all=[]; for(let r=1;r<=30;r++) for(const l of 'ABCDEF') lay.all.push(r+l); }
   return seatOrder(lay).slice(0,n).map(id=>{ const r=parseInt(id,10), l=id.replace(/^\d+/,''); return [SX[l]||200,150+(r-1)*10]; }); }
 const NPAX=()=>Math.max(0,Math.min(180,Math.round(+CREW.pax||0)));
 /* ---------- A320 : parcours complet ---------- */
