@@ -5418,6 +5418,7 @@ const css=document.createElement('style'); css.textContent=`
 #sysat .fbad{outline:3px solid #ff2b2b!important;outline-offset:3px;border-radius:8px;background:#ff2b2b33!important;animation:saflash .4s 3}
 #sysat .tour.auto{border-color:#3ddc84;background:#071a10}#sysat .tour.auto b.t{color:#3ddc84}#sysat .tour.exam{border-color:#ff3b30;background:#1a0707}#sysat .tour.exam b.t{color:#ff6a60}
 #sysat .phb{display:flex;flex-wrap:wrap;gap:3px;margin:5px 0}#sysat .phb span{font:600 10.5px 'Barlow Condensed',sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:#1d2f40;color:#8fa4b8}#sysat .phb span.dn{background:#1f8a4c55;color:#9ff0bf}#sysat .phb span.cur{background:#e04ad8;color:#fff}
+#sysat .errtag{display:inline-block;margin:4px 0;padding:2px 8px;border-radius:6px;background:#ff3b30;color:#fff;font:700 12px 'Barlow Condensed',sans-serif;letter-spacing:.1em}#sysat .tour .an{border-left:3px solid #ffa21a;padding-left:8px;margin:6px 0}#sysat .tour .an p{margin:4px 0;font-size:13.5px}
 #sysat .tour .res{font:700 30px 'Barlow Condensed',sans-serif}#sysat .tour ul{margin:4px 0;padding-left:18px;font-size:13px}
 #sysat .hrow{display:flex;gap:4px;align-items:center;flex-wrap:wrap}#sysat .pre{display:flex;gap:4px;flex-wrap:wrap}#sysat header button{white-space:nowrap}#sysat .pre button.on{background:#e04ad8;border-color:#e04ad8}
 #sysat .main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(280px,340px) minmax(300px,1fr) minmax(300px,1fr);grid-template-areas:"ctl mid sch";overflow:hidden}
@@ -5657,7 +5658,9 @@ function step(s,dt){ const k=kk(s); s.t+=dt;
  if(s.apuSt===3){ s.apuN=Math.max(0,s.apuN-dt*12); if(s.apuN<=0) s.apuSt=0; }
  if(s.apuSt===2) s.apuN+=(100-s.apuN)*Math.min(1,dt);
  // pannes
- const fl=s.fail||{}; if(fl.e1&&s.es[0]) s.es[0]=0; if(fl.e2&&s.es[1]) s.es[1]=0;
+ const fl=s.fail||{};
+ if(fl.leak){ const r=45*dt*fl.leak, take=(a,b,q)=>{ const t=Math.min(q,s.fuel[a]); s.fuel[a]-=t; s.fuel[b]=Math.max(0,s.fuel[b]-(q-t)); }; take('lo','li',r); if(s.xfeed){ take('ro','ri',r*0.6); s.fuel.c=Math.max(0,s.fuel.c-r*0.6); } }
+ if(s.fuel.lo+s.fuel.li<=0&&(!s.xfeed||s.fuel.c<=0)) fl.e1=1; if(s.fuel.ro+s.fuel.ri<=0&&s.fuel.c<=0) fl.e2=1; if(s.fuel.lo+s.fuel.li<=0&&s.xfeed&&s.fuel.c<=0) fl.e2=fl.e2||(s.fuel.ro+s.fuel.ri<=0?1:0); if(fl.e1&&s.es[0]) s.es[0]=0; if(fl.e2&&s.es[1]) s.es[1]=0;
  if(!s.ground&&!k.acAny&&s.es[0]!==2&&s.es[1]!==2&&(s.n2[0]>0||s.n2[1]>0||fl.e1||fl.e2)) s.rat=true;
  // moteurs
  for(let i=0;i<2;i++){ const m=s['m'+(i+1)];
@@ -5739,7 +5742,7 @@ function ev(s){ const k=kk(s), p={}; const A=(id,c,m)=>{ p[id]=m?[c,m]:c; };
  // feux
  if(k.lights){ if(s.nav){ A('navL','lr'); A('navR','lg'); A('navT','lt'); A('logo','lt'); } if(s.beacon) A('bcn','lr','blink');
   if(s.strobe==='ON'||(s.strobe==='AUTO'&&!s.ground)) A('stb','lt','blink'); if(s.land) A('land','lt'); if(s.taxi!=='OFF') A('taxi','lt'); }
- if(s.masks) A('masks','hy','blink'); if(k.acAny&&(s.xpdr==='AUTO')) A('avio2','dat');
+ if(s.masks) A('masks','hy','blink'); if(s.fail&&s.fail.pitot) A('probe','warn','blink'); if(s.fail&&s.fail.leak) A('tLo','warn','blink'); if(k.acAny&&(s.xpdr==='AUTO')) A('avio2','dat');
  // feu moteur
  if(s.fire1){ A('e1','fire','blink'); A('e1fire','fire','blink'); } if(s.ag1){ A('ag1','ac'); if(s.agT<3) A('f_ag1','ac','flow'); }
  // live
@@ -6056,7 +6059,7 @@ function relayout(){ const a=dom(), mob=matchMedia('(max-width:900px)').matches,
 function load(ac){ M=MOD[ac]; if(!M) return; AC=ac; S=M.preset?M.preset(PRE='cold'):M.init(); world(); LAST=null; TOUR=null; PAGE=M.pages[0]; exPrev=''; pgPrev='';
  const a=dom(); a.querySelector('[data-acsel]').innerHTML=Object.keys(MOD).map(k=>`<option value="${k}" ${k===ac?'selected':''}>${MOD[k].name}</option>`).join('');
  a.querySelector('.tt > span').textContent=M.sub;
- const svg=a.querySelector('svg.ac'); svg.setAttribute('viewBox',M.vb); svg.innerHTML='<g class="env"></g>'+M.svg+'<g class="actors"></g><g class="tags"></g><text class="hud" x="6" y="14"></text>'; ENVK='';
+ const svg=a.querySelector('svg.ac'); svg.setAttribute('viewBox',M.vb); svg.innerHTML='<g class="env"></g>'+M.svg+'<g class="actors"></g><g class="fx"></g><g class="tags"></g><text class="hud" x="6" y="14"></text>'; ENVK='';
  svg.querySelectorAll('[data-p]').forEach(el=>{ el._k=''; const t=document.createElementNS('http://www.w3.org/2000/svg','title'); t.textContent=M.names[el.dataset.p]||el.dataset.p; el.appendChild(t); });
  a.querySelector('.pre').innerHTML=(M.presets||[]).map(p=>`<button type="button" data-pre="${p[0]}" class="${p[0]===PRE?'on':''}">${p[1]}</button>`).join('');
  a.querySelector('.leg').innerHTML=M.legend.map(c=>`<span><i style="background:${C[c]}"></i>${LEGN[c]}</span>`).join('')+'<span><i style="background:#fff;box-shadow:0 0 5px #fff"></i>Pièce touchée par la commande</span><span><i style="background:none;border:2px solid #ffa21a"></i>Commandé mais bloqué</span>';
@@ -6150,7 +6153,7 @@ function wstep(dt){ const f=S.fl; if(!f) return;
  for(const id in S.act){ const a=S.act[id]; if(!a.path||!a.path.length) continue; const [tx,ty]=a.path[0], dx=tx-a.x, dy=ty-a.y, d=Math.hypot(dx,dy), st=(a.spd||22)*dt; if(d<=st){ a.x=tx; a.y=ty; a.path.shift(); } else { a.x+=dx/d*st; a.y+=dy/d*st; } if(a.foot){ a.acc=(a.acc||0)+Math.min(d,st); if(a.acc>11){ a.acc=0; AU.foot(); } } if(a.veh) VEH=performance.now()+400; } }
 let VEH=0;
 function moveActor(id,path,o){ o=o||{}; let a=S.act[id]; const def=(M.actors||{})[id.replace(/\d+$/,'')]||(M.actors||{})[id]||{c:'#fff',l:id};
- if(!a||o.at){ const p0=o.at||(path&&path[0])||[0,0]; a=S.act[id]={x:p0[0],y:p0[1],c:o.c||def.c,l:o.l!=null?o.l:def.l,r:o.r||def.r||5,sq:o.sq||def.sq,w:o.w||def.w,h:o.h||def.h,spd:o.spd||def.spd,foot:o.foot!=null?o.foot:def.foot,veh:def.veh||o.veh,path:[]}; }
+ if(!a||o.at){ const p0=o.at||(path&&path[0])||[0,0]; a=S.act[id]={ac:o.ac||def.ac,rot:o.rot||def.rot,sc:o.sc||def.sc,x:p0[0],y:p0[1],c:o.c||def.c,l:o.l!=null?o.l:def.l,r:o.r||def.r||5,sq:o.sq||def.sq,w:o.w||def.w,h:o.h||def.h,spd:o.spd||def.spd,foot:o.foot!=null?o.foot:def.foot,veh:def.veh||o.veh,path:[]}; }
  if(o.hide){ delete S.act[id]; return; } a.path=(path||[]).map(p=>p.slice()); if(o.spd) a.spd=o.spd; }
 function actorsIdle(ids){ return (ids||Object.keys(S.act)).every(id=>!S.act[id]||!S.act[id].path.length); }
 function paintWorld(){ if(!M||!S.fl) return; const svg=$s('svg.ac'), f=S.fl, vb=svg.viewBox.baseVal, W=vb.width, H=vb.height, env=svg.querySelector('.env');
@@ -6159,13 +6162,21 @@ function paintWorld(){ if(!M||!S.fl) return; const svg=$s('svg.ac'), f=S.fl, vb=
   else if(f.env==='pad') h=`<rect width="${W}" height="${H}" fill="#1b2128"/><circle cx="${W/2}" cy="${H*0.42}" r="${W*0.3}" fill="none" stroke="#e8eef244" stroke-width="5"/><text x="${W/2}" y="${H*0.42+40}" text-anchor="middle" fill="#e8eef222" font-size="120" font-weight="700">H</text>`;
   else if(f.env==='taxi') h=`<rect width="${W}" height="${H}" fill="#14181b"/><rect x="${W*0.3}" y="0" width="${W*0.4}" height="${H}" fill="#23292f"/><path class="mv" d="M${W/2} -60 V${H+60}" stroke="#e8c33a" stroke-width="3" stroke-dasharray="26 14"/><path class="mv" d="M${W*0.3} -60 V${H+60} M${W*0.7} -60 V${H+60}" stroke="#4a8bff" stroke-width="4" stroke-linecap="round" stroke-dasharray="0.1 40"/>`;
   else if(f.env==='rwy') h=`<rect width="${W}" height="${H}" fill="#101315"/><rect x="${W*0.3}" y="0" width="${W*0.4}" height="${H}" fill="#2b3036"/><path class="mv" d="M${W/2} -60 V${H+60}" stroke="#fff" stroke-width="4" stroke-dasharray="30 30"/><path class="mv" d="M${W*0.3} -60 V${H+60} M${W*0.7} -60 V${H+60}" stroke="#fff6c0" stroke-width="5" stroke-linecap="round" stroke-dasharray="0.1 36"/>`;
+  else if(f.env==='grass') h=`<rect width="${W}" height="${H}" fill="#16301c"/><rect x="${W*0.3}" y="${H*0.78}" width="${W*0.4}" height="${H*0.22}" fill="#2b3036"/><path d="M${W*0.3} ${H*0.78} H${W*0.7}" stroke="#ff3b30" stroke-width="5" stroke-dasharray="4 10"/>${[...Array(30).keys()].map(i=>`<circle class="mvg" data-y="${(i*41)%H}" cx="${(i*67)%W}" cy="0" r="3" fill="#2f5a36"/>`).join('')}`;
   else if(f.env==='water') h=`<rect width="${W}" height="${H}" fill="#0a3a57"/>${[...Array(14).keys()].map(i=>`<path class="mv" d="M${(i*53)%W} -60 V${H+60}" stroke="#ffffff22" stroke-width="2" stroke-dasharray="14 40"/>`).join('')}`;
   else h=`<rect class="sky" width="${W}" height="${H}" fill="#0b2a44"/>${[...Array(9).keys()].map(i=>`<ellipse class="cl" data-y="${(i*137)%H}" cx="${(i*97+40)%W}" cy="0" rx="${30+(i*13)%40}" ry="${12+(i*7)%14}" fill="#ffffff" opacity="0.13"/>`).join('')}`;
   env.innerHTML=h; }
  const sc=f.scroll; env.querySelectorAll('.mv').forEach(e=>e.setAttribute('stroke-dashoffset',(-sc).toFixed(1)));
+ if(f.env==='grass') env.querySelectorAll('.mvg').forEach(e=>e.setAttribute('cy',(((+e.dataset.y+sc*0.9)%(H+20))-10).toFixed(1)));
  if(f.env==='air'){ const sky=env.querySelector('.sky'); if(sky){ const t=Math.min(1,f.alt/35000); sky.setAttribute('fill',`rgb(${Math.round(40-30*t)},${Math.round(80-50*t)},${Math.round(120-50*t)})`); }
   env.querySelectorAll('.cl').forEach(e=>{ const y=((+e.dataset.y+sc*0.6)%(H+80))-40; e.setAttribute('cy',y.toFixed(1)); e.setAttribute('opacity',f.alt>30000?0.06:0.14); }); }
- const g=svg.querySelector('.actors'); let ah=''; for(const id in S.act){ const a=S.act[id]; ah+=a.sq?`<rect x="${(a.x-(a.w||16)/2).toFixed(1)}" y="${(a.y-(a.h||10)/2).toFixed(1)}" width="${a.w||16}" height="${a.h||10}" rx="2" fill="${a.c}" stroke="#000"/>`:`<circle cx="${a.x.toFixed(1)}" cy="${a.y.toFixed(1)}" r="${a.r}" fill="${a.c}" stroke="#fff" stroke-width="${a.r>3?1.2:0.5}"/>`; if(a.l) ah+=`<text x="${(a.x+(a.sq?(a.w||16)/2:a.r)+2).toFixed(1)}" y="${(a.y+3).toFixed(1)}">${a.l}</text>`; } if(g._h!==ah){ g.innerHTML=ah; g._h=ah; }
+ const g=svg.querySelector('.actors'); let ah=''; for(const id in S.act){ const a=S.act[id]; ah+=a.ac?`<path transform="translate(${a.x.toFixed(1)} ${a.y.toFixed(1)}) rotate(${a.rot||0}) scale(${a.sc||1.6})" d="M0 -14 L2.5 -4 L14 2 L14 5 L2.5 2 L2 10 L6 13 L6 15 L-6 15 L-6 13 L-2 10 L-2.5 2 L-14 5 L-14 2 L-2.5 -4 Z" fill="${a.c}" stroke="#000" stroke-width=".6"/>`:a.sq?`<rect x="${(a.x-(a.w||16)/2).toFixed(1)}" y="${(a.y-(a.h||10)/2).toFixed(1)}" width="${a.w||16}" height="${a.h||10}" rx="2" fill="${a.c}" stroke="#000"/>`:`<circle cx="${a.x.toFixed(1)}" cy="${a.y.toFixed(1)}" r="${a.r}" fill="${a.c}" stroke="#fff" stroke-width="${a.r>3?1.2:0.5}"/>`; if(a.l) ah+=`<text x="${(a.x+(a.sq?(a.w||16)/2:a.r)+2).toFixed(1)}" y="${(a.y+3).toFixed(1)}">${a.l}</text>`; } if(g._h!==ah){ g.innerHTML=ah; g._h=ah; }
+ const fx=svg.querySelector('.fx'); let fh=''; const t=performance.now()/1000;
+ if(f.fx==='impact') fh=`<rect width="${W}" height="${H}" fill="#ff2000" opacity="${(0.25+0.2*Math.sin(t*9)).toFixed(2)}"/>${[1,2,3].map(i=>`<circle cx="${W/2}" cy="${f.fy||H*0.45}" r="${(((t*120+i*60)%180)+10).toFixed(0)}" fill="none" stroke="#ffb020" stroke-width="3" opacity="${(1-((t*120+i*60)%180)/180).toFixed(2)}"/>`).join('')}<text x="${W/2}" y="${H*0.12}" text-anchor="middle" fill="#fff" font-size="26" font-weight="800" stroke="#000" stroke-width="1">${f.fxt||'IMPACT'}</text>`;
+ else if(f.fx==='sparks') fh=[...Array(26).keys()].map(i=>`<circle cx="${(W/2+(Math.random()-0.5)*40).toFixed(1)}" cy="${(H*0.25+Math.random()*H*0.6).toFixed(1)}" r="${(1+Math.random()*2.2).toFixed(1)}" fill="${Math.random()<0.5?'#ffb020':'#fff38a'}"/>`).join('')+`<text x="${W/2}" y="${H*0.12}" text-anchor="middle" fill="#ffb020" font-size="18" font-weight="800" stroke="#000" stroke-width="1">${f.fxt||''}</text>`;
+ else if(f.fx==='smoke') fh=[...Array(14).keys()].map(i=>{ const ph=((t*0.4+i/14)%1); return `<circle cx="${(W/2+Math.sin(i*2.3)*30*ph).toFixed(1)}" cy="${(H*0.35+i*14-ph*60).toFixed(1)}" r="${(6+ph*22).toFixed(1)}" fill="#9aa4ae" opacity="${(0.45*(1-ph)).toFixed(2)}"/>`; }).join('')+(f.fxt?`<text x="${W/2}" y="${H*0.12}" text-anchor="middle" fill="#e8eef2" font-size="18" font-weight="800" stroke="#000" stroke-width="1">${f.fxt}</text>`:'');
+ else if(f.fx==='warn') fh=`<rect width="${W}" height="${H}" fill="none" stroke="#ff3b30" stroke-width="${(6+4*Math.sin(t*10)).toFixed(1)}"/><text x="${W/2}" y="${H*0.12}" text-anchor="middle" fill="#ff3b30" font-size="20" font-weight="800" stroke="#000" stroke-width="1">${f.fxt||''}</text>`;
+ fx.innerHTML=fh;
  const hud=svg.querySelector('.hud'), ht=(f.ph?f.ph.toUpperCase()+' · ':'')+(f.alt>5||f.ias>1?`ALT ${Math.round(f.alt/10)*10} ft · ${Math.round(f.ias)} kt${f.vs?' · V/S '+(f.vs>0?'+':'')+f.vs:''}`:''); if(hud.textContent!==ht) hud.textContent=ht; }
 /* ===== modes : libre, automatique, pédagogique, examen ===== */
 let MODE='libre', SELF=false; const AUTO={t:0,pause:false}, EXM={err:0,steps:{},hints:0,log:[],t0:0,wc:{}};
@@ -6177,11 +6188,11 @@ function setMode(m){ MODE=m; dlgClear(); dom().querySelectorAll('.modes [data-mo
  const ks=Object.keys(M.tours||{}); if(m==='auto'&&M.tours.vol) return tourStart('vol','auto'); if(ks.length===1) tourStart(ks[0],m); else tourPick(m); }
 function tourPick(m){ MODE=m||MODE; const t=M.tours||{}; const e=$s('.tour'); e.hidden=false; e.className='tour '+MODE; TOUR=null; clearFrames();
  const what={auto:'L\'atelier joue lui-même : cadre ROUGE sur la commande, puis VERT une fois activée ; les pièces touchées s\'éclairent, l\'équipage et les passagers se déplacent sur le schéma.',peda:'À vous : la commande à utiliser est encadrée en ROUGE ; touchez-la, elle passe au VERT. Les séquences sans commande (tour avion, roulage, vol) se jouent seules.',exam:'Aucune aide : réalisez la procédure dans l\'ordre. Chaque erreur est comptée et sa conséquence expliquée ; note sur 20 à la fin.'}[MODE];
- const ks=Object.keys(t), norms=ks.filter(k=>!t[k].fail), fails=ks.filter(k=>t[k].fail);
- e.innerHTML=`<b class="t">${MLAB[MODE]} · ${M.name}</b><p>${what}</p><div class="bt">${norms.map(k=>`<button type="button" class="go" data-tp="${k}" data-tm="${MODE}">${t[k].n}</button>`).join('')}</div>${fails.length?`<p><b>Pannes et urgences :</b></p><div class="bt">${fails.map(k=>`<button type="button" class="go" style="background:#b3261e" data-tp="${k}" data-tm="${MODE}">⚠ ${t[k].n}</button>`).join('')}</div>`:''}<div class="bt"><button type="button" data-tq>Fermer</button></div>`;
+ const ks=Object.keys(t).filter(k=>!t[k].hide), norms=ks.filter(k=>!t[k].fail&&!t[k].acc), fails=ks.filter(k=>t[k].fail), accs=ks.filter(k=>t[k].acc);
+ e.innerHTML=`<b class="t">${MLAB[MODE]} · ${M.name}</b><p>${what}</p><div class="bt">${norms.map(k=>`<button type="button" class="go" data-tp="${k}" data-tm="${MODE}">${t[k].n}</button>`).join('')}</div>${fails.length?`<p><b>Pannes et urgences :</b></p><div class="bt">${fails.map(k=>`<button type="button" class="go" style="background:#b3261e" data-tp="${k}" data-tm="${MODE}">⚠ ${t[k].n}</button>`).join('')}</div>`:''}${accs.length?`<p><b>Accidents : chaîne des événements et analyse</b> <small>(scénarios fictifs inspirés d'accidents réels)</small></p><div class="bt">${accs.map(k=>`<button type="button" class="go" style="background:#4a0d0d;border:1px solid #ff3b30" data-tp="${k}" data-tm="${MODE}">💥 ${t[k].n}</button>`).join('')}</div>`:''}<div class="bt"><button type="button" data-tq>Fermer</button></div>`;
  e.scrollIntoView({block:'nearest'}); }
 function tourStart(k,m){ if(m) MODE=m; if(MODE==='libre') MODE='peda'; dom().querySelectorAll('.modes [data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===MODE)); dom().querySelector('.pre').style.display='none';
- dlgClear(); const t=M.tours[k]; if(t.before&&!t._ok){ t.before(()=>{ t._ok=true; tourStart(k,MODE); t._ok=false; }); return; } t.st=(typeof t.build==='function'?t.build():t.st).map(norm); TOUR=t; TI=0; t.st.forEach(x=>{ x.done=false; x.tDone=0; x.ran=false; }); setPreset(t.pre||'cold'); if(t.init) t.init(S,{move:moveActor}); AUTO.pause=false; Object.assign(EXM,{err:0,steps:{},hints:0,log:[],wc:{},t0:performance.now()});
+ dlgClear(); const t=M.tours[k]; if(t.before&&!t._ok){ t.before(()=>{ t._ok=true; tourStart(k,MODE); t._ok=false; }); return; } if(typeof t.st==='function'&&!t.build) t.build=t.st; t.st=(typeof t.build==='function'?t.build():t.st).map(norm); TOUR=t; TI=0; t.st.forEach(x=>{ x.done=false; x.tDone=0; x.ran=false; }); setPreset(t.pre||'cold'); if(t.init) t.init(S,{move:moveActor}); AUTO.pause=false; Object.assign(EXM,{err:0,steps:{},hints:0,log:[],wc:{},t0:performance.now()});
  if(MODE==='exam') $s('.ex').innerHTML=`<h3>📝 Examen : ${t.n}</h3><div class="w">${M.name} · ${t.st.filter(x=>!isSeq(x)).length} actions à réaliser dans l'ordre, sans aide.</div>`;
  renderTour(); stepEnter(); $s('.tour').scrollIntoView({block:'nearest'}); }
 function ctlEl(id){ return document.querySelector(`#sysat [data-cw="${id}"]`)||document.querySelector(`#sysat [data-c="${id}"]`)||(id==='ground'?document.querySelector('#sysat [data-sit]'):null); }
@@ -6195,7 +6206,7 @@ function matches(st,id,v){ if(isSeq(st)||st.c!==id) return false; const c=findC(
 function stepLabel(st){ if(isSeq(st)) return st.t||'Séquence'; const c=findC(st.c); if(st.c==='ground') return 'Situation : '+(st.v?'poser l\'appareil':'décollage'); if(c&&c.t==='sw') return c.l+' → '+(st.v?'ON':'OFF');
  return (c?c.l:st.c)+(c&&c.t!=='pb'&&c.t!=='mom'?' → '+(c.ol?c.ol[c.o.findIndex(x=>String(x)===String(st.v))]:((c.o||[]).find(x=>String(x[0])===String(st.v))||[0,st.v])[1]):(c&&c.t==='pb'?' → '+(st.v?'ON':'OFF'):'')); }
 function stepEnter(){ const st=TOUR&&TOUR.st[TI]; if(!st) return; AUTO.t=performance.now(); st.t0=performance.now();
- if(isSeq(st)){ clearFrames(); if(!st.ran){ st.ran=true; if(st.ph) S.fl.ph=st.ph; if(st.fl) Object.assign(S.fl,st.fl); if(st.mv) st.mv.forEach(m=>moveActor(m[0],m[1],m[2])); if(st.run) st.run(S,{move:moveActor}); if(st.pt) touch(st.pt); if(st.pg){ PAGE=st.pg; pgPrev=''; } if(st.snd==='chime') AU.chime(); if(st.say) say(st.say); } return; }
+ if(isSeq(st)){ clearFrames(); if(!st.ran){ st.ran=true; if(st.ph) S.fl.ph=st.ph; if(st.fl) Object.assign(S.fl,st.fl); if('fx' in st){ S.fl.fx=st.fx; S.fl.fxt=st.fxt; if(st.fy) S.fl.fy=st.fy; } if(st.mv) st.mv.forEach(m=>moveActor(m[0],m[1],m[2])); if(st.run) st.run(S,{move:moveActor}); if(st.pt) touch(st.pt); if(st.pg){ PAGE=st.pg; pgPrev=''; } if(st.snd==='chime') AU.chime(); if(st.say) say(st.say); } return; }
  if(st.ph) S.fl.ph=st.ph; if(st.say&&!st.ran){ st.ran=true; say(st.say); }
  if(satisfied(st)){ st.done=true; st.tDone=performance.now()-2000; }
  if(MODE==='auto'){ frame(st.c,'fneed'); scrollTo(st.c); } else if(MODE==='peda'){ frame(st.c,st.done?'fok':'fneed'); scrollTo(st.c); } else clearFrames(); }
@@ -6220,16 +6231,16 @@ function finish(){ AU.ok(); if(MODE==='exam'){ const N=TOUR.st.filter(x=>!isSeq(
 function phaseBar(){ const ph=[]; TOUR.st.forEach((x,i)=>{ if(x.ph&&!ph.find(p=>p[0]===x.ph)) ph.push([x.ph,i]); }); if(ph.length<2) return ''; return `<div class="phb">${ph.map((p,j)=>{ const nx=ph[j+1]?ph[j+1][1]:1e9, cur=TI>=p[1]&&TI<nx, dn=TI>=nx; return `<span class="${cur?'cur':dn?'dn':''}">${p[0]}</span>`; }).join('')}</div>`; }
 function renderTour(live){ const e=$s('.tour'); if(!TOUR){ if(!live&&MODE==='libre') e.hidden=true; strip(); return; } e.hidden=false; e.className='tour '+MODE; const st=TOUR.st[TI];
  let html;
- if(!st){ html=MODE==='exam'?EXM.res+`<div class="bt"><button type="button" class="go" data-mode="peda">🎓 Revoir en mode pédagogique</button><button type="button" data-mode="exam">↺ Repasser l'examen</button><button type="button" data-tq>Fermer</button></div>`:`<b class="t">${MLAB[MODE]} · ${TOUR.n}</b><p>✓ Terminé.</p><div class="bt">${MODE==='auto'?'<button type="button" class="go" data-mode="peda">🎓 À vous en mode pédagogique</button>':'<button type="button" class="go" data-mode="exam">📝 Passer l\'examen</button>'}<button type="button" data-tour>Autres procédures et pannes</button><button type="button" data-tq>Fermer</button></div>`; }
+ if(!st){ html=MODE==='exam'?EXM.res+`<div class="bt"><button type="button" class="go" data-mode="peda">🎓 Revoir en mode pédagogique</button><button type="button" data-mode="exam">↺ Repasser l'examen</button><button type="button" data-tq>Fermer</button></div>`:`<b class="t">${MLAB[MODE]} · ${TOUR.n}</b><p>✓ Terminé.</p><div class="bt">${MODE==='auto'?'<button type="button" class="go" data-mode="peda">🎓 À vous en mode pédagogique</button>':'<button type="button" class="go" data-mode="exam">📝 Passer l\'examen</button>'}${TOUR.ok&&M.tours[TOUR.ok]?`<button type="button" class="go" style="background:#1f8a4c" data-tp="${TOUR.ok}" data-tm="${MODE==='exam'?'peda':MODE}">▶ Rejouer en évitant l'accident</button>`:''}<button type="button" data-tour>Autres procédures, pannes, accidents</button><button type="button" data-tq>Fermer</button></div>`; }
  else { const seq=isSeq(st), wt=!seq&&st.w&&st.done&&!st.w(S), head=`<b class="t">${MLAB[MODE]} · ${TOUR.n} · étape ${TI+1}/${TOUR.st.length}</b>${phaseBar()}`, more=`<button type="button" data-tour>Autres / pannes</button>`;
-  if(seq) html=head+`<p><b>${st.t}</b></p><p>${st.n||''}</p><p class="wt">${seqReady(st)?'✓':'⏳ séquence en cours…'}</p><div class="bt">${MODE==='auto'?`<button type="button" class="go" data-tpa>${AUTO.pause?'▶ Reprendre':'⏸ Pause'}</button>`:''}<button type="button" data-tnx ${seqReady(st)?'':'disabled'}>⏭ Suite</button>${more}<button type="button" data-tq>■ Arrêter</button></div>`;
+  if(seq) html=head+`${st.err?'<p class="errtag">⚠ FACTEUR DE L\'ACCIDENT</p>':''}<p><b>${st.t}</b></p><p>${st.n||''}</p>${st.an?`<div class="an">${st.an.map(a=>`<p><b>${a[0]}</b> ${a[1]}</p>`).join('')}</div>`:''}<p class="wt">${seqReady(st)?'✓':'⏳ séquence en cours…'}</p><div class="bt">${MODE==='auto'?`<button type="button" class="go" data-tpa>${AUTO.pause?'▶ Reprendre':'⏸ Pause'}</button>`:''}<button type="button" data-tnx ${seqReady(st)?'':'disabled'}>⏭ Suite</button>${more}<button type="button" data-tq>■ Arrêter</button></div>`;
   else if(MODE==='exam') html=head+`<p>${st.done?'✓ Action correcte.':'Quelle est la prochaine action ? Utilisez les commandes.'}</p>${wt?`<p class="wt">⏳ ${st.wt}…</p>`:''}<p class="wt">Erreurs : ${EXM.err} · indices : ${EXM.hints}</p><div class="bt"><button type="button" data-thint ${st.done?'disabled':''}>💡 Indice (−½ point)</button><button type="button" data-tq>Abandonner</button></div>`;
   else if(MODE==='auto') html=head+`<p><b>${stepLabel(st)}</b></p><p>${st.n||''}</p><p class="wt">${AUTO.pause?'⏸ En pause':(st.done?(wt?'⏳ '+st.wt+'…':'✓ Activée (cadre vert)'):'▶ Commande à activer (cadre rouge)…')}</p><div class="bt"><button type="button" class="go" data-tpa>${AUTO.pause?'▶ Reprendre':'⏸ Pause'}</button><button type="button" data-tnx ${wt?'disabled':''}>⏭ Étape suivante</button>${more}<button type="button" data-tq>■ Arrêter</button></div>`;
   else html=head+`<p><b>${stepLabel(st)}</b></p><p>${st.n||''}</p><p class="wt">${st.done?(wt?'⏳ '+st.wt+'…':'✓ Bien. Étape suivante…'):'👉 Touchez la commande encadrée en ROUGE.'}</p><div class="bt">${st.done?'':`<button type="button" data-go="${st.c}">Montrer</button><button type="button" data-tdo>Le faire pour moi</button>`}${more}<button type="button" data-tq>Arrêter</button></div>`; }
  if(e._h!==html){ e.innerHTML=html; e._h=html; } strip(st); }
 function strip(st){ const el=$s('.strip'); if(!el) return; if(!TOUR){ el.hidden=true; return; } el.hidden=false; el.className='strip '+MODE; let t;
  if(!st) t=MODE==='exam'?'📝 Examen terminé : résultat ci-dessous.':'✓ Terminé.';
- else { const n=`${TI+1}/${TOUR.st.length}`; if(isSeq(st)) t=`${MODE==='auto'?'▶':MODE==='exam'?'📝':'🎓'} ${n} · <b>${st.t}</b>${st.n&&!MOB()?' — '+st.n:''}`;
+ else { const n=`${TI+1}/${TOUR.st.length}`; if(isSeq(st)) t=`${st.err?'⚠ ':''}${MODE==='auto'?'▶':MODE==='exam'?'📝':'🎓'} ${n} · <b>${st.t}</b>${st.n&&!MOB()?' — '+st.n:''}`;
   else { const wt=st.w&&st.done&&!st.w(S);
    if(MODE==='exam') t=`📝 Examen · étape ${n} · ${st.done?'✓ correct':'à vous : quelle commande ?'} · erreurs ${EXM.err}`;
    else t=`${MODE==='auto'?'▶ Auto':'🎓 Pédago'} · ${n} · <b>${stepLabel(st)}</b> · ${st.done?(wt?'⏳ '+st.wt:'✓ activée (vert)'):(MODE==='auto'?'cadre rouge : activation…':'👉 touchez le cadre ROUGE')}`; } }
@@ -6243,7 +6254,7 @@ function help(){ explainIntro(); }
 function open(ac,tour){ const a=dom(); a.hidden=false; if(!M||(ac&&ac!==AC)) load(ac&&MOD[ac]?ac:(typeof selAC!=='undefined'&&selAC&&MOD[selAC]?selAC:'a320')); else relayout(); clearInterval(timer); loop.t=0; timer=setInterval(loop,100); if(tour&&M.tours&&M.tours[tour]) tourStart(tour,MODE==='libre'?'peda':MODE); }
 function close(){ dom().hidden=true; clearInterval(timer); AU.mute(); dlgClear(); }
 addEventListener('resize',()=>{ if(M&&!dom().hidden) relayout(); });
-window.SYSAT={_t:{DLG,get TI(){return TI},get TOUR(){return TOUR},ff(){ DLG.q=[]; DLG.until=0; for(const id in S.act){ const a=S.act[id]; if(a.path.length){ const p=a.path[a.path.length-1]; a.x=p[0]; a.y=p[1]; a.path=[]; } } const st=TOUR&&TOUR.st[TI]; if(st){ st.t0-=1e5; if(st.tDone) st.tDone-=1e5; } AUTO.t-=1e5; },adv(n){ for(let i=0;i<n;i++){ M.step(S,0.1); wstep(0.1); } }},say,world:()=>S&&S.fl,moveActor:(...a)=>moveActor(...a),open,close,MOD,C,LEGN,helpers:{mir,P,F,R,Ci,RR,CC,PP,FF,Lb,T,BX,LN,ARC,SCR,OFFSCR,G,AM,W,CY,RD,GY},get S(){return S;},act,load};
+window.SYSAT={tourStart:(k,m)=>tourStart(k,m),_t:{DLG,get TI(){return TI},get TOUR(){return TOUR},ff(){ DLG.q=[]; DLG.until=0; for(const id in S.act){ const a=S.act[id]; if(a.path.length){ const p=a.path[a.path.length-1]; a.x=p[0]; a.y=p[1]; a.path=[]; } } const st=TOUR&&TOUR.st[TI]; if(st){ st.t0-=1e5; if(st.tDone) st.tDone-=1e5; } AUTO.t-=1e5; },adv(n){ for(let i=0;i<n;i++){ M.step(S,0.1); wstep(0.1); } }},say,world:()=>S&&S.fl,moveActor:(...a)=>moveActor(...a),open,close,MOD,C,LEGN,helpers:{mir,P,F,R,Ci,RR,CC,PP,FF,Lb,T,BX,LN,ARC,SCR,OFFSCR,G,AM,W,CY,RD,GY},get S(){return S;},act,load};
 /* entrée dans le menu */
 function inject(){ const box=document.querySelector('#menu .box'); if(!box||box.querySelector('#samenu')) return; const b=document.createElement('button'); b.type='button'; b.id='samenu';
  b.innerHTML='<span class="e">⚙</span><span><b>Atelier des systèmes</b>Un bouton → la pièce qu\'il actionne : électricité, carburant, hydraulique, air, gouvernes, colorés sur le schéma de l\'appareil.</span>';
@@ -6423,13 +6434,14 @@ function heli(o){
   k.hy=ids.slice(0,o.hyd).map(i=>s.hp[i]>0.6); k.H=k.hy.some(x=>x); k.scr=k.dc; return k; }
  function step(s,dt){ const k=kk(s); s.t+=dt;
   ids.forEach(i=>{ const sel=s['eng'+i];
+   if(s.efail) s.es[i]=0;
    if(s.es[i]===1){ if(sel==='OFF'||!k.dc&&s.ng[i]<45||!s['fso'+i]&&s.ng[i]>=12){ s.es[i]=0; } else { s.ng[i]+=dt*(s.ng[i]<15?5:s.ng[i]<45?5.5:3); if(s.ng[i]>=o.ngIdle){ s.es[i]=2; } } }
    else if(s.es[i]===2){ if(sel==='OFF'||!s['fso'+i]) s.es[i]=0; else s.ng[i]=near(s.ng[i],sel==='FLIGHT'?o.ngFl+s.coll*4:o.ngIdle,dt*0.7); }
-   else { s.ng[i]=Math.max(0,s.ng[i]-dt*6); if(sel!=='OFF'&&s.ng[i]<10&&k.dc&&s['fso'+i]&&k.fuelP[i]&&!s.rbrake) s.es[i]=1; }
+   else { s.ng[i]=Math.max(0,s.ng[i]-dt*6); if(!s.efail&&sel!=='OFF'&&s.ng[i]<10&&k.dc&&s['fso'+i]&&k.fuelP[i]&&!s.rbrake) s.es[i]=1; }
    const tt=k.burn[i]?(s.es[i]===1?720:(sel==='FLIGHT'?560+s.coll*90:470)):15+s.ng[i]*.3; s.t4[i]=near(s.t4[i],tt,dt*(tt>s.t4[i]?1:0.3)); });
-  const nrT=s.rbrake?0:(k.run?(k.fl?o.nrNom:o.nrIdle):0); s.nr=k.run&&!s.rbrake?near(s.nr,nrT,dt*0.35):Math.max(0,s.nr-dt*o.nrNom*0.035);
+  const nrT=s.rbrake?0:(k.run?(k.fl?o.nrNom:o.nrIdle):0); if(k.run&&!s.rbrake) s.nr=near(s.nr,nrT,dt*0.35); else if(!s.ground&&s.autoro&&s.coll===0) s.nr=near(s.nr,o.nrNom,dt*0.3); else s.nr=Math.max(0,s.nr-dt*o.nrNom*(s.ground?0.035:0.09));
   ids.slice(0,o.hyd).forEach(i=>{ const t=(s['hyd'+i]&&s.nr>o.nrNom*0.3)?1:0; s.hp[i]=near(s.hp[i],t,dt*(t?1.5:0.5)); });
-  if(s.coll===0&&!s.ground) s.ground=true; if(s.coll>0&&s.ground&&k.fl&&s.nr>o.nrNom*0.95) s.ground=false; if(!s.ground&&(!k.run||s.nr<o.nrNom*0.85)) s.ground=true;
+  if(!s.autoro){ if(s.coll===0&&!s.ground) s.ground=true; if(s.coll>0&&s.ground&&k.fl&&s.nr>o.nrNom*0.95) s.ground=false; if(!s.ground&&(!k.run||s.nr<o.nrNom*0.85)) s.ground=true; }
   if(o.gear){ const gt=s.gear==='DOWN'?1:0; if(s.gp!==gt&&k.H&&!s.ground) s.gp+=Math.sign(gt-s.gp)*Math.min(Math.abs(gt-s.gp),dt/5); }
   s.cycT=Math.max(0,s.cycT-dt); if(!s.cycT) s.cyc='N'; s.pedT=Math.max(0,s.pedT-dt); if(!s.pedT) s.ped='N';
   s.fuel=Math.max(0,s.fuel-ids.reduce((a,i)=>a+(k.burn[i]?(s.es[i]===2?o.ff:40):0),0)*dt/3600); }
@@ -6566,11 +6578,11 @@ const ctl=[
 function init(){ return {ground:true,master:false,alt:false,fv:false,mix:'CUT',auxp:false,hyd:true,key:'OFF',clutch:false,cl:0,gov:false,thr:'IDLE',rbrake:true,nav:false,acol:false,coll:0,cyc:'N',cycT:0,ped:'N',pedT:0,rpm:0,nr:0,run:false,crank:0,t:0,cht:15}; }
 function kk(s){ const k={}; k.altOn=s.alt&&s.run&&s.master; k.dc=s.master; k.mags=s.key!=='OFF'; k.fuel=s.fv&&s.mix==='RICH'&&(s.auxp&&s.master||s.run); k.H=s.hyd&&s.nr>30; k.cranking=s.crank>0; k.belt=s.cl>0.98; k.clMove=(s.clutch&&s.cl<1)||(!s.clutch&&s.cl>0); return k; }
 function step(s,dt){ const k=kk(s); s.t+=dt; if(s.crank>0){ s.crank-=dt; if(s.crank<=0&&s.key==='START') s.key='BOTH'; s.rpm=near(s.rpm,22,dt*2); if(s.crank<1.2&&k.fuel&&k.mags&&!s.clutch) s.run=true; }
- if(s.run&&(!k.fuel||!k.mags)) s.run=false;
+ if(s.run&&(!k.fuel||!k.mags||s.efail)) s.run=false;
  const load=k.belt?1:0, tgt=s.run?(s.thr==='OPEN'||s.gov?(load&&s.gov?102:(s.thr==='OPEN'?100:60)):(load?55:60)):(s.crank>0?22:0); s.rpm=near(s.rpm,tgt,dt*(s.run?0.8:0.6));
  if(s.clutch&&k.dc) s.cl=Math.min(1,s.cl+dt/7); else if(!s.clutch&&k.dc) s.cl=Math.max(0,s.cl-dt/5);
- const nrT=(k.belt&&!s.rbrake)?s.rpm:0; s.nr=nrT>s.nr?near(s.nr,nrT,dt*0.5):Math.max(nrT,s.nr-dt*3);
- if(s.coll===0) s.ground=true; else if(s.nr>=99&&s.gov) s.ground=false; if(!s.ground&&s.nr<90) s.ground=true;
+ const nrT=(k.belt&&!s.rbrake)?s.rpm:0; if(!s.run&&!s.ground&&s.autoro&&s.coll===0) s.nr=near(s.nr,100,dt*0.3); else s.nr=nrT>s.nr?near(s.nr,nrT,dt*0.5):Math.max(nrT,s.nr-dt*(s.ground?3:9));
+ if(!s.autoro){ if(s.coll===0) s.ground=true; else if(s.nr>=99&&s.gov) s.ground=false; if(!s.ground&&s.nr<90) s.ground=true; }
  s.cht=near(s.cht,s.run?(s.rpm>90?380:300):15,dt*0.1); s.cycT=Math.max(0,s.cycT-dt); if(!s.cycT) s.cyc='N'; s.pedT=Math.max(0,s.pedT-dt); if(!s.pedT) s.ped='N'; }
 function ev(s){ const k=kk(s), p={}, sp={}, A=(id,c,m)=>{ p[id]=m?[c,m]:c; };
  if(s.master){ A('bat','el',k.altOn?null:'blink'); A('f_bat','el',k.altOn?'rev':'flow'); A('scr','el'); } if(k.altOn){ A('alt','el'); A('f_alt','el','flow'); }
@@ -6844,6 +6856,133 @@ generic('s76',{pad:true,two:true,rx:70,ry:230,cy:340,seat1:[190,150],seat2:[210,
 generic('r44',{pad:true,rx:60,ry:190,cy:330,seat1:[190,180],seat2:[210,180],maxPax:3,paxSeats:[[210,180],[190,230],[210,230]],walkSay:'Courroies, pales, niveaux d\'huile, carburant purgé : rien à signaler.',
  flight:()=>[K('coll',1,'Décollage.',[['CDB','Régime au vert, décollage.']],s=>!s.ground,'Attendre le décollage'),K('cyc','F','Cyclique en avant.'),Q('Vol','',{ph:'Vol',fl:{env:'air',tAlt:1000,rate:250,tIas:100},w:s=>s.fl.alt>=950}),Q('Approche','',{ph:'Atterrissage',fl:{tAlt:0,rate:200,tIas:0,acc:3},w:s=>s.fl.alt<=20}),Q('Posé','',{fl:{env:'pad',alt:0}}),
   K('coll',0,''),K('gov',false,''),K('thr','IDLE','Refroidissement.'),K('clutch',false,'Débrayage : l\'actionneur détend les courroies.',[],s=>s.cl<=0.02,'Attendre le débrayage'),K('mix','CUT','Mélange étouffoir : arrêt du moteur.'),Q('Rotor qui ralentit','',{w:s=>s.nr<20}),K('rbrake',true,''),K('key','OFF',''),K('master',false,'')]});
+/* ================= ACCIDENTS : chaîne des événements, analyse, version corrigée =================
+   Scénarios fictifs, inspirés de types d'accidents réels étudiés en sécurité des vols. Représentation sobre. */
+const AN=(c,f,ok)=>Q('Analyse de l\'accident','',{ph:'Analyse',fx:null,an:[['Causes :',c],['Facteurs contributifs :',f],['Ce qu\'il fallait faire :',ok]],d:16});
+const FX=(fx,fxt,o)=>Object.assign({fx,fxt},o||{});
+const appInit=(alt,ias,cfg)=>s=>{ flyInit(alt,ias)(s); Object.assign(s,cfg||{}); s.fl.tAlt=alt; };
+const A320ACC={
+ accOver:{n:'Sortie de piste à l\'atterrissage (piste mouillée)',acc:1,ok:'accOver_ok',pre:'fly',init:appInit(1500,165,{gear:'DOWN',gp:1,flaps:4,fp:4,thr:'IDLE',belts:true,land:true}),st:()=>[
+  Q('Orage sur l\'aéroport','Forte pluie, vent arrière de 10 nœuds annoncé, piste mouillée et courte. L\'équipage, fatigué et en retard, décide de continuer.',{ph:'Approche',err:1,say:[['TWR','Runway two six left, wind one zero zero at ten, heavy rain, cleared to land.','Vent arrière 10 nœuds, forte pluie, autorisé à atterrir.']],d:3}),
+  Q('Approche non stabilisée','À 1 000 ft : vitesse 20 nœuds trop élevée et au-dessus du plan. Les critères de stabilisation imposent la remise des gaz… elle n\'est pas faite.',{err:1,fl:{tAlt:0,rate:120,tIas:160},w:s=>s.fl.alt<=60,say:[['OPL','Vitesse, plus vingt.'],['CDB','Ça va passer.']]}),
+  Q('Atterrissage long','Toucher des roues à 1 200 m du seuil : il reste peu de piste.',{err:1,fl:{env:'rwy',alt:0,tAlt:0,ias:155,tIas:155},run:s=>{ s.ground=true; },d:2}),
+  Q('Freinage insuffisant','Spoilers non armés, inverseurs sortis tardivement ; l\'eau fait glisser les pneus (aquaplanage).',{err:1,fl:{tIas:55,acc:1.2},w:s=>s.fl.ias<=60,say:[['OPL','Pas de spoilers !'],['CDB','Reverse, freinage maxi !']]}),
+  Q('Sortie de piste','L\'avion dépasse l\'extrémité de piste et s\'arrête dans l\'herbe.',FX('warn','SORTIE DE PISTE',{fl:{env:'grass',tIas:0,acc:3},w:s=>s.fl.ias<=1,snd:'chime',d:3})),
+  Q('Évacuation','Train avant endommagé, pas de feu : évacuation par les toboggans.',FX(null,'',{run:()=>evac(),say:[['PNC','Détachez vos ceintures, laissez tout, sortez !']],d:6})),
+  AN('Approche non stabilisée poursuivie, atterrissage long, spoilers non armés sur piste mouillée.','Fatigue et pression du retard (« get-there-itis »), vent arrière, faible adhérence, défaut de surveillance mutuelle (le copilote n\'a pas imposé la remise des gaz).','Remettre les gaz dès que l\'approche n\'est pas stabilisée à 1 000 ft ; attendre la fin de l\'orage ou se dérouter ; armer les spoilers, inverseurs et freinage maximum dès le toucher.')]},
+ accOver_ok:{n:'Version corrigée : remise des gaz',hide:1,pre:'fly',init:appInit(1500,165,{gear:'DOWN',gp:1,flaps:4,fp:4,thr:'IDLE',belts:true,land:true}),st:()=>[
+  Q('Approche non stabilisée détectée','À 1 000 ft la vitesse est trop forte : remise des gaz obligatoire.',{ph:'Approche',say:[['OPL','Vitesse plus vingt, non stabilisés.'],['CDB','Remise des gaz !']]}),
+  K('thr','TOGA','Remise des gaz.',[['CDB','Go around, flaps.']]),K('flaps',3,''),K('gear','UP','',[['OPL','Vario positif.'],['CDB','Train sur rentré.']],s=>s.gp<0.01,'Attendre'),
+  Q('Attente de la fin de l\'orage','L\'orage s\'éloigne ; nouvelle approche stabilisée.',{fl:{tAlt:3000,rate:500,tIas:200},w:s=>s.fl.alt>=2900,d:3}),K('thr','IDLE',''),
+  K('gear','DOWN','',[],s=>s.gp>0.99,'Attendre'),K('flaps',4,''),Q('Approche stabilisée','',{fl:{tAlt:0,rate:300,tIas:138},w:s=>s.fl.alt<=40}),Q('Toucher dans la zone','',{fl:{env:'rwy',alt:0,ias:135}}),
+  K('ground',true,''),K('spd',1,'Spoilers sortis.',[['OPL','Spoilers. Reverse green.']]),Q('Arrêt normal','Assez de piste pour s\'arrêter.',{fl:{tIas:12,acc:5},w:s=>s.fl.ias<=15})]},
+ accStall:{n:'Décrochage après givrage des sondes Pitot (croisière)',acc:1,ok:'accStall_ok',pre:'fly',init:flyInit(35000,280),st:()=>[
+  Q('Cristaux de glace','En traversant une zone orageuse, les sondes Pitot se bouchent de glace : les vitesses affichées deviennent fausses.',{ph:'Croisière',run:s=>{ s.fail.pitot=1; },pt:['probe'],say:[['ECAM','Navigation. I A S disagree.']],d:3}),
+  Q('Pilote automatique déconnecté','Sans vitesse fiable, le pilote automatique et l\'auto-manette se déconnectent : le pilote reprend la main par surprise.',{err:0,say:[['ECAM','Autopilot off.'],['OPL','J\'ai les commandes.']],d:3}),
+  Q('Action à cabrer','Surpris, le pilote tire sur le mini-manche : l\'avion monte, la vitesse réelle chute.',{err:1,fl:{tAlt:38000,rate:600,tIas:180},w:s=>s.fl.alt>=37500,d:3}),
+  Q('Alarme de décrochage ignorée','L\'alarme retentit à plusieurs reprises ; elle n\'est pas reconnue, la poussée reste au maximum et le nez haut.',{err:1,say:[['ECAM','Stall. Stall.'],['CDB','Qu\'est-ce qui se passe ?']],d:3}),
+  Q('Décrochage installé','L\'aile ne porte plus : l\'avion tombe à plat, nez haut, à plus de 10 000 ft par minute.',FX('warn','DÉCROCHAGE',{fl:{tAlt:0,rate:900,tIas:110},w:s=>s.fl.alt<=100})),
+  Q('Impact avec la mer','',FX('impact','IMPACT',{fl:{env:'water',alt:0,ias:0,tIas:0},d:4})),
+  AN('Perte des indications de vitesse (sondes givrées), puis action inadaptée à cabrer maintenue jusqu\'au décrochage.','Effet de surprise, formation insuffisante au pilotage manuel à haute altitude, alarmes non comprises, mauvaise coordination de l\'équipage.','Appliquer la procédure « vitesse non fiable » : garder l\'assiette (environ 5°) et la poussée de croisière, ne pas cabrer ; au décrochage, rendre la main (nez en bas) puis remettre la puissance.')]},
+ accStall_ok:{n:'Version corrigée : vitesse non fiable',hide:1,pre:'fly',init:flyInit(35000,280),st:()=>[
+  Q('Sondes givrées','Vitesses incohérentes, pilote automatique déconnecté.',{ph:'Croisière',run:s=>{ s.fail.pitot=1; },pt:['probe'],say:[['ECAM','I A S disagree.'],['CDB','Vitesse non fiable. Assiette, poussée.']]}),
+  K('thr','CL','Garder la poussée de croisière et l\'assiette : l\'avion reste en palier.',[['OPL','Assiette deux et demi, poussée CLB, on garde le palier.']]),K('probe',true,'Réchauffage des sondes forcé.'),
+  Q('Les sondes se dégivrent','Après quelques dizaines de secondes, les vitesses redeviennent cohérentes.',{run:s=>{ s.fail.pitot=0; },d:4,say:[['CDB','Vitesses de nouveau cohérentes. Pilote automatique, ON.']]})]},
+ accConfig:{n:'Décollage sans volets (alarme de configuration en panne)',acc:1,ok:'accConfig_ok',pre:'run',init:s=>{ s.fl.env='rwy'; s.pbrake=false; s.flaps=0; s.fp=0; const N=crewNames(); mv('cdb',[],{at:[196,40],l:N.CDB}); mv('opl',[],{at:[204,40],l:N.OPL}); seats(NPAX()).forEach((p,i)=>mv('pax'+i,[],{at:p})); },st:()=>[
+  Q('Check-list interrompue','Un appel du contrôle interrompt la check-list avant décollage : l\'item « volets » est sauté.',{ph:'Décollage',err:1,say:[['GND','Air Trajectoires, expedite, traffic behind you.','Accélérez, du trafic derrière vous.']],d:3}),
+  Q('Alarme de configuration inopérante','Le système qui doit avertir « volets non sortis » est en panne (disjoncteur) : aucune alarme.',{err:1,d:3}),
+  Q('Poussée de décollage','',{run:s=>{ s.thr='TOGA'; },pt:['e1fan','e2fan']}),Q('Course au décollage','',{fl:{tIas:155,acc:4},w:s=>s.fl.ias>=150,say:[['OPL','V1… Rotation.']]}),
+  Q('L\'avion ne monte pas','Sans volets ni becs, l\'aile ne porte pas assez à cette vitesse : l\'avion décolle à peine, en décrochage.',FX('warn','DÉCROCHAGE',{err:1,run:s=>{ s.ground=false; },fl:{env:'air',tAlt:120,rate:50},say:[['ECAM','Stall. Stall.']],d:3})),
+  Q('Retour au sol','L\'avion retombe après la piste.',FX('impact','IMPACT',{fl:{env:'grass',alt:0,tAlt:0,tIas:0,acc:5},run:s=>{ s.ground=true; },d:4})),
+  AN('Volets et becs non sortis au décollage, sans alarme de configuration.','Interruption de la check-list, pression temporelle, panne de l\'alarme de configuration non détectée.','Reprendre la check-list depuis le début après toute interruption ; vérifier visuellement « volets 1 » sur l\'écran ; ne jamais décoller sans confirmation de la configuration.')]},
+ accConfig_ok:{n:'Version corrigée : check-list complète',hide:1,pre:'run',init:s=>{ s.fl.env='rwy'; s.pbrake=false; s.flaps=0; s.fp=0; },st:()=>[
+  Q('Check-list reprise depuis le début','',{ph:'Décollage',say:[['CDB','On reprend la check-list au début.'],['OPL','Volets ?']]}),K('flaps',1,'Volets 1 sortis et vérifiés.',[['CDB','Volets un, vérifiés.']]),
+  K('thr','TOGA',''),Q('Course au décollage','',{fl:{tIas:150,acc:4},w:s=>s.fl.ias>=148}),K('ground',false,''),Q('Montée normale','',{fl:{env:'air',tAlt:1500,rate:300,tIas:165},w:s=>s.fl.alt>400}),K('gear','UP','',[],s=>s.gp<0.01,'Attendre')]},
+ accGear:{n:'Atterrissage train rentré',acc:1,ok:'accGear_ok',pre:'fly',init:appInit(2500,180,{gear:'UP',gp:0,flaps:3,fp:3,thr:'IDLE',belts:true}),st:()=>[
+  Q('Distraction en approche','Une panne mineure et des échanges radio occupent l\'équipage pendant l\'approche.',{ph:'Approche',err:1,say:[['APP','Air Trajectoires, say again your fuel endurance?','Répétez votre autonomie ?']],d:3}),
+  Q('Check-list atterrissage oubliée','La sortie du train n\'est pas faite et la check-list n\'est pas lue.',{err:1,d:3}),
+  Q('Alarmes ignorées','Les alarmes sonores s\'enchaînent mais sont prises pour une fausse alerte.',{err:1,fl:{tAlt:0,rate:200,tIas:140},w:s=>s.fl.alt<=60,say:[['ECAM','Too low. Gear.'],['ECAM','Too low. Gear.']]}),
+  Q('Toucher sur le ventre','Le fuselage et les nacelles frottent sur la piste.',FX('sparks','TRAIN RENTRÉ',{fl:{env:'rwy',alt:0,ias:140,tIas:0,acc:2},run:s=>{ s.ground=true; },w:s=>s.fl.ias<=2,snd:'chime'})),
+  Q('Évacuation','Fumée sous l\'avion : évacuation immédiate.',FX('smoke','',{run:()=>evac(),say:[['PNC','Évacuez ! Évacuez !']],d:6})),
+  AN('Train non sorti avant l\'atterrissage.','Charge de travail et distraction, check-list non lue, alarmes non prises en compte.','Lire la check-list atterrissage quoi qu\'il arrive ; « train sorti, trois vert » annoncé et vérifié ; toute alarme « too low gear » impose la remise des gaz.')]},
+ accGear_ok:{n:'Version corrigée : check-list atterrissage',hide:1,pre:'fly',init:appInit(2500,180,{gear:'UP',gp:0,flaps:3,fp:3,thr:'IDLE',belts:true}),st:()=>[
+  K('gear','DOWN','Train sorti.',[['CDB','Train sorti.']],s=>s.gp>0.99,'Attendre les trois verts'),K('flaps',4,'',[['OPL','Check-list atterrissage : train, trois vert ; volets full ; spoilers armés.']]),
+  Q('Finale','',{ph:'Approche',fl:{tAlt:0,rate:250,tIas:138},w:s=>s.fl.alt<=40}),Q('Toucher','',{fl:{env:'rwy',alt:0,ias:135}}),K('ground',true,''),K('spd',1,''),Q('Arrêt','',{fl:{tIas:12,acc:5},w:s=>s.fl.ias<=15})]},
+ accFuel:{n:'Panne sèche après une fuite de carburant',acc:1,ok:'accFuel_ok',pre:'fly',init:s=>{ flyInit(35000,280)(s); s.fuel={lo:300,li:900,c:0,ri:1300,ro:300}; },st:()=>[
+  Q('Fuite de carburant','Une tuyauterie fissurée sur le moteur 1 laisse fuir le carburant : le réservoir gauche se vide anormalement vite.',{ph:'Croisière',run:s=>{ s.fail.leak=4; },pt:['tLo','tLi','e1'],pg:'FUEL',d:4}),
+  Q('Déséquilibre mal interprété','L\'équipage croit à une erreur de jauge et ne suspecte pas la fuite.',{err:1,d:3,say:[['OPL','Déséquilibre carburant… sûrement une jauge.']]}),
+  Q('Intercommunication ouverte','Pour rééquilibrer, l\'équipage ouvre l\'intercommunication : le carburant de l\'aile droite part aussi par la fuite.',{err:1,run:s=>{ s.xfeed=true; },pt:['xfv','f_xf'],w:s=>s.es[0]!==2&&s.es[1]!==2,say:[['ECAM','Engine one fail.'],['ECAM','Engine two fail.']]}),
+  Q('Plus aucun moteur','La RAT sort ; l\'avion plane vers un aérodrome de déroutement.',{pt:['rat'],pg:'HYD',fl:{tAlt:0,rate:300,tIas:200},w:s=>s.fl.alt<=60,say:[['CDB',`Mayday, mayday, mayday, ${cs()}, both engines out, gliding to the nearest airport.`,'Détresse, plus aucun moteur, plané vers l\'aéroport le plus proche.']]}),
+  Q('Atterrissage dur','Sans moteur ni inverseurs, freinage seul : pneus éclatés, l\'avion s\'arrête en bout de piste.',FX('sparks','PNEUS ÉCLATÉS',{fl:{env:'rwy',alt:0,ias:180,tIas:0,acc:4},run:s=>{ s.gear='DOWN'; s.gp=1; s.ground=true; },w:s=>s.fl.ias<=2})),
+  Q('Évacuation','Feu de freins léger maîtrisé par les pompiers.',FX('smoke','',{run:()=>{ evac(); mv('fire',[[100,300]],{at:[-40,300]}); },d:6})),
+  AN('Fuite de carburant non identifiée, aggravée par l\'ouverture de l\'intercommunication.','Indice (déséquilibre) attribué à une panne de jauge, procédure de fuite non appliquée, maintenance (tuyauterie mal montée).','Comparer carburant à bord et consommé ; en cas de doute appliquer la procédure « fuite » : ne pas ouvrir l\'intercommunication, arrêter le moteur concerné, se dérouter tôt.')]},
+ accFuel_ok:{n:'Version corrigée : procédure fuite',hide:1,pre:'fly',init:s=>{ flyInit(35000,280)(s); s.fuel={lo:300,li:900,c:0,ri:1300,ro:300}; },st:()=>[
+  Q('Fuite suspectée','Carburant à bord + consommé < carburant au départ : fuite.',{ph:'Croisière',run:s=>{ s.fail.leak=4; },pg:'FUEL',say:[['CDB','Carburant à bord plus consommé ne colle pas : fuite. Procédure fuite.']]}),
+  K('xfeed',false,'Intercommunication FERMÉE (surtout ne pas l\'ouvrir).'),K('m1',false,'Arrêt du moteur 1 (côté de la fuite).',[['OPL','Master un… confirmez ?'],['CDB','Confirmé.']]),
+  Q('Déroutement','Le moteur 2 garde le carburant de l\'aile droite.',{fl:{tAlt:0,rate:500,tIas:180},w:s=>s.fl.alt<=60}),K('gear','DOWN','',[],s=>s.gp>0.99,'Attendre'),Q('Atterrissage sur un moteur','',{fl:{env:'rwy',alt:0,ias:140,tIas:15,acc:4}}),K('ground',true,'')]},
+ accIncur:{n:'Collision sur la piste (incursion, brouillard)',acc:1,ok:'accIncur_ok',pre:'run',init:s=>{ s.fl.env='rwy'; s.pbrake=false; s.flaps=1; s.fp=1; const N=crewNames(); mv('cdb',[],{at:[196,40],l:N.CDB}); mv('opl',[],{at:[204,40],l:N.OPL}); seats(NPAX()).forEach((p,i)=>mv('pax'+i,[],{at:p})); },st:()=>[
+  Q('Brouillard','Visibilité 300 m : la tour ne voit pas la piste, et l\'équipage ne voit pas l\'autre bout.',{ph:'Décollage',d:3}),
+  Q('Malentendu radio','Messages qui se chevauchent et formulations non standard.',{err:1,say:[['OPL','We are now at take-off.','Nous sommes maintenant au décollage. (formule ambiguë)'],['TWR','OK… stand by for take-off, I will call you.','OK… attendez pour le décollage, je vous rappelle.']],d:2}),
+  Q('Décollage sans autorisation','Le « OK » est compris comme une autorisation ; la fin du message est couverte par une autre émission.',{err:1,run:s=>{ s.thr='TOGA'; },fl:{tIas:130,acc:4},d:2}),
+  Q('Un avion sur la piste','Un autre avion, qui roule sur la piste dans le brouillard, apparaît devant.',{run:()=>mv('intrus',[[200,150]],{at:[200,-60],ac:true,c:'#e8eef2',l:'Autre avion',rot:180,sc:2,spd:140}),w:s=>!SYSAT.S.act.intrus||!SYSAT.S.act.intrus.path.length,say:[['CDB','Oh non !']]}),
+  Q('Collision','',FX('impact','COLLISION',{fy:150,fl:{tIas:0,acc:8},d:4})),
+  AN('Décollage sans autorisation alors qu\'un avion était sur la piste.','Brouillard, phraséologie non standard (« OK », « at take-off »), messages radio simultanés, pression horaire, absence de radar sol.','N\'utiliser que la phraséologie standard ; ne jamais décoller sans « cleared for take-off » clair et collationné ; en cas de doute, demander confirmation.')]},
+ accIncur_ok:{n:'Version corrigée : confirmer avant de décoller',hide:1,pre:'run',init:s=>{ s.fl.env='rwy'; s.pbrake=false; s.flaps=1; s.fp=1; },st:()=>[
+  Q('Brouillard','',{ph:'Décollage'}),K('ptt',true,'Demander confirmation.',[['OPL','Confirm, are we cleared for take-off?','Confirmez : sommes-nous autorisés au décollage ?'],['TWR','Negative! Hold position, traffic on the runway.','Négatif ! Restez sur place, trafic sur la piste.']]),
+  Q('L\'autre avion dégage la piste','',{run:()=>mv('intrus',[[440,150]],{at:[200,-60],ac:true,c:'#e8eef2',l:'Autre avion',rot:90,sc:2,spd:90}),d:5}),
+  K('ptt',true,'',[['TWR','Runway clear, cleared for take-off.','Piste dégagée, autorisé au décollage.'],['OPL','Cleared for take-off.','Collationnement.']]),K('thr','TOGA',''),Q('Course au décollage','',{fl:{tIas:150,acc:4},w:s=>s.fl.ias>=148}),K('ground',false,'')]}
+};
+if(MOD.a320) Object.assign(MOD.a320.tours,A320ACC);
+/* hélicoptères */
+const hInit=(alt,ias)=>s=>{ s.ground=false; s.coll=1; s.fl.env='air'; s.fl.alt=alt; s.fl.tAlt=alt; s.fl.ias=ias; s.fl.tIas=ias; const N=crewNames(); mv('cdb',[],{at:[192,175],l:N.CDB}); };
+function heliAcc(key,nrN){ const M=MOD[key]; if(!M) return; const engOff=s=>{ s.efail=true; s.autoro=true; };
+ Object.assign(M.tours,{
+  accAuto:{n:'Panne moteur : collectif non baissé',acc:1,ok:'accAuto_ok',pre:'run',init:hInit(800,90),st:()=>[
+   Q('Panne moteur','Le moteur s\'arrête en vol (contamination du carburant). Le rotor n\'est plus entraîné : il ralentit en quelques secondes.',{ph:'Vol',run:engOff,snd:'chime',say:[['ECAM','Engine out. Rotor r p m.']]}),
+   Q('Collectif maintenu','Surpris, le pilote garde le collectif levé : les pales freinent le rotor, le régime s\'effondre.',FX('warn','RÉGIME ROTOR BAS',{err:1,w:s=>s.nr<nrN*0.6,fl:{tAlt:0,rate:150}})),
+   Q('Chute','Rotor trop lent : plus de portance.',FX('impact','IMPACT',{fl:{env:'pad',alt:0,tAlt:0,tIas:0,acc:6},run:s=>{ s.ground=true; s.autoro=false; },d:4})),
+   AN('Collectif non baissé après la panne moteur : perte du régime rotor.','Effet de surprise, entraînement à l\'autorotation insuffisant.','Baisser le collectif immédiatement (1 à 2 secondes) : l\'air qui traverse le rotor le fait tourner (autorotation) ; arrondi au cyclique près du sol, puis collectif pour amortir.')]},
+  accAuto_ok:{n:'Version corrigée : autorotation',hide:1,pre:'run',init:hInit(800,90),st:()=>[
+   Q('Panne moteur','',{ph:'Vol',run:engOff,snd:'chime'}),K('coll',0,'Collectif en bas immédiatement : le régime rotor est conservé (autorotation).',[['CDB','Autorotation !']]),
+   Q('Descente en autorotation','Environ 1 500 ft/min, vitesse 65 nœuds, régime rotor au vert.',{fl:{tAlt:40,rate:60,tIas:65},w:s=>s.fl.alt<=60,d:3}),K('cyc','A','Arrondi : cyclique en arrière pour freiner.'),K('coll',1,'Collectif levé au dernier moment : l\'énergie du rotor amortit le posé.'),
+   Q('Posé','',{fl:{env:'pad',alt:0,tIas:0,acc:5},run:s=>{ s.ground=true; s.autoro=false; },say:[['CDB','Posés. Tout le monde va bien.']]})]},
+  accVrs:{n:'Anneau tourbillonnaire (descente verticale)',acc:1,ok:'accVrs_ok',pre:'run',init:hInit(600,10),st:()=>[
+   Q('Descente presque verticale','Vitesse quasi nulle et descente rapide : le rotor descend dans son propre souffle.',{ph:'Vol',err:1,fl:{tAlt:350,rate:30,tIas:5},w:s=>s.fl.alt<=360}),
+   Q('Anneau tourbillonnaire','Les tourbillons de bout de pale se referment : la portance chute, vibrations, le vario s\'emballe.',FX('warn','ANNEAU TOURBILLONNAIRE',{d:3})),
+   Q('Plus de collectif','Le pilote lève le collectif : cela aggrave l\'anneau.',{err:1,run:s=>{ s.coll=2; },fl:{tAlt:0,rate:60},w:s=>s.fl.alt<=40}),
+   Q('Impact','',FX('impact','IMPACT',{fl:{env:'pad',alt:0,tIas:0},run:s=>{ s.ground=true; },d:4})),
+   AN('Entrée en anneau tourbillonnaire en descente lente à faible vitesse.','Descente supérieure à environ 300 ft/min sous 30 nœuds, réflexe de lever le collectif.','Éviter les descentes verticales rapides ; en anneau, sortir latéralement ou vers l\'avant au cyclique (méthode Vuichard / prise de vitesse) avant de remettre du collectif.')]},
+  accVrs_ok:{n:'Version corrigée : sortie au cyclique',hide:1,pre:'run',init:hInit(600,10),st:()=>[
+   Q('Début d\'anneau','Vibrations, vario qui augmente.',{ph:'Vol',fl:{tAlt:420,rate:30,tIas:5},w:s=>s.fl.alt<=430}),K('cyc','F','Cyclique en avant : l\'hélicoptère prend de la vitesse et sort de son souffle.'),
+   Q('Sortie de l\'anneau','À partir d\'environ 20 nœuds, le rotor retrouve de l\'air « propre » : la portance revient.',{fl:{tAlt:500,rate:40,tIas:40},w:s=>s.fl.ias>=35,say:[['CDB','Sortis, on reprend une approche normale.']]})]}}); }
+heliAcc('h125',390); heliAcc('s76',107);
+if(MOD.r44) Object.assign(MOD.r44.tours,{
+ accLowG:{n:'Faible g et choc du mât (mast bumping)',acc:1,ok:'accLowG_ok',pre:'run',init:hInit(1000,100),st:()=>[
+  Q('Poussée brutale sur le cyclique','En air turbulent, le pilote pousse vite le manche : l\'appareil passe en « faible g », presque en apesanteur.',{ph:'Vol',err:1,run:s=>{ s.cyc='F'; s.cycT=3; },d:3}),
+  Q('Roulis non commandé','Rotor bipale déchargé : le couple du rotor anticouple fait rouler l\'appareil à droite. Le pilote corrige au cyclique à gauche.',{err:1,run:s=>{ s.cyc='L'; s.cycT=3; },d:3}),
+  Q('Choc du mât','Le moyeu bascule jusqu\'à frapper le mât rotor (mast bumping) : rupture.',FX('impact','RUPTURE DU MÂT',{fl:{tAlt:0,rate:200,tIas:0},w:s=>s.fl.alt<=40})),
+  AN('Faible g provoqué par une poussée sur le cyclique, puis correction latérale : choc du mât sur un rotor bipale.','Turbulence, réflexe inadapté ; les rotors bipales à battement libre y sont particulièrement sensibles.','En faible g : ramener d\'abord DOUCEMENT le cyclique en arrière pour recharger le rotor, puis corriger le roulis ; réduire la vitesse en turbulence.')]},
+ accLowG_ok:{n:'Version corrigée : recharger le rotor',hide:1,pre:'run',init:hInit(1000,100),st:()=>[
+  Q('Faible g','Sensation d\'allègement, début de roulis à droite.',{ph:'Vol',d:3}),K('cyc','A','Cyclique doucement en arrière : le rotor se recharge.'),Q('Roulis contrôlé','Le rotor chargé redevient efficace ; roulis corrigé ensuite.',{fl:{tIas:80},d:3,say:[['CDB','Rotor rechargé, on réduit la vitesse.']]})]},
+ accAuto:{n:'Panne moteur : collectif non baissé',acc:1,ok:'accAuto_ok',pre:'run',init:hInit(700,80),st:()=>[
+  Q('Panne moteur','',{ph:'Vol',run:s=>{ s.efail=true; s.autoro=true; },snd:'chime'}),Q('Collectif maintenu','',FX('warn','RÉGIME ROTOR BAS',{err:1,w:s=>s.nr<60,fl:{tAlt:0,rate:150}})),
+  Q('Chute','',FX('impact','IMPACT',{fl:{env:'pad',alt:0},run:s=>{ s.ground=true; s.autoro=false; },d:4})),
+  AN('Collectif non baissé : perte du régime rotor (faible inertie du rotor du R44).','Moins de 2 secondes de délai sur un rotor léger.','Collectif en bas immédiatement, maintenir le régime au vert, arrondi puis amortir au collectif.')]},
+ accAuto_ok:{n:'Version corrigée : autorotation',hide:1,pre:'run',init:hInit(700,80),st:()=>[
+  Q('Panne moteur','',{ph:'Vol',run:s=>{ s.efail=true; s.autoro=true; },snd:'chime'}),K('coll',0,'Collectif en bas immédiatement.'),Q('Autorotation','',{fl:{tAlt:40,rate:60,tIas:65},w:s=>s.fl.alt<=60}),
+  K('cyc','A','Arrondi.'),K('coll',1,'Amortir.'),Q('Posé','',{fl:{env:'pad',alt:0},run:s=>{ s.ground=true; s.autoro=false; }})]}});
+/* Learjet 60 */
+if(MOD.lj60) Object.assign(MOD.lj60.tours,{
+ accTire:{n:'Éclatement de pneu et interruption tardive',acc:1,ok:'accTire_ok',pre:'run',init:s=>{ s.fl.env='rwy'; s.flaps=8; s.fp=8; const N=crewNames(); mv('cdb',[],{at:[196,46],l:N.CDB}); mv('opl',[],{at:[204,46],l:N.OPL}); },st:()=>[
+  Q('Pneus sous-gonflés','Pression des pneus non vérifiée depuis plusieurs semaines.',{ph:'Décollage',err:1,d:3}),Q('Course au décollage','',{run:s=>{ s.tl1='MAX'; s.tl2='MAX'; },fl:{tIas:135,acc:4},w:s=>s.fl.ias>=133}),
+  Q('Éclatement au-dessus de V1','Un pneu éclate ; des débris endommagent capteurs et freins.',FX('sparks','PNEU ÉCLATÉ',{d:2})),
+  Q('Interruption après V1','Le décollage est interrompu au-delà de V1 : il ne reste pas assez de piste.',{err:1,run:s=>{ s.tl1='IDLE'; s.tl2='IDLE'; },fl:{tIas:50,acc:1.5},w:s=>s.fl.ias<=55}),
+  Q('Sortie de piste','',FX('impact','SORTIE DE PISTE',{fl:{env:'grass',tIas:0,acc:4},d:4})),
+  AN('Interruption du décollage au-delà de V1 après un éclatement de pneu.','Pneus sous-gonflés, décision tardive, freins endommagés.','Avant V1 : interrompre ; après V1 : continuer le décollage et traiter la panne en vol ; vérifier la pression des pneus avant chaque vol.')]},
+ accTire_ok:{n:'Version corrigée : continuer après V1',hide:1,pre:'run',init:s=>{ s.fl.env='rwy'; s.flaps=8; s.fp=8; },st:()=>[
+  Q('Course au décollage','',{ph:'Décollage',run:s=>{ s.tl1='MAX'; s.tl2='MAX'; },fl:{tIas:135,acc:4},w:s=>s.fl.ias>=133}),Q('Pneu éclaté après V1','',FX('sparks','PNEU ÉCLATÉ',{d:2,say:[['CDB','On continue !']]})),
+  K('ground',false,'Rotation : on continue le décollage.'),Q('Montée','Train laissé sorti (débris possibles), retour pour atterrissage avec secours prévenus.',FX(null,'',{fl:{env:'air',tAlt:1500,rate:300,tIas:160},w:s=>s.fl.alt>=1400}))]}});
+
 })();
 
 </script>

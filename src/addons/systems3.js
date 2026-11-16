@@ -168,4 +168,131 @@ generic('s76',{pad:true,two:true,rx:70,ry:230,cy:340,seat1:[190,150],seat2:[210,
 generic('r44',{pad:true,rx:60,ry:190,cy:330,seat1:[190,180],seat2:[210,180],maxPax:3,paxSeats:[[210,180],[190,230],[210,230]],walkSay:'Courroies, pales, niveaux d\'huile, carburant purgé : rien à signaler.',
  flight:()=>[K('coll',1,'Décollage.',[['CDB','Régime au vert, décollage.']],s=>!s.ground,'Attendre le décollage'),K('cyc','F','Cyclique en avant.'),Q('Vol','',{ph:'Vol',fl:{env:'air',tAlt:1000,rate:250,tIas:100},w:s=>s.fl.alt>=950}),Q('Approche','',{ph:'Atterrissage',fl:{tAlt:0,rate:200,tIas:0,acc:3},w:s=>s.fl.alt<=20}),Q('Posé','',{fl:{env:'pad',alt:0}}),
   K('coll',0,''),K('gov',false,''),K('thr','IDLE','Refroidissement.'),K('clutch',false,'Débrayage : l\'actionneur détend les courroies.',[],s=>s.cl<=0.02,'Attendre le débrayage'),K('mix','CUT','Mélange étouffoir : arrêt du moteur.'),Q('Rotor qui ralentit','',{w:s=>s.nr<20}),K('rbrake',true,''),K('key','OFF',''),K('master',false,'')]});
+/* ================= ACCIDENTS : chaîne des événements, analyse, version corrigée =================
+   Scénarios fictifs, inspirés de types d'accidents réels étudiés en sécurité des vols. Représentation sobre. */
+const AN=(c,f,ok)=>Q('Analyse de l\'accident','',{ph:'Analyse',fx:null,an:[['Causes :',c],['Facteurs contributifs :',f],['Ce qu\'il fallait faire :',ok]],d:16});
+const FX=(fx,fxt,o)=>Object.assign({fx,fxt},o||{});
+const appInit=(alt,ias,cfg)=>s=>{ flyInit(alt,ias)(s); Object.assign(s,cfg||{}); s.fl.tAlt=alt; };
+const A320ACC={
+ accOver:{n:'Sortie de piste à l\'atterrissage (piste mouillée)',acc:1,ok:'accOver_ok',pre:'fly',init:appInit(1500,165,{gear:'DOWN',gp:1,flaps:4,fp:4,thr:'IDLE',belts:true,land:true}),st:()=>[
+  Q('Orage sur l\'aéroport','Forte pluie, vent arrière de 10 nœuds annoncé, piste mouillée et courte. L\'équipage, fatigué et en retard, décide de continuer.',{ph:'Approche',err:1,say:[['TWR','Runway two six left, wind one zero zero at ten, heavy rain, cleared to land.','Vent arrière 10 nœuds, forte pluie, autorisé à atterrir.']],d:3}),
+  Q('Approche non stabilisée','À 1 000 ft : vitesse 20 nœuds trop élevée et au-dessus du plan. Les critères de stabilisation imposent la remise des gaz… elle n\'est pas faite.',{err:1,fl:{tAlt:0,rate:120,tIas:160},w:s=>s.fl.alt<=60,say:[['OPL','Vitesse, plus vingt.'],['CDB','Ça va passer.']]}),
+  Q('Atterrissage long','Toucher des roues à 1 200 m du seuil : il reste peu de piste.',{err:1,fl:{env:'rwy',alt:0,tAlt:0,ias:155,tIas:155},run:s=>{ s.ground=true; },d:2}),
+  Q('Freinage insuffisant','Spoilers non armés, inverseurs sortis tardivement ; l\'eau fait glisser les pneus (aquaplanage).',{err:1,fl:{tIas:55,acc:1.2},w:s=>s.fl.ias<=60,say:[['OPL','Pas de spoilers !'],['CDB','Reverse, freinage maxi !']]}),
+  Q('Sortie de piste','L\'avion dépasse l\'extrémité de piste et s\'arrête dans l\'herbe.',FX('warn','SORTIE DE PISTE',{fl:{env:'grass',tIas:0,acc:3},w:s=>s.fl.ias<=1,snd:'chime',d:3})),
+  Q('Évacuation','Train avant endommagé, pas de feu : évacuation par les toboggans.',FX(null,'',{run:()=>evac(),say:[['PNC','Détachez vos ceintures, laissez tout, sortez !']],d:6})),
+  AN('Approche non stabilisée poursuivie, atterrissage long, spoilers non armés sur piste mouillée.','Fatigue et pression du retard (« get-there-itis »), vent arrière, faible adhérence, défaut de surveillance mutuelle (le copilote n\'a pas imposé la remise des gaz).','Remettre les gaz dès que l\'approche n\'est pas stabilisée à 1 000 ft ; attendre la fin de l\'orage ou se dérouter ; armer les spoilers, inverseurs et freinage maximum dès le toucher.')]},
+ accOver_ok:{n:'Version corrigée : remise des gaz',hide:1,pre:'fly',init:appInit(1500,165,{gear:'DOWN',gp:1,flaps:4,fp:4,thr:'IDLE',belts:true,land:true}),st:()=>[
+  Q('Approche non stabilisée détectée','À 1 000 ft la vitesse est trop forte : remise des gaz obligatoire.',{ph:'Approche',say:[['OPL','Vitesse plus vingt, non stabilisés.'],['CDB','Remise des gaz !']]}),
+  K('thr','TOGA','Remise des gaz.',[['CDB','Go around, flaps.']]),K('flaps',3,''),K('gear','UP','',[['OPL','Vario positif.'],['CDB','Train sur rentré.']],s=>s.gp<0.01,'Attendre'),
+  Q('Attente de la fin de l\'orage','L\'orage s\'éloigne ; nouvelle approche stabilisée.',{fl:{tAlt:3000,rate:500,tIas:200},w:s=>s.fl.alt>=2900,d:3}),K('thr','IDLE',''),
+  K('gear','DOWN','',[],s=>s.gp>0.99,'Attendre'),K('flaps',4,''),Q('Approche stabilisée','',{fl:{tAlt:0,rate:300,tIas:138},w:s=>s.fl.alt<=40}),Q('Toucher dans la zone','',{fl:{env:'rwy',alt:0,ias:135}}),
+  K('ground',true,''),K('spd',1,'Spoilers sortis.',[['OPL','Spoilers. Reverse green.']]),Q('Arrêt normal','Assez de piste pour s\'arrêter.',{fl:{tIas:12,acc:5},w:s=>s.fl.ias<=15})]},
+ accStall:{n:'Décrochage après givrage des sondes Pitot (croisière)',acc:1,ok:'accStall_ok',pre:'fly',init:flyInit(35000,280),st:()=>[
+  Q('Cristaux de glace','En traversant une zone orageuse, les sondes Pitot se bouchent de glace : les vitesses affichées deviennent fausses.',{ph:'Croisière',run:s=>{ s.fail.pitot=1; },pt:['probe'],say:[['ECAM','Navigation. I A S disagree.']],d:3}),
+  Q('Pilote automatique déconnecté','Sans vitesse fiable, le pilote automatique et l\'auto-manette se déconnectent : le pilote reprend la main par surprise.',{err:0,say:[['ECAM','Autopilot off.'],['OPL','J\'ai les commandes.']],d:3}),
+  Q('Action à cabrer','Surpris, le pilote tire sur le mini-manche : l\'avion monte, la vitesse réelle chute.',{err:1,fl:{tAlt:38000,rate:600,tIas:180},w:s=>s.fl.alt>=37500,d:3}),
+  Q('Alarme de décrochage ignorée','L\'alarme retentit à plusieurs reprises ; elle n\'est pas reconnue, la poussée reste au maximum et le nez haut.',{err:1,say:[['ECAM','Stall. Stall.'],['CDB','Qu\'est-ce qui se passe ?']],d:3}),
+  Q('Décrochage installé','L\'aile ne porte plus : l\'avion tombe à plat, nez haut, à plus de 10 000 ft par minute.',FX('warn','DÉCROCHAGE',{fl:{tAlt:0,rate:900,tIas:110},w:s=>s.fl.alt<=100})),
+  Q('Impact avec la mer','',FX('impact','IMPACT',{fl:{env:'water',alt:0,ias:0,tIas:0},d:4})),
+  AN('Perte des indications de vitesse (sondes givrées), puis action inadaptée à cabrer maintenue jusqu\'au décrochage.','Effet de surprise, formation insuffisante au pilotage manuel à haute altitude, alarmes non comprises, mauvaise coordination de l\'équipage.','Appliquer la procédure « vitesse non fiable » : garder l\'assiette (environ 5°) et la poussée de croisière, ne pas cabrer ; au décrochage, rendre la main (nez en bas) puis remettre la puissance.')]},
+ accStall_ok:{n:'Version corrigée : vitesse non fiable',hide:1,pre:'fly',init:flyInit(35000,280),st:()=>[
+  Q('Sondes givrées','Vitesses incohérentes, pilote automatique déconnecté.',{ph:'Croisière',run:s=>{ s.fail.pitot=1; },pt:['probe'],say:[['ECAM','I A S disagree.'],['CDB','Vitesse non fiable. Assiette, poussée.']]}),
+  K('thr','CL','Garder la poussée de croisière et l\'assiette : l\'avion reste en palier.',[['OPL','Assiette deux et demi, poussée CLB, on garde le palier.']]),K('probe',true,'Réchauffage des sondes forcé.'),
+  Q('Les sondes se dégivrent','Après quelques dizaines de secondes, les vitesses redeviennent cohérentes.',{run:s=>{ s.fail.pitot=0; },d:4,say:[['CDB','Vitesses de nouveau cohérentes. Pilote automatique, ON.']]})]},
+ accConfig:{n:'Décollage sans volets (alarme de configuration en panne)',acc:1,ok:'accConfig_ok',pre:'run',init:s=>{ s.fl.env='rwy'; s.pbrake=false; s.flaps=0; s.fp=0; const N=crewNames(); mv('cdb',[],{at:[196,40],l:N.CDB}); mv('opl',[],{at:[204,40],l:N.OPL}); seats(NPAX()).forEach((p,i)=>mv('pax'+i,[],{at:p})); },st:()=>[
+  Q('Check-list interrompue','Un appel du contrôle interrompt la check-list avant décollage : l\'item « volets » est sauté.',{ph:'Décollage',err:1,say:[['GND','Air Trajectoires, expedite, traffic behind you.','Accélérez, du trafic derrière vous.']],d:3}),
+  Q('Alarme de configuration inopérante','Le système qui doit avertir « volets non sortis » est en panne (disjoncteur) : aucune alarme.',{err:1,d:3}),
+  Q('Poussée de décollage','',{run:s=>{ s.thr='TOGA'; },pt:['e1fan','e2fan']}),Q('Course au décollage','',{fl:{tIas:155,acc:4},w:s=>s.fl.ias>=150,say:[['OPL','V1… Rotation.']]}),
+  Q('L\'avion ne monte pas','Sans volets ni becs, l\'aile ne porte pas assez à cette vitesse : l\'avion décolle à peine, en décrochage.',FX('warn','DÉCROCHAGE',{err:1,run:s=>{ s.ground=false; },fl:{env:'air',tAlt:120,rate:50},say:[['ECAM','Stall. Stall.']],d:3})),
+  Q('Retour au sol','L\'avion retombe après la piste.',FX('impact','IMPACT',{fl:{env:'grass',alt:0,tAlt:0,tIas:0,acc:5},run:s=>{ s.ground=true; },d:4})),
+  AN('Volets et becs non sortis au décollage, sans alarme de configuration.','Interruption de la check-list, pression temporelle, panne de l\'alarme de configuration non détectée.','Reprendre la check-list depuis le début après toute interruption ; vérifier visuellement « volets 1 » sur l\'écran ; ne jamais décoller sans confirmation de la configuration.')]},
+ accConfig_ok:{n:'Version corrigée : check-list complète',hide:1,pre:'run',init:s=>{ s.fl.env='rwy'; s.pbrake=false; s.flaps=0; s.fp=0; },st:()=>[
+  Q('Check-list reprise depuis le début','',{ph:'Décollage',say:[['CDB','On reprend la check-list au début.'],['OPL','Volets ?']]}),K('flaps',1,'Volets 1 sortis et vérifiés.',[['CDB','Volets un, vérifiés.']]),
+  K('thr','TOGA',''),Q('Course au décollage','',{fl:{tIas:150,acc:4},w:s=>s.fl.ias>=148}),K('ground',false,''),Q('Montée normale','',{fl:{env:'air',tAlt:1500,rate:300,tIas:165},w:s=>s.fl.alt>400}),K('gear','UP','',[],s=>s.gp<0.01,'Attendre')]},
+ accGear:{n:'Atterrissage train rentré',acc:1,ok:'accGear_ok',pre:'fly',init:appInit(2500,180,{gear:'UP',gp:0,flaps:3,fp:3,thr:'IDLE',belts:true}),st:()=>[
+  Q('Distraction en approche','Une panne mineure et des échanges radio occupent l\'équipage pendant l\'approche.',{ph:'Approche',err:1,say:[['APP','Air Trajectoires, say again your fuel endurance?','Répétez votre autonomie ?']],d:3}),
+  Q('Check-list atterrissage oubliée','La sortie du train n\'est pas faite et la check-list n\'est pas lue.',{err:1,d:3}),
+  Q('Alarmes ignorées','Les alarmes sonores s\'enchaînent mais sont prises pour une fausse alerte.',{err:1,fl:{tAlt:0,rate:200,tIas:140},w:s=>s.fl.alt<=60,say:[['ECAM','Too low. Gear.'],['ECAM','Too low. Gear.']]}),
+  Q('Toucher sur le ventre','Le fuselage et les nacelles frottent sur la piste.',FX('sparks','TRAIN RENTRÉ',{fl:{env:'rwy',alt:0,ias:140,tIas:0,acc:2},run:s=>{ s.ground=true; },w:s=>s.fl.ias<=2,snd:'chime'})),
+  Q('Évacuation','Fumée sous l\'avion : évacuation immédiate.',FX('smoke','',{run:()=>evac(),say:[['PNC','Évacuez ! Évacuez !']],d:6})),
+  AN('Train non sorti avant l\'atterrissage.','Charge de travail et distraction, check-list non lue, alarmes non prises en compte.','Lire la check-list atterrissage quoi qu\'il arrive ; « train sorti, trois vert » annoncé et vérifié ; toute alarme « too low gear » impose la remise des gaz.')]},
+ accGear_ok:{n:'Version corrigée : check-list atterrissage',hide:1,pre:'fly',init:appInit(2500,180,{gear:'UP',gp:0,flaps:3,fp:3,thr:'IDLE',belts:true}),st:()=>[
+  K('gear','DOWN','Train sorti.',[['CDB','Train sorti.']],s=>s.gp>0.99,'Attendre les trois verts'),K('flaps',4,'',[['OPL','Check-list atterrissage : train, trois vert ; volets full ; spoilers armés.']]),
+  Q('Finale','',{ph:'Approche',fl:{tAlt:0,rate:250,tIas:138},w:s=>s.fl.alt<=40}),Q('Toucher','',{fl:{env:'rwy',alt:0,ias:135}}),K('ground',true,''),K('spd',1,''),Q('Arrêt','',{fl:{tIas:12,acc:5},w:s=>s.fl.ias<=15})]},
+ accFuel:{n:'Panne sèche après une fuite de carburant',acc:1,ok:'accFuel_ok',pre:'fly',init:s=>{ flyInit(35000,280)(s); s.fuel={lo:300,li:900,c:0,ri:1300,ro:300}; },st:()=>[
+  Q('Fuite de carburant','Une tuyauterie fissurée sur le moteur 1 laisse fuir le carburant : le réservoir gauche se vide anormalement vite.',{ph:'Croisière',run:s=>{ s.fail.leak=4; },pt:['tLo','tLi','e1'],pg:'FUEL',d:4}),
+  Q('Déséquilibre mal interprété','L\'équipage croit à une erreur de jauge et ne suspecte pas la fuite.',{err:1,d:3,say:[['OPL','Déséquilibre carburant… sûrement une jauge.']]}),
+  Q('Intercommunication ouverte','Pour rééquilibrer, l\'équipage ouvre l\'intercommunication : le carburant de l\'aile droite part aussi par la fuite.',{err:1,run:s=>{ s.xfeed=true; },pt:['xfv','f_xf'],w:s=>s.es[0]!==2&&s.es[1]!==2,say:[['ECAM','Engine one fail.'],['ECAM','Engine two fail.']]}),
+  Q('Plus aucun moteur','La RAT sort ; l\'avion plane vers un aérodrome de déroutement.',{pt:['rat'],pg:'HYD',fl:{tAlt:0,rate:300,tIas:200},w:s=>s.fl.alt<=60,say:[['CDB',`Mayday, mayday, mayday, ${cs()}, both engines out, gliding to the nearest airport.`,'Détresse, plus aucun moteur, plané vers l\'aéroport le plus proche.']]}),
+  Q('Atterrissage dur','Sans moteur ni inverseurs, freinage seul : pneus éclatés, l\'avion s\'arrête en bout de piste.',FX('sparks','PNEUS ÉCLATÉS',{fl:{env:'rwy',alt:0,ias:180,tIas:0,acc:4},run:s=>{ s.gear='DOWN'; s.gp=1; s.ground=true; },w:s=>s.fl.ias<=2})),
+  Q('Évacuation','Feu de freins léger maîtrisé par les pompiers.',FX('smoke','',{run:()=>{ evac(); mv('fire',[[100,300]],{at:[-40,300]}); },d:6})),
+  AN('Fuite de carburant non identifiée, aggravée par l\'ouverture de l\'intercommunication.','Indice (déséquilibre) attribué à une panne de jauge, procédure de fuite non appliquée, maintenance (tuyauterie mal montée).','Comparer carburant à bord et consommé ; en cas de doute appliquer la procédure « fuite » : ne pas ouvrir l\'intercommunication, arrêter le moteur concerné, se dérouter tôt.')]},
+ accFuel_ok:{n:'Version corrigée : procédure fuite',hide:1,pre:'fly',init:s=>{ flyInit(35000,280)(s); s.fuel={lo:300,li:900,c:0,ri:1300,ro:300}; },st:()=>[
+  Q('Fuite suspectée','Carburant à bord + consommé < carburant au départ : fuite.',{ph:'Croisière',run:s=>{ s.fail.leak=4; },pg:'FUEL',say:[['CDB','Carburant à bord plus consommé ne colle pas : fuite. Procédure fuite.']]}),
+  K('xfeed',false,'Intercommunication FERMÉE (surtout ne pas l\'ouvrir).'),K('m1',false,'Arrêt du moteur 1 (côté de la fuite).',[['OPL','Master un… confirmez ?'],['CDB','Confirmé.']]),
+  Q('Déroutement','Le moteur 2 garde le carburant de l\'aile droite.',{fl:{tAlt:0,rate:500,tIas:180},w:s=>s.fl.alt<=60}),K('gear','DOWN','',[],s=>s.gp>0.99,'Attendre'),Q('Atterrissage sur un moteur','',{fl:{env:'rwy',alt:0,ias:140,tIas:15,acc:4}}),K('ground',true,'')]},
+ accIncur:{n:'Collision sur la piste (incursion, brouillard)',acc:1,ok:'accIncur_ok',pre:'run',init:s=>{ s.fl.env='rwy'; s.pbrake=false; s.flaps=1; s.fp=1; const N=crewNames(); mv('cdb',[],{at:[196,40],l:N.CDB}); mv('opl',[],{at:[204,40],l:N.OPL}); seats(NPAX()).forEach((p,i)=>mv('pax'+i,[],{at:p})); },st:()=>[
+  Q('Brouillard','Visibilité 300 m : la tour ne voit pas la piste, et l\'équipage ne voit pas l\'autre bout.',{ph:'Décollage',d:3}),
+  Q('Malentendu radio','Messages qui se chevauchent et formulations non standard.',{err:1,say:[['OPL','We are now at take-off.','Nous sommes maintenant au décollage. (formule ambiguë)'],['TWR','OK… stand by for take-off, I will call you.','OK… attendez pour le décollage, je vous rappelle.']],d:2}),
+  Q('Décollage sans autorisation','Le « OK » est compris comme une autorisation ; la fin du message est couverte par une autre émission.',{err:1,run:s=>{ s.thr='TOGA'; },fl:{tIas:130,acc:4},d:2}),
+  Q('Un avion sur la piste','Un autre avion, qui roule sur la piste dans le brouillard, apparaît devant.',{run:()=>mv('intrus',[[200,150]],{at:[200,-60],ac:true,c:'#e8eef2',l:'Autre avion',rot:180,sc:2,spd:140}),w:s=>!SYSAT.S.act.intrus||!SYSAT.S.act.intrus.path.length,say:[['CDB','Oh non !']]}),
+  Q('Collision','',FX('impact','COLLISION',{fy:150,fl:{tIas:0,acc:8},d:4})),
+  AN('Décollage sans autorisation alors qu\'un avion était sur la piste.','Brouillard, phraséologie non standard (« OK », « at take-off »), messages radio simultanés, pression horaire, absence de radar sol.','N\'utiliser que la phraséologie standard ; ne jamais décoller sans « cleared for take-off » clair et collationné ; en cas de doute, demander confirmation.')]},
+ accIncur_ok:{n:'Version corrigée : confirmer avant de décoller',hide:1,pre:'run',init:s=>{ s.fl.env='rwy'; s.pbrake=false; s.flaps=1; s.fp=1; },st:()=>[
+  Q('Brouillard','',{ph:'Décollage'}),K('ptt',true,'Demander confirmation.',[['OPL','Confirm, are we cleared for take-off?','Confirmez : sommes-nous autorisés au décollage ?'],['TWR','Negative! Hold position, traffic on the runway.','Négatif ! Restez sur place, trafic sur la piste.']]),
+  Q('L\'autre avion dégage la piste','',{run:()=>mv('intrus',[[440,150]],{at:[200,-60],ac:true,c:'#e8eef2',l:'Autre avion',rot:90,sc:2,spd:90}),d:5}),
+  K('ptt',true,'',[['TWR','Runway clear, cleared for take-off.','Piste dégagée, autorisé au décollage.'],['OPL','Cleared for take-off.','Collationnement.']]),K('thr','TOGA',''),Q('Course au décollage','',{fl:{tIas:150,acc:4},w:s=>s.fl.ias>=148}),K('ground',false,'')]}
+};
+if(MOD.a320) Object.assign(MOD.a320.tours,A320ACC);
+/* hélicoptères */
+const hInit=(alt,ias)=>s=>{ s.ground=false; s.coll=1; s.fl.env='air'; s.fl.alt=alt; s.fl.tAlt=alt; s.fl.ias=ias; s.fl.tIas=ias; const N=crewNames(); mv('cdb',[],{at:[192,175],l:N.CDB}); };
+function heliAcc(key,nrN){ const M=MOD[key]; if(!M) return; const engOff=s=>{ s.efail=true; s.autoro=true; };
+ Object.assign(M.tours,{
+  accAuto:{n:'Panne moteur : collectif non baissé',acc:1,ok:'accAuto_ok',pre:'run',init:hInit(800,90),st:()=>[
+   Q('Panne moteur','Le moteur s\'arrête en vol (contamination du carburant). Le rotor n\'est plus entraîné : il ralentit en quelques secondes.',{ph:'Vol',run:engOff,snd:'chime',say:[['ECAM','Engine out. Rotor r p m.']]}),
+   Q('Collectif maintenu','Surpris, le pilote garde le collectif levé : les pales freinent le rotor, le régime s\'effondre.',FX('warn','RÉGIME ROTOR BAS',{err:1,w:s=>s.nr<nrN*0.6,fl:{tAlt:0,rate:150}})),
+   Q('Chute','Rotor trop lent : plus de portance.',FX('impact','IMPACT',{fl:{env:'pad',alt:0,tAlt:0,tIas:0,acc:6},run:s=>{ s.ground=true; s.autoro=false; },d:4})),
+   AN('Collectif non baissé après la panne moteur : perte du régime rotor.','Effet de surprise, entraînement à l\'autorotation insuffisant.','Baisser le collectif immédiatement (1 à 2 secondes) : l\'air qui traverse le rotor le fait tourner (autorotation) ; arrondi au cyclique près du sol, puis collectif pour amortir.')]},
+  accAuto_ok:{n:'Version corrigée : autorotation',hide:1,pre:'run',init:hInit(800,90),st:()=>[
+   Q('Panne moteur','',{ph:'Vol',run:engOff,snd:'chime'}),K('coll',0,'Collectif en bas immédiatement : le régime rotor est conservé (autorotation).',[['CDB','Autorotation !']]),
+   Q('Descente en autorotation','Environ 1 500 ft/min, vitesse 65 nœuds, régime rotor au vert.',{fl:{tAlt:40,rate:60,tIas:65},w:s=>s.fl.alt<=60,d:3}),K('cyc','A','Arrondi : cyclique en arrière pour freiner.'),K('coll',1,'Collectif levé au dernier moment : l\'énergie du rotor amortit le posé.'),
+   Q('Posé','',{fl:{env:'pad',alt:0,tIas:0,acc:5},run:s=>{ s.ground=true; s.autoro=false; },say:[['CDB','Posés. Tout le monde va bien.']]})]},
+  accVrs:{n:'Anneau tourbillonnaire (descente verticale)',acc:1,ok:'accVrs_ok',pre:'run',init:hInit(600,10),st:()=>[
+   Q('Descente presque verticale','Vitesse quasi nulle et descente rapide : le rotor descend dans son propre souffle.',{ph:'Vol',err:1,fl:{tAlt:350,rate:30,tIas:5},w:s=>s.fl.alt<=360}),
+   Q('Anneau tourbillonnaire','Les tourbillons de bout de pale se referment : la portance chute, vibrations, le vario s\'emballe.',FX('warn','ANNEAU TOURBILLONNAIRE',{d:3})),
+   Q('Plus de collectif','Le pilote lève le collectif : cela aggrave l\'anneau.',{err:1,run:s=>{ s.coll=2; },fl:{tAlt:0,rate:60},w:s=>s.fl.alt<=40}),
+   Q('Impact','',FX('impact','IMPACT',{fl:{env:'pad',alt:0,tIas:0},run:s=>{ s.ground=true; },d:4})),
+   AN('Entrée en anneau tourbillonnaire en descente lente à faible vitesse.','Descente supérieure à environ 300 ft/min sous 30 nœuds, réflexe de lever le collectif.','Éviter les descentes verticales rapides ; en anneau, sortir latéralement ou vers l\'avant au cyclique (méthode Vuichard / prise de vitesse) avant de remettre du collectif.')]},
+  accVrs_ok:{n:'Version corrigée : sortie au cyclique',hide:1,pre:'run',init:hInit(600,10),st:()=>[
+   Q('Début d\'anneau','Vibrations, vario qui augmente.',{ph:'Vol',fl:{tAlt:420,rate:30,tIas:5},w:s=>s.fl.alt<=430}),K('cyc','F','Cyclique en avant : l\'hélicoptère prend de la vitesse et sort de son souffle.'),
+   Q('Sortie de l\'anneau','À partir d\'environ 20 nœuds, le rotor retrouve de l\'air « propre » : la portance revient.',{fl:{tAlt:500,rate:40,tIas:40},w:s=>s.fl.ias>=35,say:[['CDB','Sortis, on reprend une approche normale.']]})]}}); }
+heliAcc('h125',390); heliAcc('s76',107);
+if(MOD.r44) Object.assign(MOD.r44.tours,{
+ accLowG:{n:'Faible g et choc du mât (mast bumping)',acc:1,ok:'accLowG_ok',pre:'run',init:hInit(1000,100),st:()=>[
+  Q('Poussée brutale sur le cyclique','En air turbulent, le pilote pousse vite le manche : l\'appareil passe en « faible g », presque en apesanteur.',{ph:'Vol',err:1,run:s=>{ s.cyc='F'; s.cycT=3; },d:3}),
+  Q('Roulis non commandé','Rotor bipale déchargé : le couple du rotor anticouple fait rouler l\'appareil à droite. Le pilote corrige au cyclique à gauche.',{err:1,run:s=>{ s.cyc='L'; s.cycT=3; },d:3}),
+  Q('Choc du mât','Le moyeu bascule jusqu\'à frapper le mât rotor (mast bumping) : rupture.',FX('impact','RUPTURE DU MÂT',{fl:{tAlt:0,rate:200,tIas:0},w:s=>s.fl.alt<=40})),
+  AN('Faible g provoqué par une poussée sur le cyclique, puis correction latérale : choc du mât sur un rotor bipale.','Turbulence, réflexe inadapté ; les rotors bipales à battement libre y sont particulièrement sensibles.','En faible g : ramener d\'abord DOUCEMENT le cyclique en arrière pour recharger le rotor, puis corriger le roulis ; réduire la vitesse en turbulence.')]},
+ accLowG_ok:{n:'Version corrigée : recharger le rotor',hide:1,pre:'run',init:hInit(1000,100),st:()=>[
+  Q('Faible g','Sensation d\'allègement, début de roulis à droite.',{ph:'Vol',d:3}),K('cyc','A','Cyclique doucement en arrière : le rotor se recharge.'),Q('Roulis contrôlé','Le rotor chargé redevient efficace ; roulis corrigé ensuite.',{fl:{tIas:80},d:3,say:[['CDB','Rotor rechargé, on réduit la vitesse.']]})]},
+ accAuto:{n:'Panne moteur : collectif non baissé',acc:1,ok:'accAuto_ok',pre:'run',init:hInit(700,80),st:()=>[
+  Q('Panne moteur','',{ph:'Vol',run:s=>{ s.efail=true; s.autoro=true; },snd:'chime'}),Q('Collectif maintenu','',FX('warn','RÉGIME ROTOR BAS',{err:1,w:s=>s.nr<60,fl:{tAlt:0,rate:150}})),
+  Q('Chute','',FX('impact','IMPACT',{fl:{env:'pad',alt:0},run:s=>{ s.ground=true; s.autoro=false; },d:4})),
+  AN('Collectif non baissé : perte du régime rotor (faible inertie du rotor du R44).','Moins de 2 secondes de délai sur un rotor léger.','Collectif en bas immédiatement, maintenir le régime au vert, arrondi puis amortir au collectif.')]},
+ accAuto_ok:{n:'Version corrigée : autorotation',hide:1,pre:'run',init:hInit(700,80),st:()=>[
+  Q('Panne moteur','',{ph:'Vol',run:s=>{ s.efail=true; s.autoro=true; },snd:'chime'}),K('coll',0,'Collectif en bas immédiatement.'),Q('Autorotation','',{fl:{tAlt:40,rate:60,tIas:65},w:s=>s.fl.alt<=60}),
+  K('cyc','A','Arrondi.'),K('coll',1,'Amortir.'),Q('Posé','',{fl:{env:'pad',alt:0},run:s=>{ s.ground=true; s.autoro=false; }})]}});
+/* Learjet 60 */
+if(MOD.lj60) Object.assign(MOD.lj60.tours,{
+ accTire:{n:'Éclatement de pneu et interruption tardive',acc:1,ok:'accTire_ok',pre:'run',init:s=>{ s.fl.env='rwy'; s.flaps=8; s.fp=8; const N=crewNames(); mv('cdb',[],{at:[196,46],l:N.CDB}); mv('opl',[],{at:[204,46],l:N.OPL}); },st:()=>[
+  Q('Pneus sous-gonflés','Pression des pneus non vérifiée depuis plusieurs semaines.',{ph:'Décollage',err:1,d:3}),Q('Course au décollage','',{run:s=>{ s.tl1='MAX'; s.tl2='MAX'; },fl:{tIas:135,acc:4},w:s=>s.fl.ias>=133}),
+  Q('Éclatement au-dessus de V1','Un pneu éclate ; des débris endommagent capteurs et freins.',FX('sparks','PNEU ÉCLATÉ',{d:2})),
+  Q('Interruption après V1','Le décollage est interrompu au-delà de V1 : il ne reste pas assez de piste.',{err:1,run:s=>{ s.tl1='IDLE'; s.tl2='IDLE'; },fl:{tIas:50,acc:1.5},w:s=>s.fl.ias<=55}),
+  Q('Sortie de piste','',FX('impact','SORTIE DE PISTE',{fl:{env:'grass',tIas:0,acc:4},d:4})),
+  AN('Interruption du décollage au-delà de V1 après un éclatement de pneu.','Pneus sous-gonflés, décision tardive, freins endommagés.','Avant V1 : interrompre ; après V1 : continuer le décollage et traiter la panne en vol ; vérifier la pression des pneus avant chaque vol.')]},
+ accTire_ok:{n:'Version corrigée : continuer après V1',hide:1,pre:'run',init:s=>{ s.fl.env='rwy'; s.flaps=8; s.fp=8; },st:()=>[
+  Q('Course au décollage','',{ph:'Décollage',run:s=>{ s.tl1='MAX'; s.tl2='MAX'; },fl:{tIas:135,acc:4},w:s=>s.fl.ias>=133}),Q('Pneu éclaté après V1','',FX('sparks','PNEU ÉCLATÉ',{d:2,say:[['CDB','On continue !']]})),
+  K('ground',false,'Rotation : on continue le décollage.'),Q('Montée','Train laissé sorti (débris possibles), retour pour atterrissage avec secours prévenus.',FX(null,'',{fl:{env:'air',tAlt:1500,rate:300,tIas:160},w:s=>s.fl.alt>=1400}))]}});
+
 })();

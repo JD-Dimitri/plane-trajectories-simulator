@@ -168,13 +168,14 @@ function heli(o){
   k.hy=ids.slice(0,o.hyd).map(i=>s.hp[i]>0.6); k.H=k.hy.some(x=>x); k.scr=k.dc; return k; }
  function step(s,dt){ const k=kk(s); s.t+=dt;
   ids.forEach(i=>{ const sel=s['eng'+i];
+   if(s.efail) s.es[i]=0;
    if(s.es[i]===1){ if(sel==='OFF'||!k.dc&&s.ng[i]<45||!s['fso'+i]&&s.ng[i]>=12){ s.es[i]=0; } else { s.ng[i]+=dt*(s.ng[i]<15?5:s.ng[i]<45?5.5:3); if(s.ng[i]>=o.ngIdle){ s.es[i]=2; } } }
    else if(s.es[i]===2){ if(sel==='OFF'||!s['fso'+i]) s.es[i]=0; else s.ng[i]=near(s.ng[i],sel==='FLIGHT'?o.ngFl+s.coll*4:o.ngIdle,dt*0.7); }
-   else { s.ng[i]=Math.max(0,s.ng[i]-dt*6); if(sel!=='OFF'&&s.ng[i]<10&&k.dc&&s['fso'+i]&&k.fuelP[i]&&!s.rbrake) s.es[i]=1; }
+   else { s.ng[i]=Math.max(0,s.ng[i]-dt*6); if(!s.efail&&sel!=='OFF'&&s.ng[i]<10&&k.dc&&s['fso'+i]&&k.fuelP[i]&&!s.rbrake) s.es[i]=1; }
    const tt=k.burn[i]?(s.es[i]===1?720:(sel==='FLIGHT'?560+s.coll*90:470)):15+s.ng[i]*.3; s.t4[i]=near(s.t4[i],tt,dt*(tt>s.t4[i]?1:0.3)); });
-  const nrT=s.rbrake?0:(k.run?(k.fl?o.nrNom:o.nrIdle):0); s.nr=k.run&&!s.rbrake?near(s.nr,nrT,dt*0.35):Math.max(0,s.nr-dt*o.nrNom*0.035);
+  const nrT=s.rbrake?0:(k.run?(k.fl?o.nrNom:o.nrIdle):0); if(k.run&&!s.rbrake) s.nr=near(s.nr,nrT,dt*0.35); else if(!s.ground&&s.autoro&&s.coll===0) s.nr=near(s.nr,o.nrNom,dt*0.3); else s.nr=Math.max(0,s.nr-dt*o.nrNom*(s.ground?0.035:0.09));
   ids.slice(0,o.hyd).forEach(i=>{ const t=(s['hyd'+i]&&s.nr>o.nrNom*0.3)?1:0; s.hp[i]=near(s.hp[i],t,dt*(t?1.5:0.5)); });
-  if(s.coll===0&&!s.ground) s.ground=true; if(s.coll>0&&s.ground&&k.fl&&s.nr>o.nrNom*0.95) s.ground=false; if(!s.ground&&(!k.run||s.nr<o.nrNom*0.85)) s.ground=true;
+  if(!s.autoro){ if(s.coll===0&&!s.ground) s.ground=true; if(s.coll>0&&s.ground&&k.fl&&s.nr>o.nrNom*0.95) s.ground=false; if(!s.ground&&(!k.run||s.nr<o.nrNom*0.85)) s.ground=true; }
   if(o.gear){ const gt=s.gear==='DOWN'?1:0; if(s.gp!==gt&&k.H&&!s.ground) s.gp+=Math.sign(gt-s.gp)*Math.min(Math.abs(gt-s.gp),dt/5); }
   s.cycT=Math.max(0,s.cycT-dt); if(!s.cycT) s.cyc='N'; s.pedT=Math.max(0,s.pedT-dt); if(!s.pedT) s.ped='N';
   s.fuel=Math.max(0,s.fuel-ids.reduce((a,i)=>a+(k.burn[i]?(s.es[i]===2?o.ff:40):0),0)*dt/3600); }
@@ -311,11 +312,11 @@ const ctl=[
 function init(){ return {ground:true,master:false,alt:false,fv:false,mix:'CUT',auxp:false,hyd:true,key:'OFF',clutch:false,cl:0,gov:false,thr:'IDLE',rbrake:true,nav:false,acol:false,coll:0,cyc:'N',cycT:0,ped:'N',pedT:0,rpm:0,nr:0,run:false,crank:0,t:0,cht:15}; }
 function kk(s){ const k={}; k.altOn=s.alt&&s.run&&s.master; k.dc=s.master; k.mags=s.key!=='OFF'; k.fuel=s.fv&&s.mix==='RICH'&&(s.auxp&&s.master||s.run); k.H=s.hyd&&s.nr>30; k.cranking=s.crank>0; k.belt=s.cl>0.98; k.clMove=(s.clutch&&s.cl<1)||(!s.clutch&&s.cl>0); return k; }
 function step(s,dt){ const k=kk(s); s.t+=dt; if(s.crank>0){ s.crank-=dt; if(s.crank<=0&&s.key==='START') s.key='BOTH'; s.rpm=near(s.rpm,22,dt*2); if(s.crank<1.2&&k.fuel&&k.mags&&!s.clutch) s.run=true; }
- if(s.run&&(!k.fuel||!k.mags)) s.run=false;
+ if(s.run&&(!k.fuel||!k.mags||s.efail)) s.run=false;
  const load=k.belt?1:0, tgt=s.run?(s.thr==='OPEN'||s.gov?(load&&s.gov?102:(s.thr==='OPEN'?100:60)):(load?55:60)):(s.crank>0?22:0); s.rpm=near(s.rpm,tgt,dt*(s.run?0.8:0.6));
  if(s.clutch&&k.dc) s.cl=Math.min(1,s.cl+dt/7); else if(!s.clutch&&k.dc) s.cl=Math.max(0,s.cl-dt/5);
- const nrT=(k.belt&&!s.rbrake)?s.rpm:0; s.nr=nrT>s.nr?near(s.nr,nrT,dt*0.5):Math.max(nrT,s.nr-dt*3);
- if(s.coll===0) s.ground=true; else if(s.nr>=99&&s.gov) s.ground=false; if(!s.ground&&s.nr<90) s.ground=true;
+ const nrT=(k.belt&&!s.rbrake)?s.rpm:0; if(!s.run&&!s.ground&&s.autoro&&s.coll===0) s.nr=near(s.nr,100,dt*0.3); else s.nr=nrT>s.nr?near(s.nr,nrT,dt*0.5):Math.max(nrT,s.nr-dt*(s.ground?3:9));
+ if(!s.autoro){ if(s.coll===0) s.ground=true; else if(s.nr>=99&&s.gov) s.ground=false; if(!s.ground&&s.nr<90) s.ground=true; }
  s.cht=near(s.cht,s.run?(s.rpm>90?380:300):15,dt*0.1); s.cycT=Math.max(0,s.cycT-dt); if(!s.cycT) s.cyc='N'; s.pedT=Math.max(0,s.pedT-dt); if(!s.pedT) s.ped='N'; }
 function ev(s){ const k=kk(s), p={}, sp={}, A=(id,c,m)=>{ p[id]=m?[c,m]:c; };
  if(s.master){ A('bat','el',k.altOn?null:'blink'); A('f_bat','el',k.altOn?'rev':'flow'); A('scr','el'); } if(k.altOn){ A('alt','el'); A('f_alt','el','flow'); }
