@@ -237,7 +237,7 @@ kbd{display:inline-block;min-width:20px;padding:1px 5px;margin:0 2px 2px 0;borde
  <button type="button" id="b-flap">Volets 0</button>
  <span class="sep"></span>
  <span class="lbl">Temps</span>
- <select id="b-rate" aria-label="Accélération du temps"><option value="real">Temps réel (durées réelles)</option><option value="1">×1</option><option value="2">×2</option><option value="5">×5</option><option value="10">×10</option><option value="20">×20</option><option value="50">×50</option></select>
+ <select id="b-rate" aria-label="Accélération du temps"><option value="real">Durées réelles (×1)</option><optgroup label="Temps accéléré (durées réelles)"><option value="2">×2</option><option value="5">×5</option><option value="10">×10</option><option value="20">×20</option><option value="30">×30</option><option value="50">×50</option></optgroup><option value="fast" selected>Étapes courtes (sans durée réelle)</option></select>
  <button type="button" id="b-dn">☀ Jour</button>
  <button type="button" id="b-help">? Aide</button>
  <a id="b-n7" hidden target="_blank" rel="noopener" style="margin-left:auto;color:var(--cy);font:600 12px 'Barlow Condensed';letter-spacing:.08em;text-transform:uppercase;text-decoration:none">Étude N722BD ↗</a>
@@ -1621,7 +1621,7 @@ function autoTick(){ if(!AUTO.on||!GD.on||AUTO.paused||paused||!$('menu').hidden
     if(!AUTO.trig.has(GD.i+':'+j)||now-AUTO.lastAct>8000){ if(now-AUTO.lastAct<1400) return; AUTO.trig.add(GD.i+':'+j); AUTO.lastAct=now; if(it[3]) highlight(it[3],true);
       setTimeout(()=>{ try{ it[2](); }catch(e){} ovhSync(); pedSync(); renderGuide(); },700); }
     return; }
-  if(AUTO.stage==='done'&&(now-AUTO.t0)>1800){ closePanels(); const ph=st.ph; goStep(GD.i+1); AUTO.stage='read'; AUTO.t0=performance.now();
+  if(AUTO.stage==='done'&&(now-AUTO.t0)>1800&&!(window.DUR_LEFT&&DUR_LEFT()>0)){ closePanels(); const ph=st.ph; goStep(GD.i+1); AUTO.stage='read'; AUTO.t0=performance.now();
     const nx=GD.steps[GD.i]; if(AUTO.qcmEach&&nx&&nx.ph!==ph&&!['Préparation'].includes(ph)) qcmPhase(ph); } }
 function closePanels(){ if(ovhPinned){ ovhPinned=false; $('ovh').hidden=true; $('b-ovh').classList.remove('on'); } const p=$('ped'); if(p&&!p.hidden){ p.hidden=true; $('b-ped').classList.remove('on'); } }
 function autoBar(f){ const g=$('guide'); if(!g) return; let b=g.querySelector('.abar'); if(!b){ b=document.createElement('div'); b.className='abar'; b.innerHTML='<i></i><span></span><button type="button" class="mini" data-ap>❚❚</button><button type="button" class="mini" data-an>Passer ▶</button>'; g.querySelector('.gh').after(b);
@@ -2289,7 +2289,7 @@ function failTick(){ if(!MI) return; const now=performance.now();
   if(FX.rnd&&SIMT>FX.rnd.at){ const id=FX.rnd.id; FX.rnd=null; failSet(id,true); }
   if(AUTO.on) for(const id in FX.fixAt){ if(SIMT>FX.fixAt[id]){ const f=FAILS.find(x=>x.id===id); delete FX.fixAt[id]; if(f&&FAIL[id]){ try{ f.fix(); }catch(e){} flash('Procédure ECAM appliquée : '+(f.t||f.n),'am'); ovhSync(); pedSync(); failUI(); } } }
   // mode observation : accélération au sol pendant les attentes réelles (alignement IR, démarrages) ; auto-frein armé en descente
-  if(window.TREAL){ if(rate!==1&&!window.FF) setRate(1); } else if(AUTO.on&&MI.full&&S.onGround&&!((GD.steps[GD.i]||{}).fly)){ const wait=(SYS.ir1==='NAV'&&(SYS.irAl||0)<1)||SYS.apuStart||(S.n2&&S.n2.some((n,i)=>n>0.01&&n<1&&!S.eng[i])); const want=wait?16:1; if(rate!==want) setRate(want); }
+  if(window.DUR_ON){ const R=window.RSEL||1; if(rate!==R&&!window.FF&&S.onGround&&Math.abs(S.V)<0.5&&!((GD.steps[GD.i]||{}).fly)) setRate(R); } else if(AUTO.on&&MI.full&&S.onGround&&!((GD.steps[GD.i]||{}).fly)){ const wait=(SYS.ir1==='NAV'&&(SYS.irAl||0)<1)||SYS.apuStart||(S.n2&&S.n2.some((n,i)=>n>0.01&&n<1&&!S.eng[i])); const want=wait?16:1; if(rate!==want) setRate(want); }
   if((AUTO.on||ATC.co)&&AL()&&!S.onGround&&S.alt/FT<10000&&(S.gam||0)<0&&ATC.flown&&!['LO','MED'].includes(SYS.abrk)){ SYS.abrk='LO'; flash('Auto-frein LO armé','am'); }
   // panneau des pannes : rafraîchir les « pannes actives » quand une panne disparaît d'elle-même
   const sig=Object.keys(FAIL).sort().join(','); if(sig!==FX.sig){ FX.sig=sig; failUI(); } }
@@ -2703,7 +2703,7 @@ document.addEventListener('keydown',e=>{ if(/INPUT|SELECT|TEXTAREA/.test((docume
   if(k==='a'||k==='A') fcuCmd('ap'); else if(k==='h'||k==='H'){ if(A.kind==='rw'&&A.afcs) fcuCmd('alth'); else flash(A.kind==='rw'?'Pas de maintien d\'altitude sur cet appareil':'—','am'); }
   else if(k==='g'||k==='G') toggleGear(); else if(k==='f') setFlap(1); else if(k==='F') setFlap(-1);
   else if(k==='c'||k==='C') setView('ck'); else if(k==='e'||k==='E') setView('ext'); else if(k==='o'||k==='O') toggleOVH();
-  else if(k==='p'||k==='P') togglePause(); else if(k==='j'||k==='J') dayNight(); else if(k==='x'||k==='X'){ const o=[1,2,5,10,20,50]; setRate(o[(o.indexOf(rate)+1)%o.length]); }
+  else if(k==='p'||k==='P') togglePause(); else if(k==='j'||k==='J') dayNight(); else if(k==='x'||k==='X'){ const o=[1,2,5,10,20,30,50], r=o[(o.indexOf(rate)+1)%o.length]; if(window.DUR_ON) window.RSEL=r; setRate(r); }
   else if(k==='?') toggleHelp(); else if(k==='Escape'){ $('help').hidden=true; $('ovh').hidden=true; ovhPinned=false; }
   else if(k==='0'){ LK.ty=LK.tp=0; LK.tz=1; } else if(k==='k'||k==='K'){ const p=$('ped'); if(p){ p.hidden=!p.hidden; $('b-ped').classList.toggle('on',!p.hidden); } }
   else if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown',' '].includes(k)){} else used=false;
@@ -2734,7 +2734,7 @@ stick('stL',IN.tL); stick('stR',IN.tR);
 function toggleGear(){ if(A.kind!=='fw') return; if(S.onGround&&S.gear){ flash('Train : impossible au sol','am'); return; } S.gear=!S.gear; flash(S.gear?'TRAIN SORTI':'TRAIN RENTRÉ','am'); syncBar(); }
 function setFlap(d){ if(A.kind!=='fw') return; S.flap=clamp(S.flap+d,0,A.flaps.length-1); flash('VOLETS '+A.flaps[S.flap].n,'am'); syncBar(); }
 function togglePause(){ if(crashed) return; paused=!paused; $('b-pause').textContent=paused?'Reprendre':'Pause'; }
-function setRate(r){ if(r>4 && !(AP.on||S.onGround===false&&A.kind==='rw'&&AP.althold)){ flash('Accélération > ×4 : pilote auto requis','am'); r=Math.min(r,4); } rate=r; if(r!==1) window.TREAL=false; $('b-rate').value=window.TREAL&&r===1?'real':String(r); }
+function setRate(r){ if(r>4 && !(AP.on||S.onGround===false&&A.kind==='rw'&&AP.althold||window.DUR_ON&&S.onGround&&Math.abs(S.V)<0.5)){ flash('Accélération > ×4 : pilote auto requis','am'); r=Math.min(r,4); } rate=r; $('b-rate').value=window.DUR_ON?(r===1?'real':(['2','5','10','20','30','50'].includes(String(r))?String(r):(window.RSEL===1?'real':String(window.RSEL||'real')))):'fast'; }
 let ovhPinned=false;
 function toggleOVH(){ ovhPinned=!ovhPinned; $('ovh').hidden=!ovhPinned; $('b-ovh').classList.toggle('on',ovhPinned); if(ovhPinned) ovhSync(); }
 function setView(v){ if(v!=='walk'&&view==='walk'&&GD.on&&GD.steps[GD.i]&&GD.steps[GD.i].walk&&!walkDone()) flash('Tour avion non terminé','am'); view=v; document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('ck').hidden=v!=='ck'; LK.ty=LK.tp=0; LK.tz=1; resize(); }
@@ -2745,7 +2745,7 @@ $('help-x').onclick=toggleHelp; $('b-help').onclick=toggleHelp; $('b-pause').onc
 $('b-atc').onclick=()=>atcOpen(); $('b-scn').onclick=()=>scnOpen(); $('b-fail').onclick=()=>failOpen(); $('b-auto').onclick=()=>{ if(!MI.full){ flash('Mode automatique : missions « Parcours pilote complet »','am'); return; } autoStart(!AUTO.on); }; $('b-qcm').onclick=()=>{ const q=$('qcm'); if(q&&!q.hidden){ q.hidden=true; return; } qcmOpen(); };
 $('b-ped').onclick=()=>{ const p=$('ped'); if(p){ p.hidden=!p.hidden; $('b-ped').classList.toggle('on',!p.hidden); } }; $('b-guide').onclick=()=>{ if(!MI.full){ flash('Mode pédagogique : missions « Parcours pilote complet »','am'); return; } GD.peda=!GD.peda; $('b-guide').classList.toggle('on',GD.peda); renderGuide(); };
 $('b-ap').onclick=()=>fcuCmd(A.kind==='rw'&&!A.afcs?'none':'ap'); $('b-gear').onclick=toggleGear; $('b-flap').onclick=()=>setFlap(S.flap>=A.flaps.length-1?-(A.flaps.length-1):1);
-$('b-rate').onchange=()=>{ const v=$('b-rate').value; window.TREAL=v==='real'; setRate(v==='real'?1:+v); if(window.TREAL) flash('Temps réel : toutes les durées sont réelles, aucune accélération automatique','am'); }; $('b-dn').onclick=dayNight; $('b-menu').onclick=openMenu;
+$('b-rate').onchange=()=>{ const v=$('b-rate').value; window.DUR_ON=v!=='fast'; window.TREAL=window.DUR_ON; window.RSEL=v==='real'?1:v==='fast'?1:+v; setRate(window.RSEL); if(v==='real') flash('Durées réelles : chaque étape dure son temps réel (dossier de vol ≈ 30 min, devis ≈ 20 min…). Accélérez avec ×2 à ×50.','am'); else if(v!=='fast') flash('Temps accéléré ×'+v+' : durées réelles divisées par '+v,'am'); else flash('Étapes courtes : pas de durée réelle minimale','am'); }; $('b-dn').onclick=dayNight; $('b-menu').onclick=openMenu;
 document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
 function syncBar(){ $('b-gear').textContent='Train '+(S.gear?'sorti':'rentré'); $('b-flap').textContent='Volets '+(A.kind==='fw'?A.flaps[S.flap].n:'—');
   $('b-gear').hidden=$('b-flap').hidden=A.kind!=='fw'; $('b-ap').hidden=A.kind==='rw'&&!A.afcs; $('b-dn').textContent=SKY.u.night.value>0.5?'☾ Nuit':'☀ Jour'; }
@@ -2838,7 +2838,7 @@ let LOOP_ERR=0;
 function loop(now){ requestAnimationFrame(loop); try{ loopBody(now); }catch(e){ if(LOOP_ERR++<3) console.error('Erreur de la boucle (le simulateur continue) :',e); } }
 function loopBody(now){ const rdt=Math.min(0.1,(now-last)/1000); last=now;
   if(!paused && $('menu').hidden){ readInputs(rdt); const T=rdt*rate, n=Math.ceil(T/0.02), dt=T/n;
-    if(view==='walk'){ walkStep(T); autoWalk(T); IN.pitch=IN.roll=IN.yaw=IN.thrD=IN.collD=0; }
+    if(view==='walk'){ const Tw=window.DUR_ON?Math.min(T,rdt):T; walkStep(Tw); autoWalk(Tw); IN.pitch=IN.roll=IN.yaw=IN.thrD=IN.collD=0; }
     for(let i=0;i<n && !crashed;i++){ engStep(dt); sys320(dt); dirStep(dt); dirApply(); if(A.kind==='fw'){ if(taxiAuto(dt)) groundMove(dt); else fwStep(dt); } else rwStep(dt); tcasStep(dt); wxStep(dt); }
     simMs+=T*1000; if(rate>4 && !AP.on && !(A.kind==='rw'&&AP.althold) && !AUTO.on && !(S.onGround&&S.V<0.5)) setRate(1); patchUpdate(S.lat,S.lon); }
   placeWorld(); placeCamera(); atcFrame(); renderer.autoClear=false; renderer.clear(); renderer.render(skyScene,camera); renderer.clearDepth(); renderer.render(scene,camera);
@@ -3680,7 +3680,7 @@ function nowText(st){ const el=(performance.now()-AUTO.t0)/1000;
     if(airFly&&!c.it[2]) return [`✈ Le pilote automatique vole : objectif « ${c.it[0]} ». Observez les écrans et l'extérieur.`,0.5];
     if(!c.it[2]) return [`⏳ Attente : « ${c.it[0]} » (le système travaille ${window.TREAL?'en temps réel : durée réelle, sans accélération':'— l\'accélération du temps est utilisée pendant les longues attentes ; choisissez « Temps réel » pour les durées réelles'}).`,c.j/st.items.length];
     return [`${window.SCNG&&SCNG.on&&!SCNG.demo?'👉 À vous':'👆 Action en cours'} — sous-étape ${c.j+1}/${st.items.length+1} : <b>${c.it[0]}</b>${c.it[3]?' — la commande clignote, regardez où elle se trouve':''}.`,c.j/st.items.length]; }
-  if(AUTO.stage==='done') return ['✅ Étape terminée : passage à la suivante…',1];
+  if(AUTO.stage==='done'){ const L=window.DUR_INFO&&DUR_INFO(); if(L&&L.left>0) return [`⏳ Actions faites. <b>Durée réelle de l'étape : ${L.totT}</b> — ${L.what} Encore <b>${L.leftT}</b> ${L.N===1?'(temps réel)':'(temps accéléré ×'+L.N+')'}. Pour aller plus vite : TEMPS → ×2 … ×50.`,L.el/L.tot]; return ['✅ Étape terminée : passage à la suivante…',1]; }
   return ['…',0]; }
 function flightRow(){ try{ const ad=airdata(), d=MI.dest&&APTS[MI.dest]?gcKm(S.lat,S.lon,APTS[MI.dest].lat,APTS[MI.dest].lon):0, eta=ad.gs>30?d/1.852/ad.gs*3600:null;
   return `<div class="row3"><div><i>Altitude</i><b>${fmt(ad.alt,0)} ft</b></div><div><i>Vitesse</i><b>${fmt(Math.max(0,ad.cas),0)} kt</b></div><div><i>Vario</i><b>${(ad.vs>=0?'+':'')+fmt(ad.vs,0)}</b></div><div><i>Cap</i><b>${pad(ad.hdg)}°</b></div><div><i>Reste</i><b>${fmt(d,0)} km</b></div><div><i>Arrivée dans</i><b>${eta?ck(eta):'—'}</b></div></div>`; }catch(e){ return ''; } }
@@ -3699,7 +3699,7 @@ function render(){ let b=$('abub'); const SGO=!!(window.SCNG&&SCNG.on); const on
   if(!BB.gmin){ BB.gmin=1; const g=$('guide'); if(g) g.classList.add('min'); }
   const elR=(performance.now()-BB.t0)/1000, elS=(simMs-BB.s0)/1000, tot=(simMs-BB.ms0)/1000;
   b.querySelector('.an').textContent=GD.i; b.querySelector('.at span').textContent=`${st.ph} · étape ${GD.i} / ${N}`; b.querySelector('.at b').textContent=strip(st.t);
-  b.querySelector('.clk').innerHTML=`⏱ ${ck(elR)}<small>${Math.abs(elS-elR)>2?'simulé '+ck(elS)+(rate>1?' (×'+rate+')':'')+' · ':''}vol ${ck(tot)}</small>`;
+  b.querySelector('.clk').innerHTML=`⏱ ${ck(elR)}<small>${window.DUR_INFO&&DUR_INFO()?'durée réelle '+DUR_INFO().totT+' · ':''}${Math.abs(elS-elR)>2?'simulé '+ck(elS)+(rate>1?' (×'+rate+')':'')+' · ':''}vol ${ck(tot)}</small>`;
   if(SGO){ b.querySelector('[data-p]').textContent='👆 Faire la sous-étape'; const ds=b.querySelector('[data-s]'); ds.hidden=false; ds.textContent=SCNG.demo?'❚❚ Arrêter la démonstration':'▶ Démonstration'; b.querySelector('[data-d]').textContent='⚠ Scénario'; b.querySelector('[data-x]').hidden=true; }
   else { b.querySelector('[data-p]').textContent=AUTO.paused?'▶ Reprendre':'❚❚ Pause'; b.querySelector('[data-s]').hidden=AUTO.stage!=='read'; }
   const [nt,f]=nowText(st), x=window.BR&&BR.extraFor?BR.extraFor(st.t):{}, items=(st.items||[]).map(it=>{ let ok=false; try{ ok=it[1](); }catch(e){} return [it[0],ok]; }), c=curItem(st);
@@ -7417,6 +7417,64 @@ function barBtn(){ const m=$$('b-menu'); if(!m||$$('b-man')) return; const b=doc
 barBtn(); setTimeout(barBtn,1500);
 addEventListener('keydown',e=>{ if(e.key==='Escape'&&ON){ const c=$$('mancard'),l=$$('manlist'); if(l&&!l.hidden) l.hidden=true; else if(c&&!c.hidden) c.hidden=true; else toggle(false); } });
 window.MAN={toggle,card,list,listCache,ident,uses,info,get on(){ return ON; }};
+})();
+
+</script>
+<script>
+/* ===== DURÉES RÉELLES DES ÉTAPES =====
+   TEMPS → « Durées réelles (×1) » ou « Temps accéléré ×2 … ×50 » : chaque étape au sol dure son temps réel
+   (étude du dossier de vol ≈ 30 min, devis de masse ≈ 20 min, bilan carburant ≈ 10 min, tour avion ≈ 15 min…),
+   divisé par l'accélération choisie. L'horloge simulée (UTC) avance d'autant. Les phases de vol et de roulage sont
+   déjà en temps physique réel : pas de durée minimale. « Étapes courtes » conserve l'ancien fonctionnement.
+   Durées [ESTIMÉ] d'après les pratiques courantes des équipages (présentation ≈ 1 h 15 avant le départ en long-courrier). */
+(function(){
+const HELI=()=>A&&A.kind==='rw';
+// [motif du titre, minutes avion, minutes hélicoptère, ce que fait l'équipage pendant ce temps]
+const DUR=[
+ [/Briefing et dossier/i,30,15,'L\'équipage étudie la météo (METAR, TAF, TEMSI, vents), les NOTAM, le plan de vol et l\'état technique.'],
+ [/Devis de masse|centrage/i,20,10,'Calcul de la masse et du centrage, vérification des limites, signature du devis.'],
+ [/Bilan carburant/i,10,5,'Calcul du carburant (étape, réserve de route, dégagement, réserve finale) et décision du commandant.'],
+ [/Arrivée au parking/i,5,5,'Trajet en minibus équipage et accès au poste de stationnement.'],
+ [/Tour avion|visite/i,15,10,'Inspection extérieure point par point, sans se presser.'],
+ [/cold & dark|Monter à bord/i,3,2,'Installation au poste, documents de bord, vérifications de sécurité.'],
+ [/Alimentation : batteries/i,1,1,'Mise sous tension et contrôle des tensions.'],
+ [/Alimentation sol ou APU|Alimentation électrique|Alimentation et feux/i,2,2,'Branchement du groupe de parc ou démarrage de l\'APU.'],
+ [/ADIRS|AHRS/i,1,1,'Lancement de l\'alignement des centrales (sa durée réelle est simulée à part).'],
+ [/Feux, consignes|feux, consignes/i,2,2,'Réglage du panneau plafond.'],
+ [/FMS|Performances \(calcul/i,10,5,'Saisie de la route, des masses et calcul des performances de décollage, puis contre-vérification.'],
+ [/Before Start|Avant la mise en route/i,5,3,'Briefing départ et lecture de la check-list à deux voix.'],
+ [/Démarrage|Embrayage/i,1,1,'Séquence de démarrage (durée physique simulée).'],
+ [/Parking et arrêt|Arrêt \(POH\)|Arrêt et sécurisation/i,3,3,'Arrêt des moteurs et check-list de parking.'],
+ [/Sécurisation/i,5,5,'Mise en sécurité de l\'appareil, compte rendu technique (techlog).']];
+const GROUND=/Préparation|Au sol|Cockpit|Mise en route|Parking|Arrêt/;
+function durOf(st){ if(!st||st.fly||!GROUND.test(st.ph||'')) return null; for(const [re,a,h,w] of DUR) if(re.test(st.t||'')) return {min:HELI()?h:a,what:w}; return null; }
+const T=s=>{ s=Math.max(0,Math.round(s)); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return h?`${h} h ${String(m).padStart(2,'0')}`:m>=1?`${m} min ${String(x).padStart(2,'0')} s`:`${x} s`; };
+let I=-1, S0=0;
+function info(){ try{ if(!window.DUR_ON||!GD.on||!MI||!MI.full||window.FF) return null; const st=GD.steps[GD.i]; const d=durOf(st); if(!d) return null;
+    if(I!==GD.i){ I=GD.i; S0=simMs; } const tot=d.min*60, el=(simMs-S0)/1000, left=Math.max(0,tot-el), N=window.RSEL||1;
+    return {tot,el,left,N,what:d.what,totT:T(tot),leftT:T(left),wallT:T(left/N)}; }catch(e){ return null; } }
+window.DUR_INFO=info; window.DUR_LEFT=()=>{ const i=info(); return i?i.left:0; };
+// changement d'étape : l'horloge de l'étape repart
+const _g=goStep; goStep=function(i){
+  const d=info(); const manual=!(typeof AUTO!=='undefined'&&AUTO.on)&&!window.FF&&!(window.EXAM&&EXAM.on)&&!(window.SCNG&&SCNG.on);
+  if(d&&d.left>0&&manual&&GD.on&&i===GD.i+1){ ask(d,i); return; }
+  const b=GD.i, r=_g.apply(this,arguments); if(GD.i!==b){ I=GD.i; S0=simMs; } return r; };
+// en mode guidé : l'étape n'est pas finie tant que sa durée réelle n'est pas écoulée → proposer d'accélérer
+function ask(d,i){ let w=document.getElementById('durdlg'); if(w) w.remove(); w=document.createElement('div'); w.id='durdlg';
+  w.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;width:min(440px,calc(100vw - 20px));background:#0a131c;border:2px solid #ffd166;border-radius:12px;color:#e8eef2;font:14px/1.45 Inter,sans-serif;padding:14px;box-shadow:0 10px 40px #000c';
+  w.innerHTML=`<div style="font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.12em;color:#ffd166;text-transform:uppercase">⏳ Durée réelle de l'étape</div>
+   <h3 style="font:700 21px 'Barlow Condensed',sans-serif;margin:4px 0 6px">${d.totT} — encore ${d.leftT}</h3><p style="margin:0 0 8px">${d.what} En vol réel, l'étape suivante ne commence pas avant. Patientez (≈ ${d.wallT} à l'accélération actuelle) ou accélérez le temps :</p>
+   <div style="display:flex;gap:6px;flex-wrap:wrap">${[2,5,10,20,30,50].map(n=>`<button type="button" data-r="${n}" style="background:#132232;color:#fff;border:1px solid #2b3d50;border-radius:8px;padding:8px 11px;font:700 14px 'Barlow Condensed',sans-serif;cursor:pointer;${n===(window.RSEL||1)?'border-color:#ffd166':''}">×${n}</button>`).join('')}</div>
+   <div style="display:flex;justify-content:flex-end;margin-top:10px"><button type="button" data-k style="background:#1f6b3a;color:#fff;border:1px solid #3ddc84;border-radius:8px;padding:8px 12px;font:700 14px 'Barlow Condensed',sans-serif;cursor:pointer">J'attends</button></div>`;
+  document.body.appendChild(w);
+  w.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{ const n=+b.dataset.r; window.RSEL=n; const sel=document.getElementById('b-rate'); if(sel){ sel.value=String(n); } setRate(n); w.remove(); flash('Temps accéléré ×'+n,'am'); WAIT=i; });
+  w.querySelector('[data-k]').onclick=()=>{ w.remove(); WAIT=i; }; }
+let WAIT=-1;   // l'utilisateur a demandé l'étape suivante : on y passe dès que la durée est écoulée
+setInterval(()=>{ try{ if(WAIT>=0){ if(!GD.on||GD.i!==WAIT-1){ WAIT=-1; } else if(window.DUR_LEFT()<=0){ const n=WAIT; WAIT=-1; goStep(n); } } paint(); }catch(e){} },500);
+// compteur dans le panneau du guide
+function paint(){ const g=document.getElementById('guide'); if(!g||g.hidden) return; const h=g.querySelector('.gh>div'); if(!h) return; let c=g.querySelector('#gdur'); const d=info();
+  if(!d){ if(c) c.remove(); return; } if(!c){ c=document.createElement('small'); c.id='gdur'; c.style.cssText='display:block;color:#ffd166;font:600 12px Inter,sans-serif;margin-top:2px'; h.appendChild(c); }
+  c.textContent=`⏱ Durée réelle ${d.totT} · écoulé ${T(d.el)} · reste ${d.leftT}${d.N>1?' (×'+d.N+' ≈ '+d.wallT+')':''}${WAIT>=0?' · passage automatique à la fin':''}`; }
 })();
 
 </script>

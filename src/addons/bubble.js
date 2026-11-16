@@ -50,7 +50,7 @@ function nowText(st){ const el=(performance.now()-AUTO.t0)/1000;
     if(airFly&&!c.it[2]) return [`✈ Le pilote automatique vole : objectif « ${c.it[0]} ». Observez les écrans et l'extérieur.`,0.5];
     if(!c.it[2]) return [`⏳ Attente : « ${c.it[0]} » (le système travaille ${window.TREAL?'en temps réel : durée réelle, sans accélération':'— l\'accélération du temps est utilisée pendant les longues attentes ; choisissez « Temps réel » pour les durées réelles'}).`,c.j/st.items.length];
     return [`${window.SCNG&&SCNG.on&&!SCNG.demo?'👉 À vous':'👆 Action en cours'} — sous-étape ${c.j+1}/${st.items.length+1} : <b>${c.it[0]}</b>${c.it[3]?' — la commande clignote, regardez où elle se trouve':''}.`,c.j/st.items.length]; }
-  if(AUTO.stage==='done') return ['✅ Étape terminée : passage à la suivante…',1];
+  if(AUTO.stage==='done'){ const L=window.DUR_INFO&&DUR_INFO(); if(L&&L.left>0) return [`⏳ Actions faites. <b>Durée réelle de l'étape : ${L.totT}</b> — ${L.what} Encore <b>${L.leftT}</b> ${L.N===1?'(temps réel)':'(temps accéléré ×'+L.N+')'}. Pour aller plus vite : TEMPS → ×2 … ×50.`,L.el/L.tot]; return ['✅ Étape terminée : passage à la suivante…',1]; }
   return ['…',0]; }
 function flightRow(){ try{ const ad=airdata(), d=MI.dest&&APTS[MI.dest]?gcKm(S.lat,S.lon,APTS[MI.dest].lat,APTS[MI.dest].lon):0, eta=ad.gs>30?d/1.852/ad.gs*3600:null;
   return `<div class="row3"><div><i>Altitude</i><b>${fmt(ad.alt,0)} ft</b></div><div><i>Vitesse</i><b>${fmt(Math.max(0,ad.cas),0)} kt</b></div><div><i>Vario</i><b>${(ad.vs>=0?'+':'')+fmt(ad.vs,0)}</b></div><div><i>Cap</i><b>${pad(ad.hdg)}°</b></div><div><i>Reste</i><b>${fmt(d,0)} km</b></div><div><i>Arrivée dans</i><b>${eta?ck(eta):'—'}</b></div></div>`; }catch(e){ return ''; } }
@@ -69,7 +69,7 @@ function render(){ let b=$('abub'); const SGO=!!(window.SCNG&&SCNG.on); const on
   if(!BB.gmin){ BB.gmin=1; const g=$('guide'); if(g) g.classList.add('min'); }
   const elR=(performance.now()-BB.t0)/1000, elS=(simMs-BB.s0)/1000, tot=(simMs-BB.ms0)/1000;
   b.querySelector('.an').textContent=GD.i; b.querySelector('.at span').textContent=`${st.ph} · étape ${GD.i} / ${N}`; b.querySelector('.at b').textContent=strip(st.t);
-  b.querySelector('.clk').innerHTML=`⏱ ${ck(elR)}<small>${Math.abs(elS-elR)>2?'simulé '+ck(elS)+(rate>1?' (×'+rate+')':'')+' · ':''}vol ${ck(tot)}</small>`;
+  b.querySelector('.clk').innerHTML=`⏱ ${ck(elR)}<small>${window.DUR_INFO&&DUR_INFO()?'durée réelle '+DUR_INFO().totT+' · ':''}${Math.abs(elS-elR)>2?'simulé '+ck(elS)+(rate>1?' (×'+rate+')':'')+' · ':''}vol ${ck(tot)}</small>`;
   if(SGO){ b.querySelector('[data-p]').textContent='👆 Faire la sous-étape'; const ds=b.querySelector('[data-s]'); ds.hidden=false; ds.textContent=SCNG.demo?'❚❚ Arrêter la démonstration':'▶ Démonstration'; b.querySelector('[data-d]').textContent='⚠ Scénario'; b.querySelector('[data-x]').hidden=true; }
   else { b.querySelector('[data-p]').textContent=AUTO.paused?'▶ Reprendre':'❚❚ Pause'; b.querySelector('[data-s]').hidden=AUTO.stage!=='read'; }
   const [nt,f]=nowText(st), x=window.BR&&BR.extraFor?BR.extraFor(st.t):{}, items=(st.items||[]).map(it=>{ let ok=false; try{ ok=it[1](); }catch(e){} return [it[0],ok]; }), c=curItem(st);
