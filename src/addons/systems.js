@@ -628,7 +628,7 @@ const AU=(function(){ const A={on:true,ctx:null,v:{}}; try{ A.on=localStorage.ge
 const $s=q=>document.querySelector('#sysat '+q);
 function dom(){ let a=document.getElementById('sysat'); if(a) return a; a=document.createElement('section'); a.id='sysat'; a.hidden=true; a.setAttribute('aria-label','Atelier des systèmes');
  a.innerHTML=`<header><div class="tt"><b>⚙ Atelier<span class="tl"> des systèmes</span></b><span>Touchez une commande : les pièces qu'elle actionne se colorent sur le schéma, l'écran système réagit.</span></div>
-  <select data-acsel aria-label="Appareil"></select><button type="button" data-snd aria-label="Son">🔊</button><button type="button" data-help>?</button><button type="button" data-x aria-label="Fermer">✕</button><div class="modes"><button type="button" data-mode="libre">✋ <span>Libre</span></button><button type="button" data-mode="auto">▶ <span>Auto</span><i>matique</i></button><button type="button" data-mode="peda">🎓 <span>Pédago</span><i>gique</i></button><button type="button" data-mode="exam">📝 <span>Examen</span></button></div><div class="pre"></div></header>
+  <select data-acsel aria-label="Appareil"></select><button type="button" data-ckl title="Checklist des étapes">☑</button><button type="button" data-snd aria-label="Son">🔊</button><button type="button" data-help>?</button><button type="button" data-x aria-label="Fermer">✕</button><div class="modes"><button type="button" data-mode="libre">✋ <span>Libre</span></button><button type="button" data-mode="auto">▶ <span>Auto</span><i>matique</i></button><button type="button" data-mode="peda">🎓 <span>Pédago</span><i>gique</i></button><button type="button" data-mode="exam">📝 <span>Examen</span></button></div><div class="pre"></div></header>
   <div class="main"><div class="top"><div class="sch"><svg class="ac" xmlns="http://www.w3.org/2000/svg"></svg></div><div class="scrw"><div class="tabs"></div><div class="scr"></div></div><div class="strip" hidden></div><div class="dlg" hidden><div class="av"></div><div class="tx"><b></b><span></span><small></small></div><div class="db"><button type="button" data-dv title="Voix">🔈</button><button type="button" data-da title="Audio seul">🎧</button></div></div></div>
   <div class="mid"><div class="tour" hidden></div><div class="ex"></div><div class="pinfo" hidden></div><div class="leg"></div><div class="sitw"></div></div><div class="ctl"></div></div>`;
  document.body.appendChild(a);
@@ -641,6 +641,8 @@ function dom(){ let a=document.getElementById('sysat'); if(a) return a; a=docume
   if(d.tour!=null) return tourPick(MODE==='libre'?'peda':MODE);
   if(d.mode!=null) return setMode(d.mode);
   if(d.snd!=null) return AU.toggle();
+  if(d.ckl!=null) return ckl();
+  if(d.cki!=null){ const st=TOUR&&TOUR.st[+d.cki]; if(st&&st.c){ frame(st.c,'fneed'); scrollTo(st.c); } return; }
   if(d.tpa!=null){ AUTO.pause=!AUTO.pause; renderTour(); return; }
   if(d.thint!=null) return hint();
   if(d.dv!=null){ DLG.voice=!DLG.voice; if(!DLG.voice) try{ speechSynthesis.cancel(); }catch(e){} dlgBtns(); return; }
@@ -710,7 +712,7 @@ function explainIntro(){ $s('.ex').innerHTML=`<h3>${M.name} — comment lire l'a
  <li><i style="color:#fff;background:#fff"></i>Les pièces touchées s'entourent de blanc avec leur nom ; les couleurs montrent ce qui circule (voir la légende).</li>
  <li><i style="color:${C.warn};background:${C.warn}"></i>L'ordre compte : si une condition manque, rien ne se passe et un cadre ambre indique quoi faire.</li>
  <li><i style="color:${C.me};background:${C.me}"></i>Touchez une pièce du schéma pour voir son nom et les commandes qui l'actionnent. « Démonstration commentée » enchaîne une procédure réelle.</li></ol>`; exPrev=''; }
-function explain(force){ if(!LAST) return; const o=LAST==='ground'?M.ex('ground',S,D):M.ex(LAST,S,D); if(!o||!o.h) return; const c=findC(LAST);
+function explain(force){ if(!LAST) return; if(exPrev==='__ckl'&&!force) return; const o=LAST==='ground'?M.ex('ground',S,D):M.ex(LAST,S,D); if(!o||!o.h) return; const c=findC(LAST);
  const html=`<h3>${o.h}</h3><div class="w">${c&&c.w?c.w:(c?(M.ctl.find(g=>g.c.includes(c))||{}).w||'':'')}</div><ol>${o.ln.map(l=>`<li><i style="color:${C[l[0]]};background:${C[l[0]]}"></i><span>${l[1]}</span></li>`).join('')}</ol>
   ${o.blk?`<div class="blk">⚠ ${o.blk}${o.go?`<br><button type="button" data-go="${o.go}">Montrer la commande à utiliser</button>`:''}</div>`:''}
   ${c&&c.pt?`<div class="chips">Pièces touchées : ${c.pt.map(p=>`<button type="button" data-hp="${p}">${(M.names[p]||p).split(/[(:,—]/)[0].trim()}</button>`).join('')}</div>`:''}<div class="live">${D.lv.join('\n')}</div>`;
@@ -852,6 +854,11 @@ function tourTick(){ if(!TOUR) return; const st=TOUR.st[TI]; if(!st) return; con
  const cond=!st.w||st.w(S);
  if(MODE==='auto'){ if(AUTO.pause) return; if(!st.done&&now-AUTO.t>1900&&dlgIdle()) doStep(); else if(st.done&&cond&&now-st.tDone>2400&&dlgIdle()) advance(); }
  else if(st.done&&cond&&now-st.tDone>1500&&dlgIdle()) advance(); }
+function ckl(){ const e=$s('.ex'); if(!TOUR){ e.innerHTML=`<h3>☑ Checklist</h3><div class="w">Aucune procédure en cours : choisissez Automatique, Pédagogique ou Examen.</div>`; exPrev=''; return; }
+ const rows=TOUR.st.map((st,i)=>{ const seq=isSeq(st), done=st.done||(seq&&i<TI)||(!seq&&satisfied(st)), miss=!seq&&i<TI&&!done; const lab=stepLabel(st);
+  return miss?`<button type="button" data-cki="${i}" style="display:block;width:100%;text-align:left;margin:3px 0;background:#3a0b0b;border:1px solid #ff3b30;color:#ffd0cc">✗ ${i+1}. ${lab} — y aller →</button>`:`<div style="margin:3px 0;color:${i===TI?'#e04ad8':done||i<TI?'#9ff0bf':'#5f7d99'}">${i<TI||done?'✓':i===TI?'▶':'○'} ${i+1}. ${lab}</div>`; }).join('');
+ const nm=TOUR.st.filter((st,i)=>!isSeq(st)&&i<TI&&!st.done&&!satisfied(st)).length;
+ e.innerHTML=`<h3>☑ Checklist · ${TOUR.n}</h3><div class="w">${nm?nm+' étape(s) manquante(s) en rouge : touchez-la pour aller à la commande.':'Toutes les étapes passées sont faites ✓'}</div><div style="max-height:52vh;overflow:auto;font-size:13.5px">${rows}</div>`; exPrev='__ckl'; e.scrollIntoView({block:'nearest'}); }
 function help(){ explainIntro(); }
 function open(ac,tour){ const a=dom(); a.hidden=false; if(!M||(ac&&ac!==AC)) load(ac&&MOD[ac]?ac:(typeof selAC!=='undefined'&&selAC&&MOD[selAC]?selAC:'a320')); else relayout(); clearInterval(timer); loop.t=0; timer=setInterval(loop,100); if(tour&&M.tours&&M.tours[tour]) tourStart(tour,MODE==='libre'?'peda':MODE); }
 function close(){ dom().hidden=true; clearInterval(timer); AU.mute(); dlgClear(); }
