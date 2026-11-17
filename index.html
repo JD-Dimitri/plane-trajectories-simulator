@@ -5524,7 +5524,8 @@ const css=document.createElement('style'); css.textContent=`
 #jmpo{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:71;background:#0d1b27f2;border:2px solid #46c8d8;border-radius:12px;padding:8px 12px;color:#fff;font:600 14px 'Inter',sans-serif;display:flex;gap:10px;align-items:center;box-shadow:0 8px 30px #000a}
 #jmpo[hidden]{display:none}#jmpo i{display:block;height:5px;background:#46c8d8;border-radius:3px;margin-top:4px}#jmpo button{background:#132232;color:#fff;border:1px solid #2b3d50;border-radius:8px;padding:5px 9px;cursor:pointer}
 #abub .jstrip{display:flex;gap:4px;overflow-x:auto;padding:6px 10px 8px;scrollbar-width:thin}#abub .jstrip button{flex:none;min-width:30px;height:28px;border-radius:7px;border:1px solid #2b3d50;background:#132232;color:#cfd8df;font:700 12px 'JetBrains Mono',monospace;cursor:pointer;padding:0 6px}
-#abub .jstrip button.cur{background:#e04ad8;color:#fff;border-color:#e04ad8}#abub .jstrip button.dn{background:#1f3a2a;color:#9fe3b8}#abub.cmp .jstrip{display:none}`;
+#abub .jstrip button.cur{background:#e04ad8;color:#fff;border-color:#e04ad8}#abub .jstrip button.dn{background:#1f3a2a;color:#9fe3b8}#abub.cmp .jstrip{padding:3px 8px 4px}#abub.cmp .jstrip button{height:24px;min-width:26px}
+#guide .jstrip{display:flex;gap:4px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:thin}#guide .jstrip button{flex:none;min-width:30px;height:28px;border-radius:7px;border:1px solid #2b3d50;background:#132232;color:#cfd8df;font:700 12px 'JetBrains Mono',monospace;cursor:pointer;padding:0 6px}#guide .jstrip button.cur{background:#e04ad8;color:#fff;border-color:#e04ad8}#guide .jstrip button.dn{background:#1f3a2a;color:#9fe3b8}#guide.min .jstrip{padding:2px 2px 4px}`;   /* V10.34 : bande d'étapes aussi dans le panneau du guide, et toujours visible dans la bulle automatique */
 document.head.appendChild(css);
 const ov=document.createElement('div'); ov.id='jmpo'; ov.hidden=true; ov.innerHTML='<div><span></span><i style="width:0"></i></div><button type="button">Annuler</button>'; document.body.appendChild(ov);
 ov.querySelector('button').onclick=()=>{ window.FF=null; ov.hidden=true; try{ setRate(1); }catch(e){} };
@@ -5566,11 +5567,11 @@ window.JUMP_PICK=picker;
 (function(){ const bar=$('bar')||document.querySelector('#b-menu')&&$('b-menu').parentElement; if(!bar) return; const b=document.createElement('button'); b.type='button'; b.id='b-jump'; b.textContent='🧭 Étapes'; b.title='Aller directement à une étape';
   b.onclick=picker; const ref=$('b-auto'); if(ref&&ref.parentElement) ref.parentElement.insertBefore(b,ref.nextSibling); else bar.appendChild(b); })();
 // bande d'étapes dans la bulle
-setInterval(()=>{ const ab=$('abub'); if(!ab||ab.hidden||!GD.on) return; let s=ab.querySelector('.jstrip'); const sig=GD.i+':'+GD.steps.length;
-  if(!s){ s=document.createElement('div'); s.className='jstrip'; s.title='Cliquez un numéro pour aller à cette étape'; const ah=ab.querySelector('.ah'); if(ah) ah.after(s); else ab.prepend(s); s.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; e.stopPropagation(); if(b.dataset.all) picker(); else jump(+b.dataset.k,AUTO.on?'auto':'guide'); }); }
+setInterval(()=>{ if(!GD.on) return; [['abub','.ah'],['guide','.gh']].forEach(([id,hs])=>{ const ab=$(id); if(!ab||ab.hidden) return; let s=ab.querySelector('.jstrip'); const sig=GD.i+':'+GD.steps.length;
+  if(!s){ s=document.createElement('div'); s.className='jstrip'; s.title='Cliquez un numéro pour aller à cette étape'; const ah=ab.querySelector(hs); if(ah) ah.after(s); else ab.prepend(s); s.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; e.stopPropagation(); if(b.dataset.all) picker(); else jump(+b.dataset.k,AUTO.on?'auto':'guide'); }); }
   if(s.dataset.sig===sig) return; s.dataset.sig=sig;
   s.innerHTML='<button type="button" data-all="1" title="Toutes les étapes">🧭</button>'+GD.steps.map((x,i)=>`<button type="button" data-k="${i}" class="${i===GD.i?'cur':i<GD.i?'dn':''}" title="${i}. ${String(x.t).replace(/"/g,'')}">${i}</button>`).join('');
-  const c=s.querySelector('.cur'); if(c) c.scrollIntoView({block:'nearest',inline:'center'}); },700);
+  const c=s.querySelector('.cur'); if(c) c.scrollIntoView({block:'nearest',inline:'center'}); }); },700);
 })();
 
 </script>
