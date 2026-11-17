@@ -2808,7 +2808,7 @@ let rateSig=''; function rateUI(force){ const sel=$('b-rate'); if(!sel) return; 
 $('b-rate').addEventListener('blur',()=>rateUI(true)); $('b-rate').addEventListener('change',()=>setTimeout(()=>rateUI(true),0));
 let ovhPinned=false;
 function toggleOVH(){ ovhPinned=!ovhPinned; $('ovh').hidden=!ovhPinned; $('b-ovh').classList.toggle('on',ovhPinned); if(ovhPinned) ovhSync(); }
-function setView(v){ if(v!=='walk'&&view==='walk'&&GD.on&&GD.steps[GD.i]&&GD.steps[GD.i].walk&&!walkDone()) flash('Tour avion non terminé','am'); view=v; document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('ck').hidden=v!=='ck'; LK.ty=LK.tp=0; LK.tz=1; resize(); }
+function setView(v){ if(v!=='walk'&&view==='walk'&&GD.on&&GD.steps[GD.i]&&GD.steps[GD.i].walk&&!walkDone()) flash(A.kind==='rw'?'Tour hélicoptère non terminé':'Tour avion non terminé','am'); view=v; document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('ck').hidden=v!=='ck'; LK.ty=LK.tp=0; LK.tz=1; resize(); }
 function dayNight(){ const night=SKY.u.night.value<0.5, d=new Date(simMs), base=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()), loc=(night?0:12)-S.lon/15;
   simMs=base+loc*3600e3; if(simMs<Date.now()-864e5*2) simMs+=864e5; }
 function toggleHelp(){ $('help').hidden=!$('help').hidden; }

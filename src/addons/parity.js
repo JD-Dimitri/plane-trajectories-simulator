@@ -106,3 +106,8 @@ if(window.SCNG&&SCNG.steps){ const _st=SCNG.steps; SCNG.steps=id=>{ const r=_st(
 setInterval(()=>{ try{ if(SCN.cur&&SCN.cur.id==='C-EFATO'&&FAIL.engC&&!S.onGround&&aglFt()<500){ const r=rwStart('LFPN','25R'); if(Math.abs(wrapPi(S.psi-r.hdg*D2R))>120*D2R) SCN.log.turnBack=true; } }catch(e){} },500);
 try{ renderMenu(); }catch(e){}
 })();
+
+/* V10.35 : chaque vue nommée justement — pour un hélicoptère, « Tour avion » devient « Tour hélicoptère » (titres d'étape, phases, textes). */
+(function(){ const fix=t=>typeof t==='string'?t.replace(/Tour avion/g,'Tour hélicoptère').replace(/TOUR AVION/g,'TOUR HÉLICOPTÈRE').replace(/tour avion/g,'tour hélicoptère').replace(/pied de l'avion/g,'pied de l\'hélicoptère'):t;
+  const _sf=stepsFor; stepsFor=function(){ const st=_sf.apply(this,arguments); try{ if(A&&A.kind==='rw') st.forEach(s=>{ s.t=fix(s.t); s.txt=fix(s.txt); s.ph=fix(s.ph); (s.items||[]).forEach(it=>{ it[0]=fix(it[0]); }); }); }catch(e){} return st; };
+  window.KINDFIX=fix; })();

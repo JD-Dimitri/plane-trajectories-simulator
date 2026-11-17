@@ -2808,7 +2808,7 @@ let rateSig=''; function rateUI(force){ const sel=$('b-rate'); if(!sel) return; 
 $('b-rate').addEventListener('blur',()=>rateUI(true)); $('b-rate').addEventListener('change',()=>setTimeout(()=>rateUI(true),0));
 let ovhPinned=false;
 function toggleOVH(){ ovhPinned=!ovhPinned; $('ovh').hidden=!ovhPinned; $('b-ovh').classList.toggle('on',ovhPinned); if(ovhPinned) ovhSync(); }
-function setView(v){ if(v!=='walk'&&view==='walk'&&GD.on&&GD.steps[GD.i]&&GD.steps[GD.i].walk&&!walkDone()) flash('Tour avion non terminé','am'); view=v; document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('ck').hidden=v!=='ck'; LK.ty=LK.tp=0; LK.tz=1; resize(); }
+function setView(v){ if(v!=='walk'&&view==='walk'&&GD.on&&GD.steps[GD.i]&&GD.steps[GD.i].walk&&!walkDone()) flash(A.kind==='rw'?'Tour hélicoptère non terminé':'Tour avion non terminé','am'); view=v; document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('ck').hidden=v!=='ck'; LK.ty=LK.tp=0; LK.tz=1; resize(); }
 function dayNight(){ const night=SKY.u.night.value<0.5, d=new Date(simMs), base=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()), loc=(night?0:12)-S.lon/15;
   simMs=base+loc*3600e3; if(simMs<Date.now()-864e5*2) simMs+=864e5; }
 function toggleHelp(){ $('help').hidden=!$('help').hidden; }
@@ -4027,7 +4027,7 @@ const RES=[[/Briefing/,'Vous savez quel temps il fera, quelle route suivre et si
  [/Démarrage/,'L\'APPAREIL A DÉMARRÉ : moteur(s) au ralenti, paramètres normaux.','ewd'],[/Embrayage/,'Le rotor tourne à son régime de vol.','ewd'],[/Après l'atterrissage/,'Piste dégagée, roulage vers le poste de stationnement.','nd'],[/roulage|Roulage/,'L\'AVION EST ALIGNÉ sur la piste, prêt à décoller.','nd'],
  [/Before Takeoff|^Décollage/,'L\'AVION VOLE : il a quitté la piste et monte.','pfd'],[/Après décollage/,'Train et volets rentrés, pilote automatique engagé.','pfd'],[/Montée/,'L\'avion est à son niveau de croisière.','pfd'],[/Croisière/,'Croisière stable, carburant conforme au plan.','nd'],
  [/Descente/,'Descente commencée au bon point.','nd'],[/Approche/,'Avion configuré et stabilisé sur l\'axe et la pente.','pfd'],[/Atterrissage|posé/,'L\'AVION EST POSÉ et ralenti sur la piste.','pfd'],[/Parking|Arrêt/,'L\'AVION EST STATIONNÉ : moteurs arrêtés, BEACON éteint.','ewd'],[/Sécurisation/,'Avion éteint et sécurisé, anomalies notées.',null],[/terminée/,'Fin de la mission.',null]];
-PT.result=st=>{ for(const [r,t,s] of RES) if(r.test(st.t)) return {t,scr:s}; return {t:'Étape terminée.',scr:null}; };
+PT.result=st=>{ const K=t=>(A&&A.kind==='rw'&&typeof t==='string')?t.replace(/\bL'avion\b/g,'L\'hélicoptère').replace(/\bl'avion\b/g,'l\'hélicoptère').replace(/L'AVION/g,'L\'HÉLICOPTÈRE'):t; for(const [r,t,s] of RES) if(r.test(st.t)) return {t:K(t),scr:s}; return {t:'Étape terminée.',scr:null}; };
 /* écran où l'on voit l'effet d'une action sans commande dédiée */
 PT.scrFor=l=>/BAT|EXT PWR|GEN|ELEC|APU/i.test(l)?'sd':/ENG|N1|N2|EGT|MASTER|IGN|START|AVAIL|moteur|turbine|rotor/i.test(l)?'ewd':/ADIRS|IR |align|AHRS/i.test(l)?'pfd':/NAV|route|itinéraire|roulage|point d'arrêt|250 km|cap/i.test(l)?'nd':/En vol|FL|vitesse|ALT|V\/S|Posé|APPR|LOC|ILS|SPD|stationnaire|translation|arrêt|Arrêté|hauteur/i.test(l)?'pfd':null;
 /* ---------- où se trouve la commande ---------- */
@@ -4401,7 +4401,7 @@ function questionsFor(st){ const L=LS||{}, W=(typeof WB!=='undefined'&&WB[ACK])|
   if(/Briefing/i.test(t)) Q.push(txtQ('Lecture du METAR','Dans le METAR de départ, le groupe « 31012KT » signifie :','Vent du 310° (d\'où il vient), 12 nœuds',['Piste 31, visibilité 12 km','Vent vers le 310°, 12 km/h','Cap 310°, 12 kt de vent arrière'],'Le vent est donné d\'où il vient, en degrés vrais, puis la force en nœuds (KT).'));
   if(/Devis de masse/i.test(t)&&L.zfw) Q.push(numQ('Calcul : masse au décollage (TOW)',`ZFW ${fmtN(L.zfw)} kg + carburant bloc ${fmtN(L.block)} kg − carburant de roulage ${fmtN(W.taxi||0)} kg = ?`,L.tow,'kg','TOW = masse sans carburant (ZFW) + carburant embarqué (bloc) − carburant brûlé au roulage. Elle doit rester ≤ MTOW.'));
   if(/Bilan carburant/i.test(t)&&L.need) Q.push(numQ('Calcul : carburant minimum requis',`roulage ${fmtN(W.taxi||0)} + étape ${fmtN(L.trip)} + réserve de route 5 % ${fmtN(L.cont)} + dégagement ${fmtN(W.alt||0)} + réserve finale 30 min ${fmtN(W.res30||0)}${L.extra?' + supplément '+fmtN(L.extra):''} = ? (kg)`,L.need,'kg','On additionne toutes les parts réglementaires : roulage, étape, réserve de route, dégagement, réserve finale (+ supplément décidé par le commandant).'));
-  if(st.walk&&/Tour avion/i.test(t)) Q.push(...walkQ(2));
+  if(st.walk&&/Tour (avion|hélicoptère)/i.test(t)) Q.push(...walkQ(2));
   if(/FMS|Performances/i.test(t)&&L.vr) Q.push(numQ('Calcul : vitesse de rotation VR',AL()?`Formule pédagogique du simulateur : VR = 118 + (TOW en tonnes − 50) × 1,25. TOW = ${(L.tow/1000).toFixed(1)} t.`:`Formule pédagogique du simulateur : VR = 118 + (TOW en tonnes − 8) × 6. TOW = ${(L.tow/1000).toFixed(2)} t.`,L.vr,'kt','VR dépend de la masse : plus l\'avion est lourd, plus il faut de vitesse pour lever le nez.'));
   if(/Before Start/i.test(t)) Q.push(txtQ('Calage altimétrique','Avant la mise en route, on affiche le QNH donné par l\'ATIS. À quoi sert-il ?','L\'altimètre indique l\'altitude au-dessus du niveau de la mer (au sol : l\'altitude du terrain)',['Il règle la fréquence radio de la tour','Il indique la hauteur au-dessus de la piste (0 au sol)','Il sert à calculer le carburant'],'QNH = pression ramenée au niveau de la mer : au sol, l\'altimètre doit afficher l\'altitude du terrain.'));
   if(/début de descente|^Descente/i.test(t)&&A.kind==='fw'){ const cr=Math.max(10000,Math.round((S.alt/FT)/1000)*1000||35000); Q.push(numQ('Calcul : point de début de descente',`Règle des 3 : distance (NM) = altitude à perdre (en milliers de ft) × 3. Vous êtes à ${fmtN(cr)} ft et devez être à 3 000 ft au point d\'approche finale.`,(cr-3000)/1000*3,'NM','Pente d\'environ 3° : on perd 1 000 ft tous les 3 NM. On ajoute une marge pour décélérer.')); }
@@ -7809,7 +7809,7 @@ function generic(key,o){ const M=MOD[key]; if(!M) return; M.actors=A320ACT; if(o
   return [
    Q('Présentation de l\'équipage',`${CREW.vol} · ${CREW.cdb} (CDB)${o.two?', '+CREW.opl+' (OPL)':''} · ${np} passager(s).`,{ph:'Aéroport',fl:{env:o.pad?'pad':'park',apt:CREW.dep},run:()=>{ mv('cdb',[],{at:[14,96],l:N.CDB}); if(o.two) mv('opl',[],{at:[14,113],l:N.OPL}); mv('meca',[],{at:[300,80],l:N.ME}); },say:[['CDB',`Bonjour, je suis ${CREW.cdb}, commandant de bord. ${np} passager${np>1?'s':''} aujourd'hui, météo favorable.`]]}),
    Q('Vers l\'appareil','',{run:()=>{ mv('bus',[[60,92],[140,92]],{at:[-40,92]}); },d:3}),
-   Q('Tour de l\'appareil','Le commandant fait le tour : structure, rotor ou gouvernes, trains, fuites, niveaux.',{ph:'Tour avion',run:()=>{ mv('cdb',[[140,100],...ell]); if(o.two) mv('opl',[[140,100],o.seat2]); mv('bus',[[440,92]]); },say:[['CDB',o.walkSay]]}),
+   Q((AC[key]&&AC[key].kind==='rw')?'Tour de l\'hélicoptère':'Tour de l\'avion',(AC[key]&&AC[key].kind==='rw')?'Le commandant fait le tour : structure, rotor principal et pales, rotor anticouple, patins, fuites, niveaux.':'Le commandant fait le tour : structure, gouvernes, train, hélice ou moteurs, fuites, niveaux.',{ph:(AC[key]&&AC[key].kind==='rw')?'Tour hélicoptère':'Tour avion',run:()=>{ mv('cdb',[[140,100],...ell]); if(o.two) mv('opl',[[140,100],o.seat2]); mv('bus',[[440,92]]); },say:[['CDB',o.walkSay]]}),
    Q('Installation à bord','',{mv:[['cdb',[o.seat1]]],run:()=>{ for(let i=0;i<np;i++) mv('pax'+i,[[150,100],o.paxSeats[i%o.paxSeats.length]],{at:[60-i*8,96],spd:30}); },say:[['CDB','Ceintures attachées, portes fermées ? Briefing passagers fait.']],d:3}),
    ...start.map(x=>Array.isArray(x)?K(x[0],x[1],x[2],null,x[3],x[4]):Object.assign({},x)).filter(x=>!(o.pad&&(x.c==='coll'||x.c==='cyc'))).map((x,i)=>i===0?Object.assign(x,{ph:'Mise en route'}):x),
    ...o.flight(),
@@ -9268,6 +9268,11 @@ if(window.SCNG&&SCNG.steps){ const _st=SCNG.steps; SCNG.steps=id=>{ const r=_st(
 setInterval(()=>{ try{ if(SCN.cur&&SCN.cur.id==='C-EFATO'&&FAIL.engC&&!S.onGround&&aglFt()<500){ const r=rwStart('LFPN','25R'); if(Math.abs(wrapPi(S.psi-r.hdg*D2R))>120*D2R) SCN.log.turnBack=true; } }catch(e){} },500);
 try{ renderMenu(); }catch(e){}
 })();
+
+/* V10.35 : chaque vue nommée justement — pour un hélicoptère, « Tour avion » devient « Tour hélicoptère » (titres d'étape, phases, textes). */
+(function(){ const fix=t=>typeof t==='string'?t.replace(/Tour avion/g,'Tour hélicoptère').replace(/TOUR AVION/g,'TOUR HÉLICOPTÈRE').replace(/tour avion/g,'tour hélicoptère').replace(/pied de l'avion/g,'pied de l\'hélicoptère'):t;
+  const _sf=stepsFor; stepsFor=function(){ const st=_sf.apply(this,arguments); try{ if(A&&A.kind==='rw') st.forEach(s=>{ s.t=fix(s.t); s.txt=fix(s.txt); s.ph=fix(s.ph); (s.items||[]).forEach(it=>{ it[0]=fix(it[0]); }); }); }catch(e){} return st; };
+  window.KINDFIX=fix; })();
 
 </script>
 <script>
