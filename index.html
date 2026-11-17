@@ -7596,7 +7596,7 @@ const css=document.createElement('style'); css.textContent=`#sacrew{position:fix
 #seatmap svg{max-width:min(560px,100%);height:auto}#seatmap .seat{cursor:pointer}`; document.head.appendChild(css);
 function form(cb,small){ useCrew(small); let m=document.getElementById('sacrew'); if(m) m.remove(); m=document.createElement('div'); m.id='sacrew'; const v=CREW;
  const f=(k,l,t='text',ex='')=>`<label>${l}<input name="${k}" type="${t}" value="${String(v[k]??'').replace(/"/g,'&quot;')}" ${ex}></label>`, g=(k)=>`<select name="${k}">${['Hôtesse','Steward'].map(o=>`<option ${v[k]===o?'selected':''}>${o}</option>`).join('')}</select>`;
- m.innerHTML=`<div class="w"><div class="hd"><b>FEUILLE D'ÉQUIPAGE · MANIFESTE · ${({b777:'777-300ER',a320:'A320',lj60:'LEARJET 60',h125:'H125',s76:'S-76',r44:'R44',c172:'CESSNA 172'})[CKEY]}</b><small>GENERAL DECLARATION / CREW LIST</small></div><div class="bd">
+ m.innerHTML=`<div class="w"><div class="hd"><b>FEUILLE D'ÉQUIPAGE · MANIFESTE · ${({b777:'777-300ER',a320:'A320',lj60:'LEARJET 60',h125:'H125',s76:'S-76',r44:'R44',c172:'CESSNA 172'})[CKEY]}</b><small>GENERAL DECLARATION / CREW LIST</small><span style="float:right"><button type="button" data-ex="pdf">⬇ PDF</button> <button type="button" data-ex="docx">⬇ Word</button></span></div><div class="bd">
   <h4>Vol</h4><div class="g">${f('vol','N° de vol')}${f('imm','Immatriculation')}${f('dep','Départ (OACI)')}${f('arr','Arrivée (OACI)')}</div>
   <h4>Équipage technique</h4><div class="g">${f('cdb','Commandant de bord (CDB)')}${['h125','r44'].includes(CKEY)?'':f('opl',CKEY==='a320'?'Officier pilote de ligne (OPL)':CKEY==='c172'?'Instructeur (FI) ou passager avant':'Copilote')}${f('meca','Mécanicien sol')}</div>
   ${small&&small<100?'':`<h4>Équipage de cabine (PNC)</h4><div class="g">${f('cc','Chef de cabine')}<label>PNC 2 ${g('g2')}<input name="pnc2" value="${v.pnc2}"></label><label>PNC 3 ${g('g3')}<input name="pnc3" value="${v.pnc3}"></label><label>PNC 4 ${g('g4')}<input name="pnc4" value="${v.pnc4}"></label></div>`}
@@ -7606,7 +7606,7 @@ function form(cb,small){ useCrew(small); let m=document.getElementById('sacrew')
   <p class="note">Comme la « General Declaration » remise aux autorités : équipage, nombre et liste des passagers. Les noms sont fictifs et modifiables ; ils sont repris par les personnages du schéma et dans les dialogues.</p></div>
   <div class="ft"><button type="button" data-r>Valeurs par défaut</button><button type="button" data-x>Annuler</button><button type="button" class="go" data-ok>✓ Valider et présenter l'équipage</button></div></div>`;
  document.body.appendChild(m); paxUI(m,small); m.querySelector('[name=paxl]').addEventListener('input',()=>paxUI(m,small)); m.querySelector('[name=pax]').addEventListener('input',()=>paxUI(m,small));
- m.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; if(b.dataset.x!=null) m.remove(); if(b.dataset.r!=null){ try{ localStorage.removeItem('sa-crew-'+CKEY); if(CKEY==='a320') localStorage.removeItem('sa-crew'); }catch(e){} m.remove(); form(cb,small); }
+ m.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; if(b.dataset.ex&&window.DOCEXP){ const w=m.querySelector('.w'); DOCEXP[b.dataset.ex](w,'manifeste_'+(CREW.vol||CKEY).replace(/\s+/g,'')); return; } if(b.dataset.x!=null) m.remove(); if(b.dataset.r!=null){ try{ localStorage.removeItem('sa-crew-'+CKEY); if(CKEY==='a320') localStorage.removeItem('sa-crew'); }catch(e){} m.remove(); form(cb,small); }
   if(b.dataset.add!=null){ const ln=m.querySelector('[data-ln]'), fn=m.querySelector('[data-fn]'), se=m.querySelector('[data-se]'); const nom=(ln.value||'').trim().toUpperCase(), pre=(fn.value||'').trim(); if(!nom){ ln.focus(); return; }
     const L=paxParse(m), seat=se.value||freeSeats(LAY(small),L)[0]||''; L.push({n:(nom+' '+pre).trim(),s:seat}); paxWrite(m,L); ln.value=''; fn.value=''; paxUI(m,small); return; }
   if(b.dataset.fill!=null){ const L=paxParse(m), n=Math.max(+m.querySelector('[name=pax]').value||0,L.length); fillPax(LAY(small),L,n); paxWrite(m,L); paxUI(m,small); return; }
@@ -8694,25 +8694,65 @@ function open(id,opt){ opt=opt||{}; GOTO=opt.go!=null?opt.go:null; REL=opt.rel||
  if(!v){ v=document.createElement('section'); v.id='docv'; v.hidden=true; document.body.appendChild(v);
   v.addEventListener('click',e=>{ const b=e.target.closest('button,[data-ci]'); if(!b) return; const d=b.dataset;
    if(d.ci!=null){ close(); if(window.CKL) CKL.go(+d.ci,+d.cj); return; }
-   if(d.doc){ CUR=d.doc; render(); return; } if(d.x!=null) return close(); if(d.pdf!=null) return dl('pdf'); if(d.txt!=null) return dl('txt'); if(d.svg!=null) return dl('svg'); if(d.pr!=null){ try{ window.print(); }catch(e){} return; }
+   if(d.doc){ keepEdit(); EDIT=false; CUR=d.doc; render(); return; } if(d.x!=null) return close(); if(d.ed!=null){ EDIT=!EDIT; keepEdit(); render(); if(EDIT) flashMsg('Mode modification : touchez le texte du document pour le corriger, puis téléchargez en PDF ou Word'); return; } if(d.rs!=null){ delete EDITS[CUR]; EDIT=false; render(); return; } if(d.docx!=null) return dl('docx'); if(d.pdf!=null) return dl('pdf'); if(d.txt!=null) return dl('txt'); if(d.svg!=null) return dl('svg'); if(d.pr!=null){ try{ window.print(); }catch(e){} return; }
    if(d.go!=null){ const k=GOTO; close(); if(window.JUMP) JUMP(k,(typeof AUTO!=='undefined'&&AUTO.on)?'auto':'guide'); } }); }
  v.hidden=false; render(); clearInterval(TMR); TMR=setInterval(()=>{ if(v.hidden){ clearInterval(TMR); return; } if(D[CUR]&&D[CUR].live) render(true); },1000); }
 function close(){ const v=document.getElementById('docv'); if(v) v.hidden=true; clearInterval(TMR); }
 function render(soft){ const v=document.getElementById('docv'), c=ctx(), doc=D[CUR], out=doc.gen(c);
+ if(soft&&(EDIT||EDITS[CUR])) return;
  if(soft){ const pp=v.querySelector('.paper .body'); if(pp&&out.html&&pp._h!==out.html){ const sc=v.querySelector('.pg').scrollTop; pp.innerHTML=out.html; pp._h=out.html; v.querySelector('.pg').scrollTop=sc; } return; }
  const cats=[...new Set(Object.values(D).map(x=>x.cat))], step=GOTO!=null&&typeof GD!=='undefined'?GD.steps[GOTO]:null;
  v.innerHTML=`<div class="hd"><div class="tt"><b>📁 Dossier de vol · ${c.flt} · ${c.dep} → ${c.dest}</b><small>${c.name} · ${c.reg} · ${c.date}${step?` · documents de l'étape ${GOTO} « ${step.t} »`:''}</small></div>
-  ${GOTO!=null?`<button type="button" class="go" data-go>▶ Aller à l'étape ${GOTO}</button>`:''}<button type="button" data-pdf>⬇ PDF</button><button type="button" data-txt>⬇ TXT</button>${doc.svg?'<button type="button" data-svg>⬇ SVG</button>':''}<button type="button" data-pr>🖨</button><button type="button" data-x>✕</button></div>
+  ${GOTO!=null?`<button type="button" class="go" data-go>▶ Aller à l'étape ${GOTO}</button>`:''}<button type="button" data-ed class="${EDIT?'on':''}">${EDIT?'✓ Terminer':'✎ Modifier'}</button>${EDITS[CUR]?'<button type="button" data-rs>↺ Rétablir</button>':''}<button type="button" data-pdf>⬇ PDF</button><button type="button" data-docx>⬇ Word</button><button type="button" data-txt>⬇ TXT</button>${doc.svg?'<button type="button" data-svg>⬇ SVG</button>':''}<button type="button" data-pr>🖨</button><button type="button" data-x>✕</button></div>
   <div class="main"><nav>${cats.map(ct=>`<h5>${ct}</h5>`+Object.keys(D).filter(id=>D[id].cat===ct&&avail(c,id)).map(id=>`<button type="button" data-doc="${id}" class="${id===CUR?'on':''} ${REL.includes(id)?'rel':''}">${REL.includes(id)?'📌 ':''}${D[id].t}</button>`).join('')).join('')}</nav>
   <div class="pg"><div class="paper"><h2>${doc.t}</h2><div class="sub">${c.flt} · ${c.type} ${c.reg} · ${c.dep} → ${c.dest} · ${c.date}${doc.live?' · mis à jour en direct':''}</div><div class="body">${out.html||(out.svg?out.svg+(out.txt?`<pre style="margin-top:8px">${esc(out.txt)}</pre>`:''):`<pre>${esc(out.txt)}</pre>`)}</div>${CUR==='plan'?'':`<div class="note">${NOTE}</div>`}</div></div></div>`;
+ const paper=v.querySelector('.paper'); if(EDITS[CUR]) paper.innerHTML=EDITS[CUR]; if(EDIT){ paper.contentEditable='true'; paper.style.outline='2px dashed #e04ad8'; paper.addEventListener('input',()=>{ EDITS[CUR]=paper.innerHTML; }); }
+ if(EDITS[CUR]&&!EDIT) paper.insertAdjacentHTML('afterbegin','<div class="edmark" style="font:600 11px Inter,sans-serif;color:#b0207f;margin-bottom:6px">✎ Version modifiée par vous — le téléchargement reprend vos modifications (↺ Rétablir pour revenir au document calculé).</div>');
  const nb=v.querySelector('nav .on'); if(nb) nb.scrollIntoView({block:'nearest',inline:'center'}); }
+let EDIT=false; const EDITS={};
+function keepEdit(){ const p=document.querySelector('#docv .paper'); if(p&&p.isContentEditable) EDITS[CUR]=p.innerHTML; }
 const esc=s=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 /* ---------- export ---------- */
-function save(name,blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500); }
-function dl(kind){ const c=ctx(), doc=D[CUR], out=doc.gen(c), base=`${c.flt}_${CUR}`; const txt=`${doc.t}\n${c.flt} ${c.type} ${c.reg} ${c.dep}-${c.dest} ${c.date}\n${'='.repeat(70)}\n\n${out.txt||''}\n\n${CUR==='plan'?'':NOTE}`; const txt2=window.BRANDTX?BRANDTX(txt):txt;
+async function save(name,blob){ try{ const dlc=null;
+  if(dlc){ try{ await dlc.save({filename:name,data:blob}); flashMsg('Enregistré : '+name); }catch(e){ if(e&&e.code==='declined') flashMsg('Téléchargement annulé'); else flashMsg('Téléchargement impossible ici ('+(e&&e.code||'erreur')+')'); } return; } }catch(e){}
+ saveA(name,blob); flashMsg('Téléchargement : '+name); }
+function saveA(name,blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500); }
+function dl(kind){ keepEdit(); const c=ctx(), doc=D[CUR], out=doc.gen(c), base=`${c.flt}_${CUR}`, ed=EDITS[CUR]?domText():null; const txt=ed?ed:`${doc.t}\n${c.flt} ${c.type} ${c.reg} ${c.dep}-${c.dest} ${c.date}\n${'='.repeat(70)}\n\n${out.txt||''}\n\n${CUR==='plan'?'':NOTE}`; const txt2=window.BRANDTX?BRANDTX(txt):txt;
  if(kind==='txt') save(base+'.txt',new Blob(['\ufeff'+txt2],{type:'text/plain;charset=utf-8'}));
  else if(kind==='svg'&&out.svg) save(base+'.svg',new Blob([out.svg],{type:'image/svg+xml'}));
- else if(kind==='pdf') save(base+'.pdf',pdf(txt2)); flashMsg('Téléchargement : '+base+'.'+kind); }
+ else if(kind==='pdf') save(base+'.pdf',pdf(txt2));
+ else if(kind==='docx') save(base+'.docx',docx()); }
+/* texte du document affiché (version modifiée comprise), pour le PDF */
+function flat(el){ const k=el.cloneNode(true), src=el.querySelectorAll('input,textarea,select'); k.querySelectorAll('input,textarea,select').forEach((f,i)=>{ const o=src[i], sp=document.createElement(o&&o.tagName==='TEXTAREA'?'pre':'span'); sp.textContent=o?(o.type==='checkbox'?(o.checked?'☑':'☐'):o.value):''; f.replaceWith(sp); }); k.querySelectorAll('button,.edmark').forEach(b=>b.remove()); return k; }
+function domText(el){ const p=el||document.querySelector('#docv .paper'); if(!p) return ''; const k=flat(p); k.querySelectorAll('svg').forEach(x=>x.replaceWith('[schéma : voir l\'export SVG]')); k.querySelectorAll('tr').forEach(tr=>{ tr.querySelectorAll('td,th').forEach((c,i)=>{ if(i) c.insertAdjacentText('afterbegin',' | '); }); });
+ const host=document.createElement('div'); host.style.cssText='position:fixed;left:-9999px;top:0;width:800px;white-space:normal'; host.appendChild(k); document.body.appendChild(host); const t=k.innerText; host.remove(); return (window.BRANDTX?BRANDTX(t):t).replace(/\n{3,}/g,'\n\n'); }
+/* ---------- Word (.docx) : document Office Open XML minimal, construit à partir du document affiché ---------- */
+function docx(el){ const p0=el||document.querySelector('#docv .paper'), p=p0?flat(p0):null, X=t=>String(t).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])), B=t=>window.BRANDTX?BRANDTX(t):t;
+ const run=(t,o={})=>t?`<w:r><w:rPr>${o.b?'<w:b/>':''}${o.mono?'<w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>':''}${o.sz?`<w:sz w:val="${o.sz}"/>`:''}${o.col?`<w:color w:val="${o.col}"/>`:''}</w:rPr><w:t xml:space="preserve">${X(B(t))}</w:t></w:r>`:'';
+ const runs=(el,o)=>{ let r=''; el.childNodes.forEach(n=>{ if(n.nodeType===3) r+=run(n.textContent.replace(/\s+/g,' '),o); else if(n.nodeType===1&&n.tagName!=='svg'){ if(n.tagName==='BR') r+='<w:r><w:br/></w:r>'; else r+=runs(n,Object.assign({},o,/^(B|STRONG|H\d|TH)$/.test(n.tagName)?{b:true}:{})); } }); return r; };
+ const para=(inner,o={})=>`<w:p><w:pPr>${o.h?`<w:spacing w:before="200" w:after="80"/>`:''}${o.ind?'<w:ind w:left="360"/>':''}</w:pPr>${inner}</w:p>`;
+ let body=''; const walk=el=>{ el.childNodes.forEach(n=>{ if(n.nodeType===3){ const t=n.textContent.trim(); if(t) body+=para(run(t)); return; } if(n.nodeType!==1) return; const tg=n.tagName;
+   if(/^H[1-4]$/.test(tg)) body+=para(runs(n,{b:true,sz:tg==='H2'?32:26}),{h:1});
+   else if(tg==='TABLE'){ const rows=[...n.querySelectorAll('tr')]; if(!rows.length) return; body+=`<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="0" w:type="auto"/><w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(b=>`<w:${b} w:val="single" w:sz="4" w:color="999999"/>`).join('')}</w:tblBorders></w:tblPr>`+rows.map(tr=>'<w:tr>'+[...tr.children].map(c=>`<w:tc><w:p>${runs(c,c.tagName==='TH'?{b:true}:{})}</w:p></w:tc>`).join('')+'</w:tr>').join('')+'</w:tbl>'+para(''); }
+   else if(tg==='PRE') n.textContent.split('\n').forEach(l=>body+=para(run(l,{mono:true,sz:18})));
+   else if(tg==='svg') body+=para(run('[Schéma : voir l\'export SVG ou PDF]',{col:'777777'}));
+   else if(tg==='LI') body+=para(run('• ')+runs(n,{}),{ind:1});
+   else if(/^(UL|OL)$/.test(tg)||(/^(DIV|SECTION)$/.test(tg)&&n.querySelector('p,div,table,ul,ol,h1,h2,h3,h4,pre,li'))) walk(n);
+   else body+=para(runs(n,{})); }); };
+ if(p) walk(p);
+ const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+ const files=[['[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+  ['_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'],
+  ['word/document.xml',doc]];
+ return new Blob([zip(files)],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}); }
+/* archive ZIP sans compression (méthode « stored ») avec CRC-32 */
+function zip(files){ const enc=new TextEncoder(), T=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; T[n]=c>>>0; }
+ const crc=b=>{ let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=T[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+ const parts=[], cen=[]; let off=0; const u16=(a,v)=>a.push(v&255,(v>>8)&255), u32=(a,v)=>a.push(v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255);
+ files.forEach(([name,txt])=>{ const nb=enc.encode(name), db=enc.encode(txt), c=crc(db), h=[]; u32(h,0x04034b50); u16(h,20); u16(h,0x0800); u16(h,0); u16(h,0); u16(h,0x21); u32(h,c); u32(h,db.length); u32(h,db.length); u16(h,nb.length); u16(h,0);
+   parts.push(new Uint8Array(h),nb,db); const e=[]; u32(e,0x02014b50); u16(e,20); u16(e,20); u16(e,0x0800); u16(e,0); u16(e,0); u16(e,0x21); u32(e,c); u32(e,db.length); u32(e,db.length); u16(e,nb.length); u16(e,0); u16(e,0); u16(e,0); u16(e,0); u32(e,0); u32(e,off); cen.push(new Uint8Array(e),nb); off+=h.length+nb.length+db.length; });
+ const cl=cen.reduce((s,x)=>s+x.length,0), z=[]; u32(z,0x06054b50); u16(z,0); u16(z,0); u16(z,files.length); u16(z,files.length); u32(z,cl); u32(z,off); u16(z,0);
+ const all=[...parts,...cen,new Uint8Array(z)], out=new Uint8Array(all.reduce((s,x)=>s+x.length,0)); let o=0; all.forEach(x=>{ out.set(x,o); o+=x.length; }); return out; }
 function flashMsg(t){ try{ flash(t,'am'); }catch(e){} }
 /* générateur PDF minimal : texte monospace (Courier, WinAnsi), A4, pagination */
 function pdf(text){ const MAP={'→':'->','←':'<-','≥':'>=','≤':'<=','⚠':'!','✓':'v','✗':'x','○':'o','·':'\u00b7','’':"'",'‘':"'",'“':'"','”':'"','…':'\u0085','–':'\u0096','—':'\u0097','œ':'\u009c','Œ':'\u008c','€':'\u0080','\u202f':' ','\u00a0':' ','📌':'*','📁':'','🖨':'','′':"'"};
@@ -8729,6 +8769,8 @@ function pdf(text){ const MAP={'→':'->','←':'<-','≥':'>=','≤':'<=','⚠'
  let out='%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n'; const off=[]; objs.forEach((o,i)=>{ off.push(out.length); out+=`${i+1} 0 obj\n${o}\nendobj\n`; });
  const x=out.length; out+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+off.map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${objs.length+1} /Root ${cat} 0 R >>\nstartxref\n${x}\n%%EOF`;
  const bytes=new Uint8Array(out.length); for(let i=0;i<out.length;i++) bytes[i]=out.charCodeAt(i)&255; return new Blob([bytes],{type:'application/pdf'}); }
+/* export de n'importe quel élément de l'interface (manifeste, feuilles, comptes rendus) */
+window.DOCEXP={save, pdf:(el,name)=>save(name+'.pdf',pdf(domText(el))), docx:(el,name)=>save(name+'.docx',docx(el)), txt:(el,name)=>save(name+'.txt',new Blob(['\ufeff'+domText(el)],{type:'text/plain;charset=utf-8'}))};
 /* ---------- points d'accès ---------- */
 // 1) sélecteur d'étapes : les étapes « documents » ouvrent les documents
 setInterval(()=>{ const m=document.getElementById('jmp'); if(!m||typeof GD==='undefined') return; m.querySelectorAll('.st[data-k]').forEach(b=>{ if(b._dc) return; b._dc=1; const st=GD.steps[+b.dataset.k]; const ids=st?forStep(st):[]; if(ids.length){ b.dataset.docs=ids.join(','); b.insertAdjacentHTML('beforeend',`<span class="dc">📄 ${ids.length} doc.</span>`); } }); },300);
