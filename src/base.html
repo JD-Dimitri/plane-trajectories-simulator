@@ -356,7 +356,7 @@ const SKY={};
 const TL=new THREE.TextureLoader();
 const texDay=TL.load(window.__GLOBE.day), texNight=TL.load(window.__GLOBE.night);
 [texDay,texNight].forEach(t=>{ t.anisotropy=renderer.capabilities.getMaxAnisotropy(); t.wrapS=THREE.RepeatWrapping; });
-const earthU={lk:{value:1},org:{value:new THREE.Vector3()},dayT:{value:texDay},nightT:{value:texNight},sunDir:{value:new THREE.Vector3(1,0,0)},fogC:{value:new THREE.Color(0x9fb8cc)},fogD:{value:80000},night:{value:0}};
+const earthU={lk:{value:1},org:{value:new THREE.Vector3()},dayT:{value:texDay},nightT:{value:texNight},sunDir:{value:new THREE.Vector3(1,0,0)},fogC:{value:new THREE.Color(0x9fb8cc)},fogD:{value:80000},night:{value:0},detT:{value:null},pb:{value:new THREE.Vector4(0,0,1,1)},dOn:{value:0}};
 const earthMat=new THREE.ShaderMaterial({uniforms:earthU,
   vertexShader:`uniform vec3 org; attribute float hgt; attribute float hsd; varying vec2 vUv; varying vec3 vN; varying float vS; varying float vH; varying float vD;
     #include <common>
@@ -364,16 +364,23 @@ const earthMat=new THREE.ShaderMaterial({uniforms:earthU,
     void main(){ vUv=uv; vN=normalize(position+org); vS=hsd; vH=hgt; vec4 mv=modelViewMatrix*vec4(position,1.); vD=length(mv.xyz); gl_Position=projectionMatrix*mv;
     #include <logdepthbuf_vertex>
     }`,
-  fragmentShader:`uniform sampler2D dayT; uniform sampler2D nightT; uniform vec3 sunDir; uniform float lk; uniform vec3 fogC; uniform float fogD; varying vec2 vUv; varying vec3 vN; varying float vS; varying float vH; varying float vD;
+  fragmentShader:`uniform sampler2D dayT; uniform sampler2D nightT; uniform vec3 sunDir; uniform float lk; uniform vec3 fogC; uniform float fogD; uniform sampler2D detT; uniform vec4 pb; uniform float dOn; varying vec2 vUv; varying vec3 vN; varying float vS; varying float vH; varying float vD;
     #include <common>
     #include <logdepthbuf_pars_fragment>
+    float hs2(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
     void main(){
     #include <logdepthbuf_fragment>
       float d=dot(vN,sunDir); float k=smoothstep(-0.10,0.10,d);
       vec3 tex=texture2D(dayT,vUv).rgb; float rl=clamp(vH/20.,0.,1.);
       vec3 land=mix(vec3(0.36,0.50,0.26),vec3(0.52,0.46,0.32),smoothstep(600.,1800.,vH)); land=mix(land,vec3(0.60,0.58,0.55),smoothstep(1800.,2700.,vH)); land=mix(land,vec3(0.93,0.95,0.97),smoothstep(3300.,3900.,vH));
       float sh=max(d,0.)*(0.55+0.75*vS);
-      vec3 day=mix(tex*(0.28+0.85*max(d,0.)),land*(0.42+0.8*sh),rl); vec3 nig=texture2D(nightT,vUv).rgb*1.25*lk+vec3(0.004,0.008,0.016);
+      vec3 day=mix(tex*(0.28+0.85*max(d,0.)),land*(0.42+0.8*sh),rl);
+      if(dOn>0.5){ float lo=vUv.x*360.-180., la=vUv.y*180.-90.; float nr=1.-smoothstep(5000.,30000.,vD);
+        float wt=step(tex.r+tex.g,tex.b*1.7);                                   // eau d'après la texture (bleu dominant)
+        vec2 mm=vec2((lo-pb.y)*111320.*cos(radians(la)),(la-pb.x)*110570.);       // mètres depuis l'origine de la pièce
+        float h=hs2(floor(mm/vec2(420.,290.))), g=0.9+0.2*hs2(floor(mm/22.));     // parcellaire procédural + grain fin
+        vec3 ft=h<0.33?vec3(0.78,0.93,0.62):h<0.66?vec3(1.22,1.12,0.80):vec3(1.0,1.02,0.9); day*=mix(vec3(1.),ft*g,nr*0.75*(1.-wt));
+        vec4 dm=texture2D(detT,vec2((lo-pb.y)/pb.w+0.5,(la-pb.x)/pb.z+0.5)); day=mix(day,dm.rgb*(0.35+0.75*max(d,0.)),dm.a); } vec3 nig=texture2D(nightT,vUv).rgb*1.25*lk+vec3(0.004,0.008,0.016);
       vec3 c=mix(nig,day,k); float f=1.-exp(-pow(vD/fogD,1.4)); gl_FragColor=vec4(mix(c,fogC,clamp(f,0.,0.93)),1.); }`});
 function sphereGrid(lat0,lat1,lon0,lon1,nLat,nLon,hFn,O){ const pos=[],uv=[],idx=[],hs=[]; O=O||[0,0,0];
   for(let i=0;i<=nLat;i++){ const la=lat0+(lat1-lat0)*i/nLat; for(let j=0;j<=nLon;j++){ const lo=lon0+(lon1-lon0)*j/nLon; const hh=hFn?hFn(la,lo):0; hs.push(hFn&&hh>-100&&typeof reliefAt==='function'?reliefAt(la,lo):0); const p=ecef(la,lo,hh); pos.push(p[0]-O[0],p[1]-O[1],p[2]-O[2]); uv.push((lo+180)/360,(la+90)/180); } }
@@ -389,10 +396,24 @@ function sphereGrid(lat0,lat1,lon0,lon1,nLat,nLon,hFn,O){ const pos=[],uv=[],idx
 const globe=new THREE.Mesh(sphereGrid(-90,90,-180,180,180,360,()=>-650),earthMat); world.add(globe);
 // pièce de terrain précise autour de l'appareil (± 0,9°), reconstruite quand on s'éloigne
 const PATCH={mesh:null,lat:999,lon:999};
+/* carte de détail locale de la pièce de terrain (≈ 180 m par pixel) : eaux connues, pistes et aires des aérodromes.
+   La texture satellite du globe est trop grossière à basse hauteur (plusieurs km par pixel) : faute d'imagerie haute
+   résolution embarquée, on dessine ce que l'on connaît précisément, et un parcellaire procédural donne l'échelle. */
+const WATERS=[{w:1100,p:()=>HUDSON},{w:650,p:()=>[[40.7000,-74.0150],[40.7060,-73.9970],[40.7130,-73.9720],[40.7450,-73.9660],[40.7620,-73.9500],[40.7780,-73.9320],[40.8000,-73.9150]]},   // Hudson, East River [APPROX.]
+  {poly:[[40.700,-74.025],[40.690,-74.000],[40.650,-74.020],[40.610,-74.040],[40.600,-74.065],[40.640,-74.085],[40.680,-74.075],[40.700,-74.045]]},   // baie de New York [APPROX.]
+  {w:160,p:()=>[[48.8270,2.4000],[48.8400,2.3680],[48.8530,2.3480],[48.8590,2.3310],[48.8620,2.3000],[48.8560,2.2860],[48.8430,2.2760],[48.8350,2.2560],[48.8500,2.2400]]}];   // Seine à Paris [APPROX.]
+function detailMap(lat,lon,dl,dlo){ const N=1024, c=document.createElement('canvas'); c.width=c.height=N; const g=c.getContext('2d'), X=lo=>(lo-(lon-dlo))/(2*dlo)*N, Y=la=>N-(la-(lat-dl))/(2*dl)*N, mpp=2*dl*110570/N;
+  g.fillStyle=g.strokeStyle='rgba(38,66,92,1)'; g.lineCap=g.lineJoin='round';
+  WATERS.forEach(w=>{ if(w.poly){ g.beginPath(); w.poly.forEach(([a,b],i)=>i?g.lineTo(X(b),Y(a)):g.moveTo(X(b),Y(a))); g.fill(); } else { const P=w.p(); g.lineWidth=Math.max(1.5,w.w/mpp); g.beginPath(); P.forEach(([a,b],i)=>i?g.lineTo(X(b),Y(a)):g.moveTo(X(b),Y(a))); g.stroke(); } });
+  for(const k in APTS){ const ap=APTS[k]; if(Math.abs(ap.lat-lat)>dl+0.1||Math.abs(ap.lon-lon)>dlo+0.1) continue;
+    g.fillStyle='rgba(150,150,140,0.55)'; g.beginPath(); g.arc(X(ap.lon),Y(ap.lat),Math.max(2,1200/mpp),0,7); g.fill();   // emprise de l'aérodrome
+    (ap.rw||[]).forEach(r=>{ if(r.length<6) return; g.strokeStyle='rgba(70,72,76,1)'; g.lineWidth=Math.max(1.2,(r[6]||45)/mpp); g.lineCap='butt'; g.beginPath(); g.moveTo(X(r[3]),Y(r[2])); g.lineTo(X(r[5]),Y(r[4])); g.stroke(); }); }
+  const t=new THREE.CanvasTexture(c); t.anisotropy=4; t.minFilter=THREE.LinearMipmapLinearFilter; return t; }
 function patchUpdate(lat,lon){ if(gcKm(lat,lon,PATCH.lat,PATCH.lon)<30) return; PATCH.lat=lat; PATCH.lon=lon;
   if(PATCH.mesh){ world.remove(PATCH.mesh); PATCH.mesh.geometry.dispose(); }
   const dl=0.9, dlo=0.9/Math.max(0.2,Math.cos(lat*D2R));
   const O=ecef(lat,lon,0); if(!PATCH.mat){ PATCH.mat=earthMat.clone(); PATCH.mat.uniforms=Object.assign({},earthU,{org:{value:new THREE.Vector3()}}); } PATCH.mat.uniforms.org.value.set(...O);   // mise à jour de la valeur (remplacer l'objet laissait l'ancienne origine dans le shader : terrain noir loin du départ)
+  try{ const U=PATCH.mat.uniforms; if(!U.detT||U.detT===earthU.detT){ U.detT={value:null}; U.pb={value:new THREE.Vector4()}; U.dOn={value:1}; } if(U.detT.value) U.detT.value.dispose(); U.detT.value=detailMap(lat,lon,dl,dlo); U.pb.value.set(lat,lon,2*dl,2*dlo); U.dOn.value=1; }catch(e){}
   PATCH.mesh=new THREE.Mesh(sphereGrid(lat-dl,lat+dl,lon-dlo,lon+dlo,120,120,elevAt,O),PATCH.mat); PATCH.mesh.position.set(...O); world.add(PATCH.mesh); }
 /* ---- pistes : marquages dessinés en canvas, balisage lumineux ---- */
 function rwTex(ra,rb,Lft,Wft){ const W=64,H=Math.min(4096,Math.round(W*Lft/Wft)),c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d'), u=H/Lft;

@@ -74,6 +74,7 @@ const _sd=sysDefaults; sysDefaults=function(){ _sd.apply(this,arguments); if(C()
 let crankT=0;
 const _es=engStep; engStep=function(dt){ if(!C()) return _es.apply(this,arguments);
   if(!S.n2) S.n2=[0,0]; S.eng[1]=false;
+  if(GD.cMI!==MI){ GD.cMI=MI; if(!MI.full){ Object.assign(SYS,{bat1:true,alt1:true,avion:true,mix:'RICH',mags:'BOTH',fuelSel:'BOTH',carbH:'FROID',navLt:true,beacon:true,strobe:'ON',xpdr:'ALT',irAl:1}); S.eng[0]=true; S.n2[0]=1; if(!(S.fuel>0)) S.fuel=Math.round(WB.c172.fuelMax*0.8); try{ pedSync(); ovhSync(); }catch(e){} } }
   if(MI.full){ const pw=!!SYS.bat1, fuel=SYS.fuelSel!=='OFF'&&(S.fuel??1)>0, rich=SYS.mix==='RICH';
     if(SYS.primer!=='0') GD.primed=true;
     const dead=!!(FAIL.engC||FAIL.dead1||(GD.ice||0)>0.95);
