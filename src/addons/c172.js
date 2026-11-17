@@ -238,3 +238,6 @@ setInterval(()=>{ const on=typeof MI!=='undefined'&&MI&&MI.wps===WPS&&document.g
   if(S.onGround&&next===1) tLeg=simMs; },1000);
 let shown=false; setInterval(()=>{ if(typeof MI!=='undefined'&&MI&&MI.wps===WPS&&document.getElementById('menu').hidden){ if(!shown){ shown=true; setTimeout(open,1500); } } else shown=false; },800);
 })();
+/* vols libres et scénarios du C172 : moteur en marche au départ (après l'initialisation de la mission) */
+(function(){ if(typeof startMission!=='function') return; const _sm=startMission; startMission=function(){ const r=_sm.apply(this,arguments);
+  try{ if(ACK==='c172'&&MI&&!MI.full){ setTimeout(()=>{ if(ACK!=='c172'||MI.full) return; Object.assign(SYS,{bat1:true,alt1:true,avion:true,mix:'RICH',mags:'BOTH',fuelSel:'BOTH',carbH:'FROID',navLt:true,beacon:true,strobe:'ON',xpdr:'ALT',irAl:1}); S.eng[0]=true; if(S.n2) S.n2[0]=1; if(!(S.fuel>0)) S.fuel=Math.round(WB.c172.fuelMax*0.8); try{ pedSync(); ovhSync(); }catch(e){} },300); } }catch(e){} return r; }; })();

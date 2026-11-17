@@ -2921,7 +2921,11 @@ function loopBody(now){ const rdt=Math.min(0.1,(now-last)/1000); last=now;
   }
 /* ---- démarrage ---- */
 window.SIMVER='V10.21'; renderer.domElement.addEventListener('webglcontextlost',e=>{ e.preventDefault(); loopErr('webgl','contexte graphique perdu (mémoire du téléphone) : rechargez la page'); },false);
-selMI=null; resetState(); setModel(); sysDefaults(); resize(); openMenu(); requestAnimationFrame(loop);
+// démarrage robuste : un appareil mémorisé ajouté par un module (ex. Cessna 172) n'existe pas encore à cet instant ;
+// avant ce correctif, le menu plantait et la boucle de rendu ne démarrait jamais (écran noir, indicateurs « — »)
+const SEL0=selAC; if(!AC[selAC]) selAC='a320';
+selMI=null; [resetState,setModel,sysDefaults,resize,openMenu].forEach(f=>{ try{ f(); }catch(e){ console.error('Démarrage :',e); } }); requestAnimationFrame(loop);
+window.addEventListener('load',()=>{ try{ if(SEL0!==selAC&&AC[SEL0]){ selAC=SEL0; if(!$('menu').hidden) renderMenu(); } }catch(e){} }); /*FIN-BASE*/
 
 </script>
 </body>
