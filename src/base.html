@@ -377,8 +377,8 @@ const earthMat=new THREE.ShaderMaterial({uniforms:earthU,
       vec3 day=mix(tex*(0.28+0.85*max(d,0.)),land*(0.42+0.8*sh),rl);
       if(dOn>0.5){ float lo=vUv.x*360.-180., la=vUv.y*180.-90.; float nr=1.-smoothstep(5000.,30000.,vD);
         float wt=step(tex.r+tex.g,tex.b*1.7);                                   // eau d'après la texture (bleu dominant)
-        vec2 mm=vec2((lo-pb.y)*111320.*cos(radians(la)),(la-pb.x)*110570.);       // mètres depuis l'origine de la pièce
-        float h=hs2(floor(mm/vec2(420.,290.))), g=0.9+0.2*hs2(floor(mm/22.));     // parcellaire procédural + grain fin
+        vec2 mm=vec2((lo-pb.y)*111.32*cos(radians(la)),(la-pb.x)*110.57);       // km depuis l'origine de la pièce (reste dans la précision des GPU mobiles)
+        float h=fract(hs2(floor(mm/vec2(0.42,0.29)))), g=0.9+0.2*fract(hs2(floor(mm/0.025)));     // parcellaire procédural + grain fin
         vec3 ft=h<0.33?vec3(0.78,0.93,0.62):h<0.66?vec3(1.22,1.12,0.80):vec3(1.0,1.02,0.9); day*=mix(vec3(1.),ft*g,nr*0.75*(1.-wt));
         vec4 dm=texture2D(detT,vec2((lo-pb.y)/pb.w+0.5,(la-pb.x)/pb.z+0.5)); day=mix(day,dm.rgb*(0.35+0.75*max(d,0.)),dm.a); } vec3 nig=texture2D(nightT,vUv).rgb*1.25*lk+vec3(0.004,0.008,0.016);
       vec3 c=mix(nig,day,k); float f=1.-exp(-pow(vD/fogD,1.4)); gl_FragColor=vec4(mix(c,fogC,clamp(f,0.,0.93)),1.); }`});
@@ -402,7 +402,7 @@ const PATCH={mesh:null,lat:999,lon:999};
 const WATERS=[{w:1100,p:()=>HUDSON},{w:650,p:()=>[[40.7000,-74.0150],[40.7060,-73.9970],[40.7130,-73.9720],[40.7450,-73.9660],[40.7620,-73.9500],[40.7780,-73.9320],[40.8000,-73.9150]]},   // Hudson, East River [APPROX.]
   {poly:[[40.700,-74.025],[40.690,-74.000],[40.650,-74.020],[40.610,-74.040],[40.600,-74.065],[40.640,-74.085],[40.680,-74.075],[40.700,-74.045]]},   // baie de New York [APPROX.]
   {w:160,p:()=>[[48.8270,2.4000],[48.8400,2.3680],[48.8530,2.3480],[48.8590,2.3310],[48.8620,2.3000],[48.8560,2.2860],[48.8430,2.2760],[48.8350,2.2560],[48.8500,2.2400]]}];   // Seine à Paris [APPROX.]
-function detailMap(lat,lon,dl,dlo){ const N=1024, c=document.createElement('canvas'); c.width=c.height=N; const g=c.getContext('2d'), X=lo=>(lo-(lon-dlo))/(2*dlo)*N, Y=la=>N-(la-(lat-dl))/(2*dl)*N, mpp=2*dl*110570/N;
+function detailMap(lat,lon,dl,dlo){ const N=Math.min(innerWidth,innerHeight)<700?512:1024, c=document.createElement('canvas'); c.width=c.height=N; const g=c.getContext('2d'), X=lo=>(lo-(lon-dlo))/(2*dlo)*N, Y=la=>N-(la-(lat-dl))/(2*dl)*N, mpp=2*dl*110570/N;
   g.fillStyle=g.strokeStyle='rgba(38,66,92,1)'; g.lineCap=g.lineJoin='round';
   WATERS.forEach(w=>{ if(w.poly){ g.beginPath(); w.poly.forEach(([a,b],i)=>i?g.lineTo(X(b),Y(a)):g.moveTo(X(b),Y(a))); g.fill(); } else { const P=w.p(); g.lineWidth=Math.max(1.5,w.w/mpp); g.beginPath(); P.forEach(([a,b],i)=>i?g.lineTo(X(b),Y(a)):g.moveTo(X(b),Y(a))); g.stroke(); } });
   for(const k in APTS){ const ap=APTS[k]; if(Math.abs(ap.lat-lat)>dl+0.1||Math.abs(ap.lon-lon)>dlo+0.1) continue;
@@ -2903,17 +2903,24 @@ function resize(){ const w=innerWidth, h=innerHeight; renderer.setSize(w,h); cam
 addEventListener('resize',resize);
 let last=performance.now();
 let LOOP_ERR=0;
-function loop(now){ requestAnimationFrame(loop); try{ loopBody(now); }catch(e){ if(LOOP_ERR++<3) console.error('Erreur de la boucle (le simulateur continue) :',e); } }
+function loop(now){ requestAnimationFrame(loop); try{ loopBody(now); }catch(e){ loopErr('boucle',e); } }
+/* chaque sous-système est isolé : une erreur dans l'un n'empêche plus le rendu (écran noir) ; la première erreur est affichée pour le diagnostic */
+const LERR={};
+function loopErr(k,e){ if(LOOP_ERR++<5) console.error('Erreur ['+k+'] (le simulateur continue) :',e); if(LERR[k]) return; LERR[k]=String(e&&e.message||e).slice(0,160);
+  let b=document.getElementById('lerr'); if(!b){ b=document.createElement('div'); b.id='lerr'; b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:90;max-width:70vw;background:#3a0d0d;color:#ffd7d7;border:1px solid #c33;border-radius:8px;padding:6px 9px;font:12px/1.35 monospace;cursor:pointer'; b.title='Toucher pour masquer'; b.onclick=()=>b.remove(); document.body.appendChild(b); }
+  b.textContent='⚠ Erreur interne (le vol continue) — '+Object.entries(LERR).map(([a,m])=>a+' : '+m).join(' · ')+' · version '+(window.SIMVER||''); }
+function safe(k,f){ try{ return f(); }catch(e){ loopErr(k,e); } }
 function loopBody(now){ const rdt=Math.min(0.1,(now-last)/1000); last=now;
-  if(!paused && $('menu').hidden){ readInputs(rdt); const T=rdt*rate, n=Math.ceil(T/0.02), dt=T/n;
-    if(view==='walk'){ const Tw=window.DUR_ON?Math.min(T,rdt):T; walkStep(Tw); autoWalk(Tw); IN.pitch=IN.roll=IN.yaw=IN.thrD=IN.collD=0; }
-    for(let i=0;i<n && !crashed;i++){ engStep(dt); sys320(dt); dirStep(dt); dirApply(); if(A.kind==='fw'){ if(taxiAuto(dt)) groundMove(dt); else fwStep(dt); } else rwStep(dt); tcasStep(dt); wxStep(dt); }
-    simMs+=T*1000; if(rate>4 && !AP.on && !(A.kind==='rw'&&AP.althold) && !AUTO.on && !(S.onGround&&S.V<0.5)) setRate(1); patchUpdate(S.lat,S.lon); }
-  placeWorld(); placeCamera(); atcFrame(); renderer.autoClear=false; renderer.clear(); renderer.render(skyScene,camera); renderer.clearDepth(); renderer.render(scene,camera);
-  if(view==='ck' && $('menu').hidden) drawCockpit();
-  if(now-hudT>200){ hudT=now; if($('menu').hidden){ hud(); guideTick(); autoTick(); a320Tick(); atcTick(); tcasTick(); wxTick(); failTick(); baroTick(); scnTick(); } drawMsgs(); }
+  if(!paused && $('menu').hidden){ safe('commandes',()=>readInputs(rdt)); const T=rdt*rate, n=Math.ceil(T/0.02), dt=T/n;
+    if(view==='walk'){ const Tw=window.DUR_ON?Math.min(T,rdt):T; safe('marche',()=>{ walkStep(Tw); autoWalk(Tw); }); IN.pitch=IN.roll=IN.yaw=IN.thrD=IN.collD=0; }
+    for(let i=0;i<n && !crashed;i++){ safe('moteur',()=>engStep(dt)); safe('systèmes',()=>sys320(dt)); safe('directeur',()=>{ dirStep(dt); dirApply(); }); safe('vol',()=>{ if(A.kind==='fw'){ if(taxiAuto(dt)) groundMove(dt); else fwStep(dt); } else rwStep(dt); }); safe('tcas',()=>tcasStep(dt)); safe('météo',()=>wxStep(dt)); }
+    simMs+=T*1000; if(rate>4 && !AP.on && !(A.kind==='rw'&&AP.althold) && !AUTO.on && !(S.onGround&&S.V<0.5)) setRate(1); safe('terrain',()=>patchUpdate(S.lat,S.lon)); }
+  safe('scène',()=>placeWorld()); safe('caméra',()=>placeCamera()); safe('atc',()=>atcFrame()); safe('rendu',()=>{ renderer.autoClear=false; renderer.clear(); renderer.render(skyScene,camera); renderer.clearDepth(); renderer.render(scene,camera); });
+  if(view==='ck' && $('menu').hidden) safe('planche',()=>drawCockpit());
+  if(now-hudT>200){ hudT=now; if($('menu').hidden){ [['hud',hud],['guide',guideTick],['auto',autoTick],['a320',a320Tick],['atc2',atcTick],['tcas2',tcasTick],['météo2',wxTick],['pannes',failTick],['baro',baroTick],['scénario',scnTick]].forEach(([k,f])=>safe(k,f)); } safe('messages',drawMsgs); }
   }
 /* ---- démarrage ---- */
+window.SIMVER='V10.21'; renderer.domElement.addEventListener('webglcontextlost',e=>{ e.preventDefault(); loopErr('webgl','contexte graphique perdu (mémoire du téléphone) : rechargez la page'); },false);
 selMI=null; resetState(); setModel(); sysDefaults(); resize(); openMenu(); requestAnimationFrame(loop);
 
 </script>
