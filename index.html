@@ -3857,7 +3857,7 @@ function place(p,x,y){ const r=p.getBoundingClientRect(), w=r.width, h=r.height;
   p.classList.add('pmoved'); Object.assign(p.style,{left:x+'px',top:y+'px',right:'auto',bottom:'auto',transform:'none',margin:'0'}); POS[p.id]={x,y}; }
 function reset(p){ ['left','top','right','bottom','transform','margin'].forEach(k=>p.style[k]=''); p.classList.remove('pfold','pmoved'); delete POS[p.id]; }
 function start(p,x,y){ const r=p.getBoundingClientRect(); D={p,dx:x-r.left,dy:y-r.top,x0:x,y0:y,moved:false}; }
-function move(x,y){ if(!D) return false; if(!D.moved&&Math.hypot(x-D.x0,y-D.y0)<6) return true; if(!D.moved){ D.moved=true; D.p.classList.add('pdrag'); } place(D.p,x-D.dx,y-D.dy); return true; }
+function move(x,y){ if(!D) return false; if(!D.moved&&Math.hypot(x-D.x0,y-D.y0)<6) return true; if(!D.moved){ D.moved=true; D.p.classList.add('pdrag'); try{ getSelection().removeAllRanges(); }catch(e){} } place(D.p,x-D.dx,y-D.dy); return true; }
 function end(x,y){ if(!D) return; const p=D.p, moved=D.moved; p.classList.remove('pdrag'); D=null;
   if(moved){ noClick=Date.now(); if(y>innerHeight-40){ p.classList.add('pfold'); place(p,parseFloat(p.style.left)||8,innerHeight-120); } return; }
   const now=Date.now(); if(lastTap.id===p.id&&now-lastTap.t<350){ reset(p); lastTap.id=null; } else { lastTap={id:p.id,t:now}; if(p.classList.contains('pfold')) p.classList.remove('pfold'); } }
@@ -3869,7 +3869,7 @@ addEventListener('touchcancel',()=>{ if(D){ D.p.classList.remove('pdrag'); D=nul
 // un glisser ne doit pas déclencher le bouton saisi (bouton CHECKLIST)
 addEventListener('click',e=>{ if(Date.now()-noClick<400){ e.preventDefault(); e.stopPropagation(); noClick=0; } },true);
 // souris
-addEventListener('mousedown',e=>{ if(e.button!==0) return; const p=panelOf(e.target); if(!p||!inHandle(p,e.clientX,e.clientY,e.target)) return; start(p,e.clientX,e.clientY); if(!e.target.closest('button,input,select,textarea')) e.preventDefault(); },true);
+addEventListener('mousedown',e=>{ if(e.button!==0) return; const p=panelOf(e.target); if(!p||!inHandle(p,e.clientX,e.clientY,e.target)) return; start(p,e.clientX,e.clientY); },true);   // V10.30 : pas de preventDefault → double-clic et sélection du texte possibles
 addEventListener('mousemove',e=>{ if(D) move(e.clientX,e.clientY); },true);
 addEventListener('mouseup',e=>{ if(D) end(e.clientX,e.clientY); },true);
 // réappliquer les positions aux panneaux reconstruits, garder à l'écran après rotation
@@ -9967,6 +9967,25 @@ function go(already){ const c=CUR; if(!c||c.si==null) return; closeB(); if(!alre
 addEventListener('click',e=>{ const s=e.target.closest&&e.target.closest('.sig'); if(s&&!s.closest('[contenteditable="true"]')){ e.preventDefault(); e.stopPropagation(); bubble(s); return; }
  if(document.getElementById('sigb')&&!e.target.closest('#sigb')) closeB(); },true);
 window.SIGUI={scan,bubble,findStep};
+})();
+
+</script>
+<script>
+/* ===== V10.30 — TOUS LES TEXTES SONT COPIABLES =====
+   Le corps de la page interdisait la sélection (user-select:none) : on ne pouvait copier ni un cours, ni un document, ni une bulle.
+   Désormais tout texte se sélectionne (appui long sur mobile, glisser à la souris) et se copie / colle.
+   Exceptions volontaires : la scène 3D et les manches tactiles (sinon le pilotage au doigt sélectionnerait l'écran),
+   et un panneau pendant qu'on le déplace. Ctrl/Cmd + C, V, X, A ne déclenchent plus de commande du simulateur. */
+(function(){
+const css=document.createElement('style'); css.id='copy-css';
+css.textContent=`html,body,body *{-webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default!important}
+#stage,#stage *,canvas,.stick,.stick *,#sfr,.pdrag,.pdrag *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+::selection{background:#3fd0ff88;color:inherit}`;
+document.head.appendChild(css);
+// raccourcis de copier / coller : ne pas les transmettre aux commandes clavier du simulateur
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&/^[acvx]$/i.test(e.key)) e.stopImmediatePropagation(); },true);
+// une sélection en cours ne doit pas être prise pour un déplacement de panneau ni un appui
+window.HAS_SEL=()=>{ try{ const s=getSelection(); return !!s&&!s.isCollapsed&&String(s).trim().length>0; }catch(e){ return false; } };
 })();
 
 </script>
