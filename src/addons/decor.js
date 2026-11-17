@@ -41,10 +41,18 @@ function merged(list){ const g=new T.Group(); [0,1,2,3].forEach(k=>{ const P=[],
     if(!P.length) return; const bg=new T.BufferGeometry(); bg.setAttribute('position',new T.Float32BufferAttribute(P,3)); bg.setAttribute('normal',new T.Float32BufferAttribute(N,3)); bg.setAttribute('uv',new T.Float32BufferAttribute(U,2)); g.add(new T.Mesh(bg,famMat[k])); }); g.userData.list=list; return g; }
 function rng(seed){ let s=seed; return ()=>{ s=(s*16807)%2147483647; return s/2147483647; }; }
 /* quartier : zone (rectangle ou ellipse) remplie d'immeubles */
+/* V10.29 : aucune construction dans la bande de piste (ICAO, piste de code 4 aux instruments : 140 m de part et d'autre de l'axe,
+   et au-delà des seuils). Un bâtiment trop proche d'une piste est supprimé : l'aile d'un gros porteur (777 : 64,8 m d'envergure) le heurtait. */
+function nearRunway(lat,lon,half){ try{ const R=6371000, D=Math.PI/180; for(const a of Object.values(APTS)) for(const rw of (a.rw||[])){ const [,,la1,lo1,la2,lo2]=rw;
+   const kx=R*D*Math.cos(la1*D), ky=R*D, B=[(lo2-lo1)*kx,(la2-la1)*ky], L=Math.hypot(B[0],B[1]), P=[(lon-lo1)*kx,(lat-la1)*ky]; if(!L) continue;
+   const t=(P[0]*B[0]+P[1]*B[1])/(L*L), tc=Math.max(0,Math.min(1,t)), d=Math.hypot(P[0]-B[0]*tc,P[1]-B[1]*tc), past=Math.max(0,-t,t-1)*L;
+   if(d<160+(half||0)&&past<300) return true; } }catch(e){} return false; }
+window.NEAR_RWY=nearRunway;
 function city(lat0,lon0,lat1,lon1,step,hMin,hMax,seed,elev,hdg,ellipse){ const rnd=rng(seed), c=[(lat0+lat1)/2,(lon0+lon1)/2], kx=111320*Math.cos(c[0]*Math.PI/180), list=[];
   const W=(lon1-lon0)*kx/2, H=(lat1-lat0)*111320/2;
   for(let x=-W;x<=W;x+=step) for(let z=-H;z<=H;z+=step){ if(ellipse&&(x*x/(W*W)+z*z/(H*H))>1) continue; if(rnd()<0.18) continue;
-    list.push({x,z,h:hMin+Math.pow(rnd(),2.2)*(hMax-hMin),w:step*(0.45+rnd()*0.35),d:step*(0.45+rnd()*0.35),k:Math.floor(rnd()*4),r:-(hdg||0)*Math.PI/180}); }
+    const it={x,z,h:hMin+Math.pow(rnd(),2.2)*(hMax-hMin),w:step*(0.45+rnd()*0.35),d:step*(0.45+rnd()*0.35),k:Math.floor(rnd()*4),r:-(hdg||0)*Math.PI/180};
+    if(nearRunway(c[0]-z/111320,c[1]+x/kx,Math.hypot(it.w,it.d)/2)) continue; list.push(it); }
   place(merged(list),c[0],c[1],elev); }
 /* bande urbaine le long d'un axe (île de Manhattan) : largeurs en mètres le long de l'axe */
 function strip(A,B,widths,step,hFn,seed,elev,hdg){ const rnd=rng(seed), c=[(A[0]+B[0])/2,(A[1]+B[1])/2], kx=111320*Math.cos(c[0]*Math.PI/180);
@@ -65,7 +73,7 @@ function landmark(kind,lat,lon,elev){ const g=new T.Group();
 place(tower(98,'wide'),40.6440,-73.7808,4);
 [[40.6443,-73.7826,320,80,22,true,20],[40.6455,-73.7766,240,70,20,true,60],[40.6468,-73.7896,300,70,18,true,-30],[40.6432,-73.7897,220,70,18,false,0],[40.6492,-73.7833,200,60,16,false,90],[40.6420,-73.7740,180,60,16,false,20]]
   .forEach(([la,lo,l,d,h,gl,hd])=>place(terminal(l,d,h,gl),la,lo,4,hd));
-[[40.6585,-73.7920],[40.6600,-73.7860],[40.6560,-73.8000]].forEach(([la,lo])=>place(hangar(70,80,24),la,lo,4,30));
+[[40.6625,-73.7900],[40.6600,-73.7860],[40.6560,-73.8000]].forEach(([la,lo])=>place(hangar(70,80,24),la,lo,4,30));
 city(40.6460,-73.7930,40.6520,-73.7780,90,8,22,7,4,0);   // parkings et bâtiments de la zone centrale
 if(APTS.KLGA) place(tower(71,'slim'),40.7746,-73.8746,6);
 strip([40.7010,-74.0140],[40.7980,-73.9490],[900,1300,1700,2000,2300,2300,2300,2200,2100,2000],90,(f,r)=>{ const lower=f<0.14, mid=f>0.42&&f<0.62; return (lower?50:mid?60:15)+Math.pow(r(),2.2)*(lower?240:mid?280:80); },11,5,29);   // Manhattan : Lower Manhattan, Midtown
@@ -79,7 +87,7 @@ place(tower(112,'slim'),49.0186,2.5350,110); place(tower(90,'slim'),48.9985,2.55
 { const t1=new T.Group(); const ring=new T.Mesh(new T.CylinderGeometry(96,96,40,40),CONC); ring.position.y=20; t1.add(ring); const top=new T.Mesh(new T.CylinderGeometry(70,96,4,40),ROOF); top.position.y=42; t1.add(top);
   for(let i=0;i<7;i++){ const a=i/7*Math.PI*2; const sat=box(26,10,26,WHITE,Math.cos(a)*210,Math.sin(a)*210); t1.add(sat); } t1.userData.parts=[{x:0,z:0,hw:92,hd:92,h:44,r:0}].concat([...Array(7).keys()].map(i=>{ const an=i/7*Math.PI*2; return {x:Math.cos(an)*210,z:Math.sin(an)*210,hw:13,hd:13,h:10,r:0}; })); place(t1,49.0144,2.5418,110); }
 [[49.0045,2.5650,420,70,20,-12],[49.0030,2.5760,420,70,20,12],[49.0040,2.5880,520,80,22,0],[49.0090,2.5900,260,90,24,90]].forEach(([la,lo,l,d,h,hd])=>place(terminal(l,d,h,true),la,lo,110,hd));
-[[48.9960,2.5780],[48.9945,2.5880],[48.9975,2.6000]].forEach(([la,lo])=>place(hangar(90,100,30),la,lo,110,-10));
+[[49.0135,2.5660],[49.0135,2.5780],[49.0135,2.5900]].forEach(([la,lo])=>place(hangar(90,100,30),la,lo,110,-10));   // V10.29 : zone technique et fret, loin des pistes (ils étaient posés sur les pistes 08L/08R)
 city(49.0040,2.5280,49.0120,2.5480,90,10,35,29,110,0);          // Roissypôle, hôtels, fret
 city(48.8180,2.2550,48.9000,2.4150,160,18,36,31,0,0,true);         // Paris intra-muros (immeubles de 6 à 8 étages)
 city(48.8850,2.2300,48.8960,2.2480,60,60,230,37,0,0);          // La Défense
