@@ -41,7 +41,7 @@ function home(){ const d=el(); d.hidden=false; d.scrollTop=0; d.innerHTML=`<div 
  <h2>Ce qu'il contient</h2><ul><li><b>Sept appareils</b> : Airbus A320, Boeing 777, Learjet 60, Cessna 172 (avion école), hélicoptères H125, R44 et S-76.</li>
  <li><b>Des parcours guidés</b> : chaque vol est découpé en étapes numérotées (préparation, visite de l'avion, mise en route, roulage, décollage, croisière, approche, atterrissage), avec des actions qui se cochent quand vous les faites, et un mode automatique pour regarder le vol entier.</li>
  <li><b>Les documents de vol</b> (dossier, devis de masse, carburant, log de navigation, manifeste), modifiables et téléchargeables en PDF ou Word.</li>
- <li><b>L'Académie</b> : 7 parties de cours, du débutant à la théorie du brevet de pilote (PPL) et aux calculs, avec des QCM.</li>
+ <li><b>L'Académie</b> : 8 parties de cours, du débutant à la théorie du brevet de pilote (PPL), aux calculs et à la sécurité des vols (ce que les accidents nous ont appris), avec des QCM.</li>
  <li><b>Des scénarios</b> de pannes et d'urgences, et l'atelier des systèmes de chaque appareil.</li></ul>
  <h2>Comment étudier efficacement</h2><ol>
  <li><b>Découvrir</b> : lancez un parcours en mode automatique et regardez le vol entier une première fois, sans chercher à tout comprendre.</li>
@@ -49,7 +49,7 @@ function home(){ const d=el(); d.hidden=false; d.scrollTop=0; d.innerHTML=`<div 
  <li><b>Piloter guidé</b> : refaites le parcours en mode guidé, en réalisant vous-même chaque action. Commencez par le Cessna 172 (simple) ou l'A320 (le plus complet).</li>
  <li><b>La théorie</b> : partie 6 (les 9 matières du brevet PPL) et partie 5 (structures, moteurs, systèmes).</li>
  <li><b>Les calculs</b> : partie 7. Elle demande un bagage minimal en mathématiques (proportionnalité, pourcentages, conversions, angles, sinus et cosinus). C'est elle qui permet de remplir les documents de vol vous-même.</li>
- <li><b>Les urgences</b> : scénarios de pannes, puis examen blanc et QCM par matière.</li></ol>
+ <li><b>Les urgences</b> : scénarios de pannes, puis Académie partie 8 (sécurité des vols : accidents et incidents qui ont changé les règles), examen blanc et QCM par matière.</li></ol>
  ${lastGauge()}<div class="card"><b>Où en êtes-vous ?</b> Un test de 16 questions (≈ 5 min) indique si vous pouvez aborder directement les calculs, ou par quoi commencer. <b>Il est facultatif et ne bloque rien</b> : le simulateur et tous les cours restent accessibles quel que soit le résultat.
  <div class="tp"><button type="button" class="p" data-test>▶ Faire le test de positionnement</button><button type="button" data-sim>Plus tard : aller au simulateur</button><button type="button" data-ac="p1">Ouvrir l'Académie</button></div></div>
  <small>Aucune donnée n'est envoyée : le résultat reste sur cet appareil.</small></div>`; }

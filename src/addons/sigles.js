@@ -149,7 +149,7 @@ const SIG={
  KJFK:['Code OACI de l\'aéroport John F. Kennedy, New York.','nd',''],LFPG:['Code OACI de Paris-Charles-de-Gaulle.','nd',''],LFPO:['Code OACI de Paris-Orly.','nd',''],LFPB:['Code OACI de Paris-Le Bourget.','nd',''],LFPN:['Code OACI de Toussus-le-Noble (aérodrome école, au sud-ouest de Paris).','nd',''],FMEE:['Code OACI de La Réunion Roland-Garros.','nd',''],KJRB:['Code OACI de l\'héliport de Downtown Manhattan (Wall Street).','nd',''],KLGA:['Code OACI de New York LaGuardia.','nd',''],KEWR:['Code OACI de Newark.','nd',''],CYQX:['Code OACI de Gander (Terre-Neuve), aérodrome de dégagement transatlantique.','nd',''],BIKF:['Code OACI de Keflavík (Islande), aérodrome de dégagement transatlantique.','nd','']
 };
 window.SIGLES=SIG;
-const KEYS=Object.keys(SIG).sort((a,b)=>b.length-a.length), RX=new RegExp('(^|[^A-Za-z0-9À-ÿ])('+KEYS.join('|')+')(?![A-Za-z0-9À-ÿ])','g');
+let RX=null, KC=0; function rx(){ const K=Object.keys(SIG); if(K.length!==KC){ KC=K.length; K.sort((a,b)=>b.length-a.length); RX=new RegExp('(^|[^A-Za-z0-9À-ÿ])('+K.join('|')+')(?![A-Za-z0-9À-ÿ])','g'); } return RX; }   // reconstruit si d'autres modules ajoutent des sigles
 const ROOTS=['#docv .paper','#ckl'];
 const css=document.createElement('style'); css.textContent=`.sig{text-decoration:underline dotted #b0207f 2px;text-underline-offset:3px;cursor:help;border-radius:3px}.sig:hover,.sig.on{background:#f6d6f3}#ckl .sig:hover,#ckl .sig.on{background:#3a1238}
 .sig.fl{animation:sigfl 1.6s 2}@keyframes sigfl{50%{background:#ffe066}}
@@ -160,7 +160,7 @@ const css=document.createElement('style'); css.textContent=`.sig{text-decoration
 #sigret{position:fixed;z-index:121;left:50%;top:10px;transform:translateX(-50%);display:flex;gap:6px}#sigret button{background:#e04ad8;color:#fff;border:0;border-radius:10px;padding:10px 14px;font:700 14px 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 4px 14px #000a;cursor:pointer}#sigret button.s{background:#132232;border:1px solid #3fd0ff}`;
 document.head.appendChild(css);
 /* ---------- soulignement ---------- */
-function mark(root){ if(!root||root.isContentEditable||root.closest('[contenteditable="true"]')) return; const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{ const p=n.parentElement; if(!p||p.closest('.sig,button,input,textarea,select,script,style,svg,.hd,nav')) return NodeFilter.FILTER_REJECT; RX.lastIndex=0; return RX.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT; }});
+function mark(root){ if(!root||root.isContentEditable||root.closest('[contenteditable="true"]')) return; rx(); const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{ const p=n.parentElement; if(!p||p.closest('.sig,button,input,textarea,select,script,style,svg,.hd,nav')) return NodeFilter.FILTER_REJECT; RX.lastIndex=0; return RX.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT; }});
  const list=[]; while(w.nextNode()) list.push(w.currentNode);
  for(const n of list){ const s=n.nodeValue, f=document.createDocumentFragment(); let last=0; RX.lastIndex=0; let m;
   while((m=RX.exec(s))){ const i=m.index+m[1].length; if(i>last) f.appendChild(document.createTextNode(s.slice(last,i))); const sp=document.createElement('span'); sp.className='sig'; sp.dataset.sig=m[2]; sp.textContent=m[2]; f.appendChild(sp); last=i+m[2].length; }
