@@ -2510,7 +2510,7 @@ const brkMax=()=>Math.max(...BRX.T);
 const ICE={a:0,in:false,pitot:0};
 function inCloudMetar(){ const L=metNear(S.lat,S.lon)[0]; if(!L||L[0]>45) return false; const m=L[1], ag=(S.alt-elevAt(S.lat,S.lon))/FT; return m.clouds.some(c=>(c.cov==='BKN'||c.cov==='OVC'||c.cb)&&ag>=c.base&&ag<=c.base+3000)||m.wx.some(w=>/RA|DZ|SN/.test(w))&&ag<3000; }
 function oatAt(){ const L=metNear(S.lat,S.lon)[0]; const t0=L?L[1].temp:15, ag=(S.alt-elevAt(S.lat,S.lon))/FT; return L&&L[0]<200&&ag<10000?t0-2*ag/1000:isaT(S.alt)-273.15; }
-function iceStep(dt){ if(!MI||A.kind!=='fw') return; const T=oatAt(), wet=!!(WXR.turb>0.05||inCloudMetar()); ICE.in=wet&&T<=3&&T>=-40&&!S.onGround; S.wxIce=ICE.in;
+function iceStep(dt){ if(!MI||A.kind!=='fw') return; const T=oatAt(), wet=!!(window.FORCEICE||WXR.turb>0.05||inCloudMetar()); ICE.in=wet&&T<=3&&T>=-40&&!S.onGround; S.wxIce=ICE.in;
   const wingAI=AL()?!!SYS.wingAI&&(E320.duct[0]>0||E320.duct[1]>0):!!SYS.wingAI;
   if(ICE.in&&!wingAI) ICE.a=Math.min(1,ICE.a+dt/(WXR.turb>0.3?240:600)); else if(wingAI||T>3) ICE.a=Math.max(0,ICE.a-dt/120);
   const probeHeat=AL()?!FAIL.pitot:!!SYS.probe; if(ICE.in&&!probeHeat) ICE.pitot=Math.min(1,ICE.pitot+dt/45); else ICE.pitot=Math.max(0,ICE.pitot-dt/30);
@@ -5753,7 +5753,7 @@ const _fo=window.FULLOF; window.FULLOF=k=>k===K?'full-c172':_fo?_fo(k):((AC[k]||
 
 /* ---- commandes (pas de panneau plafond : interrupteurs sous la planche, à gauche) ---- */
 OVH.c172={t:'CESSNA 172P · INTERRUPTEURS (bas de planche, à gauche)',cols:2,src:'Le C172 n\'a pas de panneau plafond : MASTER (BAT et ALT jumelés), feux et réchauffage pitot sont des interrupteurs à bascule sous la planche ; avionique à droite du MASTER.',
-  secs:[[['ÉLECTRICITÉ',[['bat1','MASTER BAT','tog',1],['alt1','MASTER ALT','tog',1],['avion','AVIONICS','tog']]],['DIVERS',[['pitot','PITOT HEAT','tog'],['dome','ÉCLAIRAGE','knob',['OFF','DIM','BRT']]]]],
+  secs:[[['ÉLECTRICITÉ',[['bat1','MASTER BAT','tog',1],['alt1','MASTER ALT','tog',1],['avion','AVIONICS','tog']]],['DIVERS',[['probe','PITOT HEAT','tog'],['dome','ÉCLAIRAGE','knob',['OFF','DIM','BRT']]]]],
     [['FEUX',[['beacon','BEACON','tog'],['landL','LAND','knob',['OFF','ON']],['taxiL','TAXI','tog'],['navLt','NAV','tog'],['strobe','STROBE','knob',['OFF','ON']]]]]]};
 PED.c172=[['MOTEUR',[['gaz','MANETTE DES GAZ','knob',['RALENTI','1000 tr/min','1700 tr/min','2100 tr/min','PLEIN GAZ']],['mix','MÉLANGE','knob',['RICH','IDLE CUT-OFF']],['carbH','RÉCHAUFFAGE CARBU','knob',['FROID','CHAUD']],['primer','PRIMER (injections)','knob',['0','1','2','3']],['mags','MAGNÉTOS (clé)','knob',['OFF','R','L','BOTH','START']]]],
   ['CARBURANT',[['fuelSel','ROBINET CARBURANT','knob',['BOTH','LEFT','RIGHT','OFF']]]],
@@ -5768,7 +5768,7 @@ const _ps=pedSet; pedSet=function(id,v){ if(!C()) return _ps.apply(this,argument
   return _ps.apply(this,arguments); };
 const _cd=coldDark; coldDark=function(){ if(!C()) return _cd.apply(this,arguments);
   S.eng=[false,false]; S.n2=[0,0]; S.nr=0; S.thr=0; S.coll=0; S.pbrake=true; S.flap=0; S.gear=true; AP.on=AP.ath=false; AP.appr=false; S.rpm=0;
-  Object.assign(SYS,{bat1:false,alt1:false,avion:false,pitot:false,beacon:false,landL:'OFF',taxiL:false,navLt:false,strobe:'OFF',gaz:'RALENTI',mix:'IDLE CUT-OFF',carbH:'FROID',primer:'0',mags:'OFF',fuelSel:'BOTH',trim:'NEUTRE',xpdr:'OFF',irAl:0,ir1:'ON'});
+  Object.assign(SYS,{bat1:false,alt1:false,avion:false,probe:false,beacon:false,landL:'OFF',taxiL:false,navLt:false,strobe:'OFF',gaz:'RALENTI',mix:'IDLE CUT-OFF',carbH:'FROID',primer:'0',mags:'OFF',fuelSel:'BOTH',trim:'NEUTRE',xpdr:'OFF',irAl:0,ir1:'ON'});
   GD.magL=GD.magR=GD.carbT=0; GD.cTi=null; AP.alt=1500; AP.vs=500; AP.hdg=250; GD.idleOK=false; GD.cLeg=null; GD.cAir=false; GD.cLanded=false; GD.primed=false; buildOVH(); };
 const _sd=sysDefaults; sysDefaults=function(){ _sd.apply(this,arguments); if(C()){ if(!(S.fuel>0)) S.fuel=Math.round(WB.c172.fuelMax*0.8); AP.alt=1500; AP.vs=500; AP.hdg=250; GD.cLeg=null; GD.cAir=false; GD.cLanded=false; GD.cTi=null; } if(C()) Object.assign(SYS,{bat1:true,alt1:true,avion:true,mix:'RICH',mags:'BOTH',fuelSel:'BOTH',carbH:'FROID',primer:'0',gaz:'RALENTI',xpdr:'ALT',navLt:true,beacon:true,strobe:'ON',irAl:1}); };
 
@@ -9097,6 +9097,27 @@ if(typeof FAILS!=='undefined'&&!FAILS.find(f=>f.id==='engC')){
     {id:'carbIce',g:'Moteurs',n:'Givrage du carburateur',l:0,ac:'c172',atc:['pan','rough running engine','moteur qui tourne mal'],fix:()=>{ try{ pedSet('carbH','CHAUD'); }catch(e){} }}); }
 if(typeof failAvail==='function'){ const _fa=failAvail; failAvail=function(f){ if(f.ac==='c172') return ACK==='c172'; if(ACK==='c172'&&f.ac==='fw2') return false; return _fa.apply(this,arguments); }; }
 
+/* --- Learjet 60 : pressurisation (modèle simplifié), feu moteur, sonde Pitot (modèle de givrage commun) --- */
+if(typeof FAILS!=='undefined'&&!FAILS.find(f=>f.id==='ljDep')){
+  FAILS.push({id:'ljDep',g:'Air · pressurisation',n:'Dépressurisation (Learjet 60)',l:2,t:'CABIN ALTITUDE',ac:'lj60',atc:['mayday','rapid depressurisation, emergency descent','dépressurisation rapide, descente d\'urgence'],fix:()=>{}},
+    {id:'ljFire',g:'Moteurs',n:'Feu moteur gauche (Learjet 60)',l:3,t:'L ENG FIRE',ac:'lj60',atc:['mayday','left engine fire','feu moteur gauche'],fix:()=>{ S.eng[0]=false; if(S.n2) S.n2[0]=0; GD.ljExt=true; }}); }
+const LJ={cab:0};
+setInterval(()=>{ try{ window.FORCEICE=!!(SCN.cur&&SCN.cur.id==="LJ-ICE"&&!SCN.done); }catch(e){} },500);   // nuage givrant du scénario
+setInterval(()=>{ if(typeof ACK==='undefined'||ACK!=='lj60'||typeof S==='undefined') return; const dt=0.5, alt=S.alt/FT;
+  // cabine : ≈ 8 000 ft au plafond (écart de pression maximal ≈ 9,4 psi [ESTIMÉ]) ; en panne, la cabine rejoint l'altitude de l'avion en quelques secondes
+  const tgt=FAIL.ljDep?alt:Math.max(0,Math.min(8000,alt*0.17)); LJ.cab+=Math.max(-2000/60*dt,Math.min((FAIL.ljDep?60000:600)/60*dt,tgt-LJ.cab)); window.LJCAB=LJ.cab;
+  if(LJ.cab>10000&&(!LJ.t||Date.now()-LJ.t>8000)){ LJ.t=Date.now(); flash(`CABIN ALTITUDE ${Math.round(LJ.cab/100)*100} ft : masques à oxygène, descente d'urgence vers 10 000 ft`,'red'); }
+  if(FAIL.ljFire){ if(S.eng[0]===false&&GD.ljExt){ delete FAIL.ljFire; flash('Feu éteint : moteur gauche coupé, extincteur percuté. Poursuivre sur un moteur et se dérouter','am'); }
+    else { if(S.eng[0]===false) GD.ljExt=true; if(!LJ.f||Date.now()-LJ.f>7000){ LJ.f=Date.now(); flash('L ENG FIRE : manette gauche CUTOFF, extincteur (Pannes › corriger, ou couper le moteur gauche)','red'); } } } },500);
+if(typeof failAvail==='function'){ const _fa2=failAvail; failAvail=function(f){ if(f.ac==='lj60') return ACK==='lj60'; return _fa2.apply(this,arguments); }; }
+const ljBase=SCNS.find(s=>s.id==='F-LJENG')||{};
+[['LJ-DEP','Learjet 60 — dépressurisation en croisière','Croisière au FL410, la pressurisation lâche.','t = 40 s : dépressurisation.','La cabine monte vers l\'altitude de l\'avion.','Masques, descente d\'urgence (manettes au ralenti, vitesse élevée) vers 10 000 ft, MAYDAY, 7700.',()=>{ SCN.trig=[{t:40,f:()=>failSet('ljDep',true)}]; },
+   L=>[['Descendu sous 10 000 ft',S.alt/FT<10500,Math.round(S.alt/FT)+' ft'],['MAYDAY',!!L.mayday,L.mayday?'oui':'non']],41000],
+ ['LJ-FIRE','Learjet 60 — feu moteur gauche en montée','Montée initiale après le décollage de JFK.','t = 30 s : feu moteur gauche.','Alarme feu.','Manette gauche CUTOFF, extincteur, poursuite sur un moteur, MAYDAY, retour à JFK.',()=>{ SCN.trig=[{t:30,f:()=>failSet('ljFire',true)}]; },
+   L=>[['Feu éteint',!FAIL.ljFire,FAIL.ljFire?'non':'oui'],['Issue',L.out==='atterrissage',L.out||'en cours']],null],
+ ['LJ-ICE','Learjet 60 — givrage de la sonde Pitot','Croisière en conditions givrantes, réchauffage des sondes coupé.','Entrée en givrage, PROBE HEAT OFF.','Vitesse indiquée fausse.','Identifier l\'incohérence (assiette + poussée, vitesse sol), PROBE HEAT ON, sortir du givrage.',()=>{ SYS.probe=false; },
+   L=>[['Réchauffage sondes ON',!!SYS.probe,SYS.probe?'ON':'OFF']],24000]].forEach(([id,name,ctx,trg,fails,exp,init,ev,cr])=>{ if(SCNS.find(s=>s.id===id)) return;
+  const o=Object.assign({},ljBase,{id,ac:'lj60',cat:'A',name,context:ctx,triggers:trg,fails,expected:exp,init,eval:ev}); if(cr) o.cruise=cr; else delete o.cruise; SCNS.push(o); });
 /* --- 777 : tous les scénarios fictifs de l'A320 --- */
 ['F-FIRE','F-DEPRESS','F-ELEC','F-ICE','F-TCAS','F-FUEL','GW-SEC','GW-ROUTE'].forEach(id=>clone(id,'b777'));
 /* --- fuite carburant : Learjet 60 --- */
@@ -9151,10 +9172,11 @@ clone('F-R44','s76',{name:'S-76 — perte d\'une génératrice de nuit',init(){ 
 /* --- menu : cartes de scénarios avec un bouton par appareil compatible --- */
 const CARD={'sc-1549':{acs:['a320','b777','lj60','c172'],id:{a320:'US1549',b777:'BIRDS@b777',lj60:'BIRDS@lj60',c172:'BIRDS@c172'},d:'Amerrissage sur l\'Hudson (2009) : reconstitution guidée sur A320 ; variante fictive (mêmes lieu et altitude) sur les autres avions.'},
   'sc-9525':{acs:['a320','b777'],id:{a320:'GW-ROUTE',b777:'GW-ROUTE@b777'}},
+  'sc-dep':{acs:['a320','b777','lj60'],id:{a320:'F-DEPRESS',b777:'F-DEPRESS@b777',lj60:'LJ-DEP'},n:'Scénario fictif · dépressurisation en croisière',d:'Perte de pressurisation en altitude : masques, descente d\'urgence, MAYDAY.'},
   'sc-fict':{acs:['a320','b777','lj60','c172'],id:{a320:'F-FUEL',b777:'F-FUEL@b777',lj60:'F-FUEL@lj60',c172:'C-FUEL'},n:'Scénario fictif · fuite carburant'},
-  'sc-eng':{acs:['lj60','c172','h125','r44','s76','b777','a320'],id:{a320:'F-FIRE',b777:'F-FIRE@b777',lj60:'F-LJENG',c172:'C-EFATO',h125:'F-H125',r44:'F-H125@r44',s76:'F-S76'},n:'Scénario fictif · panne moteur au décollage',d:'Feu ou panne moteur juste après le décollage, sur chaque appareil : procédure propre au type (feu moteur sur avion de ligne, panne au décollage sur monomoteur, autorotation sur hélicoptère).'},
+  'sc-eng':{acs:['lj60','c172','h125','r44','s76','b777','a320'],id:{a320:'F-FIRE',b777:'F-FIRE@b777',lj60:'LJ-FIRE',c172:'C-EFATO',h125:'F-H125',r44:'F-H125@r44',s76:'F-S76'},n:'Scénario fictif · panne moteur au décollage',d:'Feu ou panne moteur juste après le décollage, sur chaque appareil : procédure propre au type (feu moteur sur avion de ligne, panne au décollage sur monomoteur, autorotation sur hélicoptère).'},
   'sc-elec':{acs:['a320','b777','lj60','c172','h125','r44','s76'],id:{a320:'F-ELEC',b777:'F-ELEC@b777',lj60:'F-LJGEN',c172:'C-ALT',h125:'F-R44@h125',r44:'F-R44',s76:'F-R44@s76'},n:'Scénario fictif · panne électrique',d:'Perte de génératrice(s) ou d\'alternateur : reconnaître, délester, rejoindre un terrain.'},
-  'sc-ice':{acs:['a320','b777','c172'],id:{a320:'F-ICE',b777:'F-ICE@b777',c172:'C-ICE'},n:'Scénario fictif · givrage',d:'Sonde Pitot non réchauffée sur avion de ligne ; givrage du carburateur sur le Cessna 172.'}};
+  'sc-ice':{acs:['a320','b777','lj60','c172'],id:{a320:'F-ICE',b777:'F-ICE@b777',lj60:'LJ-ICE',c172:'C-ICE'},n:'Scénario fictif · givrage',d:'Sonde Pitot non réchauffée sur avion de ligne ; givrage du carburateur sur le Cessna 172.'}};
 if(!SCNS.find(s=>s.id==='F-LJGEN')) SCNS.push(Object.assign({},SCNS.find(s=>s.id==='F-R44'),{id:'F-LJGEN',ac:'lj60',name:'Learjet 60 — perte des deux génératrices de nuit',base:'jfk-cdg',context:'Croisière de nuit, les deux génératrices lâchent.',triggers:'t = 60 s : génératrices 1 et 2.',fails:'Batteries seules.',init(){ SCN.trig=[{t:60,f:()=>{ failSet('genGA0',true); failSet('genGA1',true); }}]; },expected:'Délester, descendre et se poser avant l\'épuisement des batteries.'}));
 Object.keys(CARD).forEach(k=>{ const c=CARD[k]; if(!MISSIONS[k]) MISSIONS[k]={n:c.n||k,d:c.d||''}; const m=MISSIONS[k]; m.soon=false; m.acs=c.acs; if(c.n) m.n=c.n; if(c.d) m.d=c.d; if(typeof MI_AC!=='undefined') delete MI_AC[k]; });
 const goB=document.getElementById('go'); if(goB){ const _go=goB.onclick; goB.onclick=function(){ const c=CARD[selMI]; if(c){ const id=c.id[selAC]||c.id[c.acs[0]]; if(SCNS.find(s=>s.id===id)){ document.getElementById('menu').hidden=true; paused=false; scnStart(id); try{ SCN.view='run'; scnOpen(true,'run'); }catch(e){} return; } } return _go&&_go.apply(this,arguments); }; }

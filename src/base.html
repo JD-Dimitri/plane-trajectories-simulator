@@ -2510,7 +2510,7 @@ const brkMax=()=>Math.max(...BRX.T);
 const ICE={a:0,in:false,pitot:0};
 function inCloudMetar(){ const L=metNear(S.lat,S.lon)[0]; if(!L||L[0]>45) return false; const m=L[1], ag=(S.alt-elevAt(S.lat,S.lon))/FT; return m.clouds.some(c=>(c.cov==='BKN'||c.cov==='OVC'||c.cb)&&ag>=c.base&&ag<=c.base+3000)||m.wx.some(w=>/RA|DZ|SN/.test(w))&&ag<3000; }
 function oatAt(){ const L=metNear(S.lat,S.lon)[0]; const t0=L?L[1].temp:15, ag=(S.alt-elevAt(S.lat,S.lon))/FT; return L&&L[0]<200&&ag<10000?t0-2*ag/1000:isaT(S.alt)-273.15; }
-function iceStep(dt){ if(!MI||A.kind!=='fw') return; const T=oatAt(), wet=!!(WXR.turb>0.05||inCloudMetar()); ICE.in=wet&&T<=3&&T>=-40&&!S.onGround; S.wxIce=ICE.in;
+function iceStep(dt){ if(!MI||A.kind!=='fw') return; const T=oatAt(), wet=!!(window.FORCEICE||WXR.turb>0.05||inCloudMetar()); ICE.in=wet&&T<=3&&T>=-40&&!S.onGround; S.wxIce=ICE.in;
   const wingAI=AL()?!!SYS.wingAI&&(E320.duct[0]>0||E320.duct[1]>0):!!SYS.wingAI;
   if(ICE.in&&!wingAI) ICE.a=Math.min(1,ICE.a+dt/(WXR.turb>0.3?240:600)); else if(wingAI||T>3) ICE.a=Math.max(0,ICE.a-dt/120);
   const probeHeat=AL()?!FAIL.pitot:!!SYS.probe; if(ICE.in&&!probeHeat) ICE.pitot=Math.min(1,ICE.pitot+dt/45); else ICE.pitot=Math.max(0,ICE.pitot-dt/30);

@@ -51,7 +51,7 @@ const _fo=window.FULLOF; window.FULLOF=k=>k===K?'full-c172':_fo?_fo(k):((AC[k]||
 
 /* ---- commandes (pas de panneau plafond : interrupteurs sous la planche, à gauche) ---- */
 OVH.c172={t:'CESSNA 172P · INTERRUPTEURS (bas de planche, à gauche)',cols:2,src:'Le C172 n\'a pas de panneau plafond : MASTER (BAT et ALT jumelés), feux et réchauffage pitot sont des interrupteurs à bascule sous la planche ; avionique à droite du MASTER.',
-  secs:[[['ÉLECTRICITÉ',[['bat1','MASTER BAT','tog',1],['alt1','MASTER ALT','tog',1],['avion','AVIONICS','tog']]],['DIVERS',[['pitot','PITOT HEAT','tog'],['dome','ÉCLAIRAGE','knob',['OFF','DIM','BRT']]]]],
+  secs:[[['ÉLECTRICITÉ',[['bat1','MASTER BAT','tog',1],['alt1','MASTER ALT','tog',1],['avion','AVIONICS','tog']]],['DIVERS',[['probe','PITOT HEAT','tog'],['dome','ÉCLAIRAGE','knob',['OFF','DIM','BRT']]]]],
     [['FEUX',[['beacon','BEACON','tog'],['landL','LAND','knob',['OFF','ON']],['taxiL','TAXI','tog'],['navLt','NAV','tog'],['strobe','STROBE','knob',['OFF','ON']]]]]]};
 PED.c172=[['MOTEUR',[['gaz','MANETTE DES GAZ','knob',['RALENTI','1000 tr/min','1700 tr/min','2100 tr/min','PLEIN GAZ']],['mix','MÉLANGE','knob',['RICH','IDLE CUT-OFF']],['carbH','RÉCHAUFFAGE CARBU','knob',['FROID','CHAUD']],['primer','PRIMER (injections)','knob',['0','1','2','3']],['mags','MAGNÉTOS (clé)','knob',['OFF','R','L','BOTH','START']]]],
   ['CARBURANT',[['fuelSel','ROBINET CARBURANT','knob',['BOTH','LEFT','RIGHT','OFF']]]],
@@ -66,7 +66,7 @@ const _ps=pedSet; pedSet=function(id,v){ if(!C()) return _ps.apply(this,argument
   return _ps.apply(this,arguments); };
 const _cd=coldDark; coldDark=function(){ if(!C()) return _cd.apply(this,arguments);
   S.eng=[false,false]; S.n2=[0,0]; S.nr=0; S.thr=0; S.coll=0; S.pbrake=true; S.flap=0; S.gear=true; AP.on=AP.ath=false; AP.appr=false; S.rpm=0;
-  Object.assign(SYS,{bat1:false,alt1:false,avion:false,pitot:false,beacon:false,landL:'OFF',taxiL:false,navLt:false,strobe:'OFF',gaz:'RALENTI',mix:'IDLE CUT-OFF',carbH:'FROID',primer:'0',mags:'OFF',fuelSel:'BOTH',trim:'NEUTRE',xpdr:'OFF',irAl:0,ir1:'ON'});
+  Object.assign(SYS,{bat1:false,alt1:false,avion:false,probe:false,beacon:false,landL:'OFF',taxiL:false,navLt:false,strobe:'OFF',gaz:'RALENTI',mix:'IDLE CUT-OFF',carbH:'FROID',primer:'0',mags:'OFF',fuelSel:'BOTH',trim:'NEUTRE',xpdr:'OFF',irAl:0,ir1:'ON'});
   GD.magL=GD.magR=GD.carbT=0; GD.cTi=null; AP.alt=1500; AP.vs=500; AP.hdg=250; GD.idleOK=false; GD.cLeg=null; GD.cAir=false; GD.cLanded=false; GD.primed=false; buildOVH(); };
 const _sd=sysDefaults; sysDefaults=function(){ _sd.apply(this,arguments); if(C()){ if(!(S.fuel>0)) S.fuel=Math.round(WB.c172.fuelMax*0.8); AP.alt=1500; AP.vs=500; AP.hdg=250; GD.cLeg=null; GD.cAir=false; GD.cLanded=false; GD.cTi=null; } if(C()) Object.assign(SYS,{bat1:true,alt1:true,avion:true,mix:'RICH',mags:'BOTH',fuelSel:'BOTH',carbH:'FROID',primer:'0',gaz:'RALENTI',xpdr:'ALT',navLt:true,beacon:true,strobe:'ON',irAl:1}); };
 
