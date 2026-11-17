@@ -5726,6 +5726,11 @@ const _lc=lsCalc; lsCalc=function(){ const L=_lc.apply(this,arguments); if(ACK==
 const _ed=engData; engData=function(){ const d=_ed.apply(this,arguments); if(ACK==='b777'&&d) d.ff=Math.round(d.ff*2.6); return d; };
 })();
 
+/* V10.33 : le plafonnier du 777 réutilise la disposition A320 du simulateur ; son titre affichait « A320 ». Titre propre au 777 et mention [SIMULÉ]. */
+(function(){ if(typeof buildA320!=='function') return; const _b=buildA320; buildA320=function(){ const r=_b.apply(this,arguments);
+  try{ if(ACK==='b777'){ document.getElementById('ovh-t').textContent='777-300ER · POSTE COMPLET'; const s=document.getElementById('ovh-s'); if(s&&!s.querySelector('.b7n')) s.insertAdjacentHTML('afterbegin','<b class="b7n">[SIMULÉ] Disposition simplifiée commune aux avions de ligne du simulateur : les commandes et leur logique sont celles d\'un biréacteur moderne, l\'emplacement réel des panneaux Boeing diffère. </b>'); } }catch(e){}
+  return r; }; })();
+
 </script>
 <script>
 /* ===== AVION ÉCOLE · CESSNA 172P SKYHAWK · TOUSSUS-LE-NOBLE (LFPN) · PARCOURS PPL =====
@@ -8000,6 +8005,7 @@ inject(); setInterval(inject,700);
 const css=document.createElement('style'); css.textContent=`#b-ckl{position:fixed;top:8px;right:8px;z-index:46;display:none;user-select:none;-webkit-user-select:none;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:2px solid #3ddc84;background:#071a10ee;color:#9ff0bf;font:700 14px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 14px #0008}
 #b-ckl.bad{border-color:#ff3b30;background:#2a0707ee;color:#ffb3ad;animation:cklp 1.2s ease-in-out infinite}@keyframes cklp{50%{box-shadow:0 0 0 4px #ff3b3055}}#b-ckl i{font-style:normal;background:#ff3b30;color:#fff;border-radius:999px;padding:0 7px}
 @media(min-width:901px){#b-ckl{left:50%;right:auto;transform:translateX(-50%)}}
+@media(max-width:700px){#b-ckl .t{display:none}#b-ckl{padding:8px 11px;font-size:17px}}   /* V10.33 : sur mobile, bouton compact « ☑ » (il chevauchait le ✕ du panneau d'informations) */
 #ckl{position:fixed;inset:0;z-index:66;background:#000a;display:flex;align-items:flex-start;justify-content:center;padding:10px;overflow:auto}#ckl[hidden]{display:none}
 #ckl .w{width:min(620px,100%);background:#0a131c;border:2px solid #3ddc84;border-radius:12px;color:#e8eef2;font:14px/1.4 'Inter',sans-serif;margin:auto 0}#ckl .w.bad{border-color:#ff3b30}
 #ckl .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #1d2f40}#ckl .hd b{font:700 20px 'Barlow Condensed',sans-serif;letter-spacing:.08em}#ckl .hd small{display:block;color:#8fa4b8;font-size:12px}
@@ -8053,7 +8059,7 @@ function renderRef(){ let p=document.getElementById('ckl'); if(!p){ render(); p=
  p.dataset.mode='ref'; p.hidden=false; }
 function refRefresh(){ const p=document.getElementById('ckl'); if(p&&!p.hidden&&p.dataset.mode==='ref'){ const y=(p.querySelector('.bd')||{}).scrollTop||0; renderRef(); const bd=p.querySelector('.bd'); if(bd) bd.scrollTop=y; } }
 /* bouton en haut de l'écran */
-const btn=document.createElement('button'); btn.type='button'; btn.id='b-ckl'; btn.innerHTML='☑ Checklist'; btn.title='Toucher : ouvrir · glisser : déplacer'; document.body.appendChild(btn);
+const btn=document.createElement('button'); btn.type='button'; btn.id='b-ckl'; btn.innerHTML='☑<span class="t"> Checklist</span>'; btn.title='Toucher : ouvrir · glisser : déplacer'; document.body.appendChild(btn);
 /* bouton déplaçable : on le glisse où il ne gêne pas ; position mémorisée ; un simple toucher ouvre la checklist */
 (function(){ let sx=0, sy=0, ox=0, oy=0, drag=false, down=false;
  const apply=(x,y)=>{ const w=btn.offsetWidth, h=btn.offsetHeight; x=Math.max(4,Math.min(innerWidth-w-4,x)); y=Math.max(4,Math.min(innerHeight-h-4,y)); btn.style.left=x+'px'; btn.style.top=y+'px'; btn.style.right='auto'; btn.style.transform='none'; return [x,y]; };
@@ -8066,8 +8072,8 @@ const btn=document.createElement('button'); btn.type='button'; btn.id='b-ckl'; b
  addEventListener('resize',()=>{ if(btn.style.left){ const r=btn.getBoundingClientRect(); apply(r.left,r.top); } }); })();
 setInterval(()=>{ const vis=(!document.getElementById('menu')||document.getElementById('menu').hidden)&&!(document.getElementById('sysat')&&!document.getElementById('sysat').hidden), on=typeof GD!=='undefined'&&GD.on&&GD.steps&&GD.steps.length&&vis;
  const ref=!on&&vis&&typeof MI!=='undefined'&&MI&&!MI.full&&!(typeof crashed!=='undefined'&&crashed&&false);
- btn.style.display=on||ref?'flex':'none'; if(ref){ const h='☑ Checklist'; if(btn._h!==h){ btn.innerHTML=h; btn._h=h; } btn.classList.remove('bad'); refRefresh(); return; } if(!on) return; rec(); const prev=missing(0,GD.i-1).length, cur=missing(GD.i,GD.i).length;
- const h=prev?`☑ Checklist <i>${prev}</i>`:`☑ Checklist${cur?'':' ✓'}`; if(btn._h!==h){ btn.innerHTML=h; btn._h=h; } btn.classList.toggle('bad',prev>0); refresh(); },600);
+ btn.style.display=on||ref?'flex':'none'; if(ref){ const h='☑<span class="t"> Checklist</span>'; if(btn._h!==h){ btn.innerHTML=h; btn._h=h; } btn.classList.remove('bad'); refRefresh(); return; } if(!on) return; rec(); const prev=missing(0,GD.i-1).length, cur=missing(GD.i,GD.i).length;
+ const h=prev?`☑<span class="t"> Checklist</span> <i>${prev}</i>`:`☑<span class="t"> Checklist</span>${cur?'':' ✓'}`; if(btn._h!==h){ btn.innerHTML=h; btn._h=h; } btn.classList.toggle('bad',prev>0); refresh(); },600);
 /* contrôle avant de passer à l'étape suivante */
 const _g=goStep; goStep=function(i){ if(typeof GD!=='undefined'&&GD.on&&i===GD.i+1&&!FORCE&&!window.FF&&!(typeof AUTO!=='undefined'&&AUTO.on)){ rec(); const m=missing(0,GD.i);
   if(m.length){ PEND=()=>goStep(i); render(`⚠ Avant de passer à l'étape ${i}, ${m.length} sous-étape(s) ne sont pas faites (en rouge). Faites-les, ou passez quand même.`); return; } }

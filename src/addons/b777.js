@@ -131,3 +131,8 @@ const _lc=lsCalc; lsCalc=function(){ const L=_lc.apply(this,arguments); if(ACK==
 // débit carburant : GE90 ≈ 2,6 × CFM56
 const _ed=engData; engData=function(){ const d=_ed.apply(this,arguments); if(ACK==='b777'&&d) d.ff=Math.round(d.ff*2.6); return d; };
 })();
+
+/* V10.33 : le plafonnier du 777 réutilise la disposition A320 du simulateur ; son titre affichait « A320 ». Titre propre au 777 et mention [SIMULÉ]. */
+(function(){ if(typeof buildA320!=='function') return; const _b=buildA320; buildA320=function(){ const r=_b.apply(this,arguments);
+  try{ if(ACK==='b777'){ document.getElementById('ovh-t').textContent='777-300ER · POSTE COMPLET'; const s=document.getElementById('ovh-s'); if(s&&!s.querySelector('.b7n')) s.insertAdjacentHTML('afterbegin','<b class="b7n">[SIMULÉ] Disposition simplifiée commune aux avions de ligne du simulateur : les commandes et leur logique sont celles d\'un biréacteur moderne, l\'emplacement réel des panneaux Boeing diffère. </b>'); } }catch(e){}
+  return r; }; })();
