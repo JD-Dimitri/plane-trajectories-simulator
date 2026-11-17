@@ -33,7 +33,7 @@ function ctx(){ const k=(typeof ACK!=='undefined'&&ACK)||(typeof selAC!=='undefi
  let crew={}; try{ crew=JSON.parse(localStorage.getItem('sa-crew')||'{}'); }catch(e){}
  const d=new Date(), date=`${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`, dof=`${String(d.getUTCFullYear()).slice(2)}${pad2(d.getUTCMonth()+1)}${pad2(d.getUTCDate())}`;
  const W=WB[k]||{}, etd=fw?'1830':'1500', fh=L.tripH||(fw?7.3:0.3), eta=(()=>{ const m=18*60+30+Math.round(fh*60); return pad2(Math.floor(m/60)%24)+pad2(m%60); })();
- return {k,a,fw,mi,dep,dest,altn:fw?(dest==='LFPG'?'LFPO':dest==='LFPO'?'LFPG':dest==='FMEE'?'FIMP':'KEWR'):(dest==='KJFK'?'KLGA':'LFPB'),L,W,crew,date,dof,etd,eta,fh,flt:crew.vol?String(crew.vol).replace(/\s/g,''):'PTA722',cs:(typeof CSN==='function'?CSN():'SIMU 320'),reg:crew.imm||({a320:'F-HTRJ',lj60:'N60PT',s76:'N76PT',h125:'F-HPTJ',r44:'F-HPTR'}[k]),type:{a320:'A320',lj60:'LJ60',s76:'S76',h125:'AS50',r44:'R44'}[k],name:a.name||k}; }
+ return {k,a,fw,mi,dep,dest,altn:fw?(dest==='LFPG'?'LFPO':dest==='LFPO'?'LFPG':dest==='FMEE'?'FIMP':'KEWR'):(dest==='KJFK'?'KLGA':'LFPB'),L,W,crew,date,dof,etd,eta,fh,flt:crew.vol?String(crew.vol).replace(/\s/g,''):'PTA722',cs:(typeof CSN==='function'?CSN():'SIMU 320'),reg:crew.imm||({a320:'F-HTRJ',b777:'F-GSQA',c172:'F-GBQT',lj60:'N60PT',s76:'N76PT',h125:'F-HPTJ',r44:'F-HPTR'}[k]||'F-HTRJ'),type:{a320:'A320',lj60:'LJ60',s76:'S76',h125:'AS50',r44:'R44'}[k],name:a.name||k}; }
 const apN=c=>(APTS[c]&&APTS[c].n)||({FIMP:'Maurice — Sir Seewoosagur Ramgoolam',KJRB:'Downtown Manhattan Heliport',LFPO:'Paris-Orly',KEWR:'Newark',KLGA:'LaGuardia',LFPB:'Paris-Le Bourget'}[c]||c);
 function metar(c){ try{ const m=WXS.met[c]; if(m&&m.raw) return 'METAR '+m.raw.replace(/^METAR /,''); }catch(e){} return {LFPO:'METAR LFPO 030200Z 20005KT CAVOK 08/06 Q1019 NOSIG',KEWR:'METAR KEWR 021851Z 21011KT 10SM FEW050 15/04 A3024',KLGA:'METAR KLGA 021851Z 20009KT 10SM FEW050 14/05 A3025',KJRB:'METAR KJRB (pas de station : voir KJFK / KLGA)',LFPB:'METAR LFPB 030200Z 21005KT CAVOK 07/06 Q1019'}[c]||'METAR '+c+' NIL'; }
 /* itinéraire (exemple pédagogique) */
@@ -382,7 +382,7 @@ function dl(kind){ keepEdit(); const c=ctx(), doc=D[CUR], out=doc.gen(c), base=`
  else if(kind==='pdf') save(base+'.pdf',pdf(txt2));
  else if(kind==='docx') save(base+'.docx',docx()); }
 /* texte du document affiché (version modifiée comprise), pour le PDF */
-function flat(el){ const k=el.cloneNode(true), src=el.querySelectorAll('input,textarea,select'); k.querySelectorAll('input,textarea,select').forEach((f,i)=>{ const o=src[i], sp=document.createElement(o&&o.tagName==='TEXTAREA'?'pre':'span'); sp.textContent=o?(o.type==='checkbox'?(o.checked?'☑':'☐'):o.value):''; f.replaceWith(sp); }); k.querySelectorAll('button,.edmark').forEach(b=>b.remove()); return k; }
+function flat(el){ const k=el.cloneNode(true); k.querySelectorAll('.sig').forEach(x=>x.replaceWith(x.textContent)); k.normalize(); const src=el.querySelectorAll('input,textarea,select'); k.querySelectorAll('input,textarea,select').forEach((f,i)=>{ const o=src[i], sp=document.createElement(o&&o.tagName==='TEXTAREA'?'pre':'span'); sp.textContent=o?(o.type==='checkbox'?(o.checked?'☑':'☐'):o.value):''; f.replaceWith(sp); }); k.querySelectorAll('button,.edmark').forEach(b=>b.remove()); return k; }
 function domText(el){ const p=el||document.querySelector('#docv .paper'); if(!p) return ''; const k=flat(p); k.querySelectorAll('svg').forEach(x=>x.replaceWith('[schéma : voir l\'export SVG]')); k.querySelectorAll('tr').forEach(tr=>{ tr.querySelectorAll('td,th').forEach((c,i)=>{ if(i) c.insertAdjacentText('afterbegin',' | '); }); });
  const host=document.createElement('div'); host.style.cssText='position:fixed;left:-9999px;top:0;width:800px;white-space:normal'; host.appendChild(k); document.body.appendChild(host); const t=k.innerText; host.remove(); return (window.BRANDTX?BRANDTX(t):t).replace(/\n{3,}/g,'\n\n'); }
 /* ---------- Word (.docx) : document Office Open XML minimal, construit à partir du document affiché ---------- */
@@ -442,5 +442,5 @@ setInterval(()=>{ if(typeof GD==='undefined'||!GD.on||!GD.steps) return; const s
 // 3) barre : dossier complet
 function barBtn(){ const m=document.getElementById('b-menu'); if(!m||document.getElementById('b-docs')) return; const b=document.createElement('button'); b.type='button'; b.id='b-docs'; b.textContent='📁 Documents'; b.onclick=()=>open('plan'); m.parentNode.insertBefore(b,m.nextSibling); }
 setInterval(barBtn,1000); barBtn();
-window.DOCS={open,list:()=>Object.keys(D),forStep};
+window.DOCS={open,close,reopen:()=>open(CUR,{go:GOTO,rel:REL}),cur:()=>CUR,list:()=>Object.keys(D),forStep};
 })();
