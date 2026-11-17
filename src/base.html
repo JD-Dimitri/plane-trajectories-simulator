@@ -2797,12 +2797,15 @@ function setFlap(d){ if(A.kind!=='fw') return; S.flap=clamp(S.flap+d,0,A.flaps.l
 function togglePause(){ if(crashed) return; paused=!paused; $('b-pause').textContent=paused?'Reprendre':'Pause'; }
 function setRate(r){ if(r>4 && !(AP.on||S.onGround===false&&A.kind==='rw'&&AP.althold||window.DUR_ON&&S.onGround&&Math.abs(S.V)<0.5)){ flash('Accélération > ×4 : pilote auto requis','am'); r=Math.min(r,4); } rate=r; rateUI(); }
 /* sélecteur TEMPS : reflète toujours l'accélération réelle (y compris les accélérations automatiques ×4, ×16, ×64) */
-function rateUI(){ const sel=$('b-rate'); if(!sel) return; const std=['2','5','10','20','30','50'], r=String(rate);
+let rateSig=''; function rateUI(force){ const sel=$('b-rate'); if(!sel) return; const std=['2','5','10','20','30','50'], r=String(rate);
+  /* ne toucher au sélecteur que si l'état a changé, et jamais pendant qu'il est ouvert (sinon la liste se ferme aussitôt sur mobile) */
+  const sig=r+'|'+!!window.DUR_ON; if(!force&&(sig===rateSig||document.activeElement===sel)) return; rateSig=sig;
   let au=sel.querySelector('option[data-auto]'); if(au) au.remove();
   const fo=sel.querySelector('option[value="fast"]'); if(fo) fo.textContent='Étapes courtes (sans durée réelle)'+(rate!==1&&!window.DUR_ON?' · ×'+rate:'');
   if(!window.DUR_ON){ sel.value='fast'; return; }
   if(rate===1){ sel.value='real'; return; } if(std.includes(r)){ sel.value=r; return; }
   au=document.createElement('option'); au.value='auto'; au.dataset.auto='1'; au.textContent='×'+r+' (accélération automatique)'; sel.appendChild(au); sel.value='auto'; }
+$('b-rate').addEventListener('blur',()=>rateUI(true)); $('b-rate').addEventListener('change',()=>setTimeout(()=>rateUI(true),0));
 let ovhPinned=false;
 function toggleOVH(){ ovhPinned=!ovhPinned; $('ovh').hidden=!ovhPinned; $('b-ovh').classList.toggle('on',ovhPinned); if(ovhPinned) ovhSync(); }
 function setView(v){ if(v!=='walk'&&view==='walk'&&GD.on&&GD.steps[GD.i]&&GD.steps[GD.i].walk&&!walkDone()) flash('Tour avion non terminé','am'); view=v; document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('ck').hidden=v!=='ck'; LK.ty=LK.tp=0; LK.tz=1; resize(); }

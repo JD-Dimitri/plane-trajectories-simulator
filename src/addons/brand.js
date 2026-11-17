@@ -34,8 +34,10 @@ function apply(){ data(); try{ document.title=ON?'Simulateur PLANE TRAJECTORIES 
   try{ renderMenu(); }catch(e){} btn(); }
 function set(v){ ON=!!v; try{ localStorage.setItem('sim-brand',ON?'fict':'real'); }catch(e){} if(!ON){ location.reload(); return; } apply(); flash('Marques fictives : mêmes parcours et procédures, noms de constructeurs et compagnies remplacés','am'); }
 function btn(){ const m=document.getElementById('menu'); if(!m) return; let b=document.getElementById('b-brand');
-  if(!b){ b=document.createElement('button'); b.type='button'; b.id='b-brand'; b.style.cssText='position:absolute;top:10px;right:12px;z-index:5;background:#132232;color:#e8eef2;border:1px solid #2b3d50;border-radius:8px;padding:6px 10px;font:700 13px "Barlow Condensed",sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer';
-    b.onclick=()=>set(!ON); if(getComputedStyle(m).position==='static') m.style.position='relative'; m.appendChild(b); }
+  if(!b){ b=document.createElement('button'); b.type='button'; b.id='b-brand'; b.style.cssText='display:block;margin:12px 0 4px;background:#132232;color:#e8eef2;border:1px solid #2b3d50;border-radius:8px;padding:6px 10px;font:700 13px "Barlow Condensed",sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer';
+    b.onclick=()=>set(!ON); }
+  /* V10.28 : placé après le paragraphe « Heure de départ » (il cachait le bouton Introduction en haut du menu) */
+  const tm=document.getElementById('c-tm'); if(tm&&b.previousElementSibling!==tm) tm.after(b); else if(!tm&&!b.parentNode) m.appendChild(b);
   b.textContent=ON?'🏷 Marques fictives ✓ (revenir aux noms réels)':'🏷 Passer en marques fictives'; }
 setTimeout(apply,0);
 window.BRAND={set,get on(){ return ON; },tx};

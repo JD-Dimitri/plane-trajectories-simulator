@@ -2797,12 +2797,15 @@ function setFlap(d){ if(A.kind!=='fw') return; S.flap=clamp(S.flap+d,0,A.flaps.l
 function togglePause(){ if(crashed) return; paused=!paused; $('b-pause').textContent=paused?'Reprendre':'Pause'; }
 function setRate(r){ if(r>4 && !(AP.on||S.onGround===false&&A.kind==='rw'&&AP.althold||window.DUR_ON&&S.onGround&&Math.abs(S.V)<0.5)){ flash('Accélération > ×4 : pilote auto requis','am'); r=Math.min(r,4); } rate=r; rateUI(); }
 /* sélecteur TEMPS : reflète toujours l'accélération réelle (y compris les accélérations automatiques ×4, ×16, ×64) */
-function rateUI(){ const sel=$('b-rate'); if(!sel) return; const std=['2','5','10','20','30','50'], r=String(rate);
+let rateSig=''; function rateUI(force){ const sel=$('b-rate'); if(!sel) return; const std=['2','5','10','20','30','50'], r=String(rate);
+  /* ne toucher au sélecteur que si l'état a changé, et jamais pendant qu'il est ouvert (sinon la liste se ferme aussitôt sur mobile) */
+  const sig=r+'|'+!!window.DUR_ON; if(!force&&(sig===rateSig||document.activeElement===sel)) return; rateSig=sig;
   let au=sel.querySelector('option[data-auto]'); if(au) au.remove();
   const fo=sel.querySelector('option[value="fast"]'); if(fo) fo.textContent='Étapes courtes (sans durée réelle)'+(rate!==1&&!window.DUR_ON?' · ×'+rate:'');
   if(!window.DUR_ON){ sel.value='fast'; return; }
   if(rate===1){ sel.value='real'; return; } if(std.includes(r)){ sel.value=r; return; }
   au=document.createElement('option'); au.value='auto'; au.dataset.auto='1'; au.textContent='×'+r+' (accélération automatique)'; sel.appendChild(au); sel.value='auto'; }
+$('b-rate').addEventListener('blur',()=>rateUI(true)); $('b-rate').addEventListener('change',()=>setTimeout(()=>rateUI(true),0));
 let ovhPinned=false;
 function toggleOVH(){ ovhPinned=!ovhPinned; $('ovh').hidden=!ovhPinned; $('b-ovh').classList.toggle('on',ovhPinned); if(ovhPinned) ovhSync(); }
 function setView(v){ if(v!=='walk'&&view==='walk'&&GD.on&&GD.steps[GD.i]&&GD.steps[GD.i].walk&&!walkDone()) flash('Tour avion non terminé','am'); view=v; document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('ck').hidden=v!=='ck'; LK.ty=LK.tp=0; LK.tz=1; resize(); }
@@ -8010,16 +8013,16 @@ function itemRow(m,done){ const l=m.it[0]; if(!done&&typeof crashed!=='undefined
 function render(msg){ let p=document.getElementById('ckl'); if(!p){ p=document.createElement('div'); p.id='ckl'; p.hidden=true; document.body.appendChild(p);
   p.addEventListener('click',e=>{ if(e.target===p) return close(); const b=e.target.closest('button'); if(!b) return;
    if(b.dataset.i!=null){ const i=+b.dataset.i, j=+b.dataset.j; gotoItem({i,j,st:GD.steps[i],it:GD.steps[i].items[j]}); return; }
-   if(b.dataset.x!=null) return close(); if(b.dataset.first!=null){ const m=missing(0,GD.i)[0]; if(m) gotoItem(m); else close(); return; }
+   if(b.dataset.x!=null) return close(); if(b.dataset.nx!=null){ close(); try{ goStep(GD.i+1); }catch(er){} return; } if(b.dataset.first!=null){ const m=missing(0,GD.i)[0]; if(m) gotoItem(m); else close(); return; }
    if(b.dataset.force!=null){ const f=PEND; PEND=null; close(); if(f){ FORCE=true; try{ f(); } finally{ FORCE=false; } } } }); }
  rec(); const N=GD.steps.length-1, miss=missing(0,GD.i), prev=miss.filter(m=>m.i<GD.i);
  let body=''; for(let i=0;i<=N;i++){ const st=GD.steps[i], its=(st.items||[]); if(i>GD.i+2) { body+=`<div class="st fut"><b>${i}. ${st.t}</b> · à venir</div>`; continue; }
   const ms=its.map((it,j)=>({i,j,st,it,done:DONE.has(key(i,j))||chk(it)})), ok=ms.every(x=>x.done);
   body+=`<div class="st ${i===GD.i?'cur':''} ${i>GD.i?'fut':''} ${ok&&i<=GD.i?'ok':''}"><b>${ok&&i<GD.i?'✓ ':''}${i}. ${st.ph} · ${st.t}${i===GD.i?' (étape en cours)':''}</b>${i<=GD.i?ms.map(x=>itemRow(x,x.done)).join(''):''}</div>`; }
- const bad=miss.length>0;
+ const bad=miss.length>0, curDone=!bad&&GD.i<N&&(GD.steps[GD.i].items||[]).every((it,j)=>DONE.has(key(GD.i,j))||chk(it));
  p.innerHTML=`<div class="w ${bad?'bad':''}"><div class="hd"><div><b>☑ CHECKLIST</b><small>${bad?`${miss.length} sous-étape(s) non faite(s) — touchez une ligne rouge pour aller à la commande`:'Toutes les sous-étapes faites jusqu\'ici ✓'}</small></div><button type="button" data-x style="background:none;border:0;color:#fff;font-size:20px;cursor:pointer">✕</button></div>
   <div class="bd">${msg?`<div class="msg">${msg}</div>`:''}${body}</div>
-  <div class="ft">${bad?'<button type="button" class="go" data-first>Faire la première étape manquante</button>':''}${PEND?'<button type="button" class="warn" data-force>Passer quand même</button>':''}<button type="button" data-x>Fermer</button></div></div>`;
+  <div class="ft">${curDone?`<button type="button" class="go" data-nx>✓ Étape ${GD.i} terminée : étape suivante ▶</button>`:''}${bad?'<button type="button" class="go" data-first>Faire la première étape manquante</button>':''}${PEND?'<button type="button" class="warn" data-force>Passer quand même</button>':''}<button type="button" data-x>Fermer</button></div></div>`;
  p.dataset.mode='guide'; p.hidden=false; setTimeout(()=>{ const c=p.querySelector('.st.cur'); c&&c.scrollIntoView({block:'center'}); },30); }
 function close(){ const p=document.getElementById('ckl'); if(p) p.hidden=true; PEND=null; }
 function refresh(){ const p=document.getElementById('ckl'); if(p&&!p.hidden&&p.dataset.mode!=='ref') render(); }
@@ -9131,8 +9134,10 @@ function apply(){ data(); try{ document.title=ON?'Simulateur PLANE TRAJECTORIES 
   try{ renderMenu(); }catch(e){} btn(); }
 function set(v){ ON=!!v; try{ localStorage.setItem('sim-brand',ON?'fict':'real'); }catch(e){} if(!ON){ location.reload(); return; } apply(); flash('Marques fictives : mêmes parcours et procédures, noms de constructeurs et compagnies remplacés','am'); }
 function btn(){ const m=document.getElementById('menu'); if(!m) return; let b=document.getElementById('b-brand');
-  if(!b){ b=document.createElement('button'); b.type='button'; b.id='b-brand'; b.style.cssText='position:absolute;top:10px;right:12px;z-index:5;background:#132232;color:#e8eef2;border:1px solid #2b3d50;border-radius:8px;padding:6px 10px;font:700 13px "Barlow Condensed",sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer';
-    b.onclick=()=>set(!ON); if(getComputedStyle(m).position==='static') m.style.position='relative'; m.appendChild(b); }
+  if(!b){ b=document.createElement('button'); b.type='button'; b.id='b-brand'; b.style.cssText='display:block;margin:12px 0 4px;background:#132232;color:#e8eef2;border:1px solid #2b3d50;border-radius:8px;padding:6px 10px;font:700 13px "Barlow Condensed",sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer';
+    b.onclick=()=>set(!ON); }
+  /* V10.28 : placé après le paragraphe « Heure de départ » (il cachait le bouton Introduction en haut du menu) */
+  const tm=document.getElementById('c-tm'); if(tm&&b.previousElementSibling!==tm) tm.after(b); else if(!tm&&!b.parentNode) m.appendChild(b);
   b.textContent=ON?'🏷 Marques fictives ✓ (revenir aux noms réels)':'🏷 Passer en marques fictives'; }
 setTimeout(apply,0);
 window.BRAND={set,get on(){ return ON; },tx};

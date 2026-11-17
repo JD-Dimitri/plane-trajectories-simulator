@@ -24,16 +24,16 @@ function itemRow(m,done){ const l=m.it[0]; if(!done&&typeof crashed!=='undefined
 function render(msg){ let p=document.getElementById('ckl'); if(!p){ p=document.createElement('div'); p.id='ckl'; p.hidden=true; document.body.appendChild(p);
   p.addEventListener('click',e=>{ if(e.target===p) return close(); const b=e.target.closest('button'); if(!b) return;
    if(b.dataset.i!=null){ const i=+b.dataset.i, j=+b.dataset.j; gotoItem({i,j,st:GD.steps[i],it:GD.steps[i].items[j]}); return; }
-   if(b.dataset.x!=null) return close(); if(b.dataset.first!=null){ const m=missing(0,GD.i)[0]; if(m) gotoItem(m); else close(); return; }
+   if(b.dataset.x!=null) return close(); if(b.dataset.nx!=null){ close(); try{ goStep(GD.i+1); }catch(er){} return; } if(b.dataset.first!=null){ const m=missing(0,GD.i)[0]; if(m) gotoItem(m); else close(); return; }
    if(b.dataset.force!=null){ const f=PEND; PEND=null; close(); if(f){ FORCE=true; try{ f(); } finally{ FORCE=false; } } } }); }
  rec(); const N=GD.steps.length-1, miss=missing(0,GD.i), prev=miss.filter(m=>m.i<GD.i);
  let body=''; for(let i=0;i<=N;i++){ const st=GD.steps[i], its=(st.items||[]); if(i>GD.i+2) { body+=`<div class="st fut"><b>${i}. ${st.t}</b> · à venir</div>`; continue; }
   const ms=its.map((it,j)=>({i,j,st,it,done:DONE.has(key(i,j))||chk(it)})), ok=ms.every(x=>x.done);
   body+=`<div class="st ${i===GD.i?'cur':''} ${i>GD.i?'fut':''} ${ok&&i<=GD.i?'ok':''}"><b>${ok&&i<GD.i?'✓ ':''}${i}. ${st.ph} · ${st.t}${i===GD.i?' (étape en cours)':''}</b>${i<=GD.i?ms.map(x=>itemRow(x,x.done)).join(''):''}</div>`; }
- const bad=miss.length>0;
+ const bad=miss.length>0, curDone=!bad&&GD.i<N&&(GD.steps[GD.i].items||[]).every((it,j)=>DONE.has(key(GD.i,j))||chk(it));
  p.innerHTML=`<div class="w ${bad?'bad':''}"><div class="hd"><div><b>☑ CHECKLIST</b><small>${bad?`${miss.length} sous-étape(s) non faite(s) — touchez une ligne rouge pour aller à la commande`:'Toutes les sous-étapes faites jusqu\'ici ✓'}</small></div><button type="button" data-x style="background:none;border:0;color:#fff;font-size:20px;cursor:pointer">✕</button></div>
   <div class="bd">${msg?`<div class="msg">${msg}</div>`:''}${body}</div>
-  <div class="ft">${bad?'<button type="button" class="go" data-first>Faire la première étape manquante</button>':''}${PEND?'<button type="button" class="warn" data-force>Passer quand même</button>':''}<button type="button" data-x>Fermer</button></div></div>`;
+  <div class="ft">${curDone?`<button type="button" class="go" data-nx>✓ Étape ${GD.i} terminée : étape suivante ▶</button>`:''}${bad?'<button type="button" class="go" data-first>Faire la première étape manquante</button>':''}${PEND?'<button type="button" class="warn" data-force>Passer quand même</button>':''}<button type="button" data-x>Fermer</button></div></div>`;
  p.dataset.mode='guide'; p.hidden=false; setTimeout(()=>{ const c=p.querySelector('.st.cur'); c&&c.scrollIntoView({block:'center'}); },30); }
 function close(){ const p=document.getElementById('ckl'); if(p) p.hidden=true; PEND=null; }
 function refresh(){ const p=document.getElementById('ckl'); if(p&&!p.hidden&&p.dataset.mode!=='ref') render(); }
