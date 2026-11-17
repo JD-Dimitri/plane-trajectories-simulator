@@ -61,6 +61,14 @@ function draw(){ if(!ST.on||!W||W.hidden) return; const r=cv.getBoundingClientRe
         g.strokeStyle='rgba(255,214,90,0.55)'; g.lineWidth=Math.max(1,23/1000/kpp); g.beginPath(); G.a.forEach(e=>{ const A1=G.n[e[0]], B1=G.n[e[1]]; if(!A1||!B1) return; const p=P(A1[0],A1[1]), q=P(B1[0],B1[1]); g.moveTo(p[0],p[1]); g.lineTo(q[0],q[1]); }); g.stroke(); } }catch(e){}
     try{ if(window.OBS){ g.fillStyle='rgba(170,182,196,0.75)'; for(const o of OBS){ const c=P(o.lat,o.lon), rr=o.rad/1000/kpp; if(c[0]+rr<0||c[0]-rr>w||c[1]+rr<0||c[1]-rr>h) continue;
         const kx=1/1000/kpp; o.boxes.forEach(bx=>{ if(bx.hw*kx<0.6&&bx.hd*kx<0.6) return; g.save(); g.translate(c[0]+bx.x*kx,c[1]+bx.z*kx); g.rotate(-(bx.r||0)); g.fillRect(-bx.hw*kx,-bx.hd*kx,bx.hw*2*kx,bx.hd*2*kx); g.restore(); }); } } }catch(e){} }
+  // V10.36 : jour / nuit selon la vraie position du soleil (heure UTC simulée) : crépuscules civil (-6°), nautique (-12°), astronomique (-18°)
+  try{ const sl=sunLL(simMs), sd=sl.lat*D2, cs=Math.cos(sd), ss=Math.sin(sd), B=Math.max(4,Math.round(Math.min(w,h)/70)), dLonPx=kpp/(111.32*cl), dLatPx=kpp/110.57;
+    for(let y=0;y<h;y+=B){ const la=(lat0-(y+B/2-h/2)*dLatPx)*D2, sl1=Math.sin(la), cl1=Math.cos(la);
+      for(let x=0;x<w;x+=B){ const lo=lon0+(x+B/2-w/2)*dLonPx, e=Math.asin(sl1*ss+cl1*cs*Math.cos((lo-sl.lon)*D2))/D2;
+        if(e<0.5){ const a=e>-6?0.18+(-e/6)*0.17:e>-12?0.35+(-e-6)/6*0.12:e>-18?0.47+(-e-12)/6*0.1:0.6; g.fillStyle=`rgba(2,6,22,${a.toFixed(3)})`; g.fillRect(x,y,B,B); } } }
+    const sp=P(sl.lat,sl.lon); if(sp[0]>-20&&sp[0]<w+20&&sp[1]>-20&&sp[1]<h+20){ g.fillStyle='#ffd34d'; g.beginPath(); g.arc(sp[0],sp[1],6,0,Math.PI*2); g.fill(); }
+    const d=new Date(simMs), hh=String(d.getUTCHours()).padStart(2,'0'), mm=String(d.getUTCMinutes()).padStart(2,'0'), eh=Math.asin(Math.sin(S.lat*D2)*ss+Math.cos(S.lat*D2)*cs*Math.cos((S.lon-sl.lon)*D2))/D2;
+    g.font='bold 10px Barlow Condensed, sans-serif'; g.fillStyle='rgba(255,230,150,0.95)'; g.fillText(`☀ jour / ☾ nuit réels · ${hh}:${mm} UTC · soleil ${eh>=0?'+':''}${eh.toFixed(0)}° ici`,6,13); }catch(e){}
   // graticule
   const span=w*kpp/111.32/cl, step=[0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.25,0.5,1,2,5,10,20,30].find(v=>v>=span/5)||30, dec=step>=1?0:step>=0.1?1:step>=0.01?2:3;
   g.strokeStyle='rgba(160,200,240,0.18)'; g.lineWidth=1; g.font='9px JetBrains Mono, monospace'; g.fillStyle='rgba(190,215,240,0.6)';

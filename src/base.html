@@ -2869,7 +2869,7 @@ function placeWorld(){ const p=ecef(S.lat,S.lon,S.alt), b=enuBasis(S.lat,S.lon),
   const sl=sunLL(simMs), sE=ecef(sl.lat,sl.lon,0), n=Math.hypot(...sE), s=[sE[0]/n,sE[1]/n,sE[2]/n];
   earthU.sunDir.value.set(...s); if(PATCH.mat) PATCH.mat.uniforms.sunDir=earthU.sunDir;
   const sx=r0[0]*s[0]+r0[1]*s[1]+r0[2]*s[2], sy=r1[0]*s[0]+r1[1]*s[1]+r1[2]*s[2], sz=r2[0]*s[0]+r2[1]*s[1]+r2[2]*s[2];
-  SKY.u.sun.value.set(sx,sy,sz); SKY.u.alt.value=S.alt; const night=clamp((-sy+0.02)/0.12,0,1); SKY.u.night.value=night; SKY.stars.material.opacity=night*0.9;
+  SKY.u.sun.value.set(sx,sy,sz); SKY.u.alt.value=S.alt; const dip=Math.acos(RE/(RE+Math.max(0,S.alt))), night=clamp((-Math.sin(Math.asin(clamp(sy,-1,1))+dip)+0.02)/0.12,0,1);   /* V10.36 : vraie position du soleil + abaissement de l'horizon en altitude (le soleil reste visible plus longtemps en vol) */ SKY.u.night.value=night; SKY.stars.material.opacity=night*0.9;
   sunL.position.set(sx,sy,sz); sunL.intensity=0.15+0.85*(1-night); scene.children.forEach(o=>{ if(o.isHemisphereLight) o.intensity=0.25+0.7*(1-night); });
   const day=1-night, h=clamp(S.alt/15000,0,1); earthU.fogC.value.setRGB(0.04+0.66*day*(1-h*0.2),0.06+0.74*day*(1-h*0.15),0.11+0.79*day); earthU.fogD.value=60000+S.alt*9; earthU.lk.value=clamp(S.alt/25000,0.05,1); if(PATCH.mat){ PATCH.mat.uniforms.lk=earthU.lk; PATCH.mat.uniforms.fogC=earthU.fogC; PATCH.mat.uniforms.fogD=earthU.fogD; }
   RWL.forEach(p=>p.visible=night>0.4);
