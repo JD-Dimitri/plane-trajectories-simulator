@@ -42,7 +42,7 @@ const NAMES={prep:'Préparation',taxi:'Roulage',to:'Décollage',cruise:'Croisiè
 function rebuild(ph){ while(G.children.length) G.remove(G.children[0]); const k=ACK, P=parts(k), list=(A.kind==='rw'?RW:FW)[ph](k);
   EXT=[]; (list||[]).forEach(([p,t])=>{ const xyz=P[p]; if(!xyz) return; EXT.push(t); const s=spr(String(EXT.length),ph==='land'?'#ffb347':ph==='to'?'#4ade80':'#3fd0ff'), sc=Math.min(innerWidth,innerHeight)<700?0.04:0.03; s.scale.set(sc*s.userData.ar,sc,1); s.center.set(0.5,-0.15); /* taille constante à l'écran */ s.position.set(...xyz); G.add(s); }); }
 // encadré intérieur (vue cockpit)
-function box(){ let b=document.getElementById('legck'); if(!b){ b=document.createElement('div'); b.id='legck'; b.style.cssText='position:fixed;right:8px;top:96px;z-index:44;max-width:250px;background:rgba(8,16,24,.86);color:#e8eef2;border:1px solid #3fd0ff;border-radius:10px;padding:7px 10px;font:12px/1.35 Inter,sans-serif;pointer-events:none'; document.body.appendChild(b); } return b; }
+function box(){ let b=document.getElementById('legck'); if(!b){ b=document.createElement('div'); b.id='legck'; b.style.cssText='position:fixed;right:8px;'+(innerWidth<700?'bottom:calc(var(--barh,64px) + 10px);max-height:30vh;overflow:auto;':'top:96px;')+'z-index:44;max-width:250px;background:rgba(8,16,24,.86);color:#e8eef2;border:1px solid #3fd0ff;border-radius:10px;padding:7px 10px;font:12px/1.35 Inter,sans-serif;pointer-events:none'; document.body.appendChild(b); } return b; }
 function fam(){ return A.kind==='rw'?'rw':ACK==='c172'?'sep':ACK==='lj60'?'bus':'air'; }
 // bouton
 function sync(){ const b=document.getElementById('b-leg'); if(b){ b.textContent=LEG.on?'🏷 Légende ON':'🏷 Légende OFF'; b.classList.toggle('on',LEG.on); } }
