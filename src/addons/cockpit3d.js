@@ -28,8 +28,9 @@ function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; co
   const air=k==='a320'||k==='b777'||k==='a350', boe=k==='b777';
   if(air||k==='lj60'||k==='s76'){ const W=k==='b777'?1.45:k==='a350'?1.4:k==='a320'?1.3:k==='s76'?0.95:0.85, top=k==='lj60'?0.28:0.34, gz=k==='lj60'?-0.78:-0.95;
     const col=boe?0x4a443e:k==='lj60'?0x3b3e43:k==='s76'?0x3d4146:0x56616c, frame=M(boe?0x2e2a27:0x24282c), glare=M(col), sill=M(boe?0x5a534c:0x66707a);
-    box(g,2*W,0.10,0.45,glare,cx,-0.30,gz);                                                           // casquette
-    if(k!=='lj60'||true){ const p=box(g,Math.min(1.4,2*W-0.2),0.09,0.02,M(0xffffff,mcpTex(boe?'#3e3934':'#4a545e',boe?'#ffb347':'#ffd27a'),true),cx,-0.30,gz-0.235); }   // MCP / FCU rétroéclairé
+    const P3=!!(window.P3D&&P3D.on); /* V10.41 (F25) : poste 3D → casquette moins profonde, FCU sur sa face avant */
+    box(g,2*W,0.10,P3?0.24:0.45,glare,cx,-0.30,P3?gz-0.10:gz);                                                           // casquette
+    if(k!=='lj60'||true){ const p=box(g,Math.min(1.4,2*W-0.2),0.09,0.02,M(0xffffff,mcpTex(boe?'#3e3934':'#4a545e',boe?'#ffb347':'#ffd27a'),true),cx,-0.30,P3?gz+0.031:gz-0.235); }   // MCP / FCU rétroéclairé
     post(g,[cx,-0.25,gz-0.12],[cx,top,gz+0.18],0.055,frame);                                           // montant central
     [-1,1].forEach(s=>{ post(g,[cx+s*(W-0.12),-0.25,gz+0.05],[cx+s*(W-0.02),top-0.02,gz+0.32],0.075,frame);    // montants pare-brise / vitre latérale
       post(g,[cx+s*W,-0.24,gz+0.55],[cx+s*W,top-0.04,gz+0.75],0.09,frame); box(g,0.14,0.05,1.3,sill,cx+s*(W+0.02),-0.24,gz+0.9);   // montant arrière, appui de fenêtre
@@ -38,7 +39,7 @@ function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; co
     box(g,Math.min(1.5,2*W-0.3),0.14,0.03,M(0xffffff,swTex(boe?'#3e3934':'#4c5660',k.length),true),cx,top-0.02,gz+0.56,-0.5);   // bord du panneau plafond
     box(g,Math.min(1.5,2*W-0.3),0.03,1.2,M(boe?0x3e3934:0x4c5660),cx,top+0.1,gz+1.1); }
   else if(k==='c172'){ const W=0.56, frame=M(0x1d1e20), roof=M(0xcfc6b0);
-    box(g,1.15,0.06,0.32,M(0x17181a),cx,-0.26,-0.72);                                                   // casquette noire
+    { const P3=!!(window.P3D&&P3D.on); box(g,1.15,0.06,P3?0.12:0.32,M(0x17181a),cx,-0.26,P3?-0.86:-0.72); }                                                   // casquette noire
     [-1,1].forEach(s=>{ post(g,[cx+s*W,-0.23,-0.78],[cx+s*(W-0.04),0.31,-0.46],0.06,frame); post(g,[cx+s*(W+0.02),-0.3,-0.1],[cx+s*(W+0.02),0.3,-0.05],0.06,frame); });   // montants de pare-brise et de porte
     box(g,1.2,0.04,1.1,roof,cx,0.34,-0.05); box(g,1.15,0.05,0.06,frame,cx,0.31,-0.5);                  // garnissage de toit, traverse
     box(g,0.08,0.07,0.07,M(0x111111),cx,0.255,-0.52); box(g,0.05,0.04,0.005,M(0xf2f2f2,null,true),cx,0.255,-0.556);   // compas magnétique
@@ -47,7 +48,7 @@ function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; co
     post(g,[cx,0.4,-0.9],[cx,0.42,0.1],0.05,frame); if(k==='r44') post(g,[cx,-0.25,-0.62],[cx,0.4,-0.8],0.045,frame);
     [-1,1].forEach(s=>{ post(g,[cx+s*W,-0.35,-0.55],[cx+s*(W-0.1),0.38,-0.6],0.05,frame); post(g,[cx+s*W,-0.3,0.05],[cx+s*(W-0.08),0.4,0.0],0.05,frame); });
     box(g,0.3,0.06,0.4,M(0x2a2c2f),cx,0.36,-0.25); box(g,0.28,0.035,0.02,M(0xffffff,swTex('#2a2c2f',3),true),cx,0.33,-0.46,-0.4);   // console plafond
-    box(g,1.0,0.07,0.25,M(0x1c1d1f),cx,-0.33,-0.72); }
+    { const P3=!!(window.P3D&&P3D.on); box(g,1.0,0.07,P3?0.1:0.25,M(0x1c1d1f),cx,-0.33,P3?-0.83:-0.72); } }
   try{ detail(g,k,cx); }catch(e){ console.warn('poste détaillé',e); }
   built=k; }
 /* V10.38 (F4) : poste plus détaillé, sur ce qui est réellement visible au-dessus de la planche 2D : siège et commandes du copilote,
@@ -67,7 +68,7 @@ function detail(g,k,cx){ const air=k==='a320'||k==='b777'||k==='a350', boe=k==='
   if(air||k==='lj60'){ [-1,1].forEach(s=>{ const xs=cx+s*(air?(boe?1.42:1.27):0.82); box(g,0.03,0.03,0.9,dk,xs,0.16,-0.25); box(g,0.04,0.12,0.04,pale,xs-s*0.03,0.05,-0.05); });
     // console latérale (tiroir à cartes, tiller du côté pilote, mini-manche sur A320)
     box(g,0.28,0.1,0.9,mid,cx-(air?(boe?1.15:1.0):0.6),-0.62,-0.25); box(g,0.28,0.1,0.9,mid,cx+(air?(boe?1.15:1.0):0.6),-0.62,-0.25);
-    if(k==='a320'){ [-1,1].forEach(s=>{ const xs=cx+s*0.92; box(g,0.05,0.16,0.05,dk,xs,-0.5,-0.35); box(g,0.06,0.05,0.07,dk,xs,-0.41,-0.36); }); }   // mini-manches
+    if(k==='a320'||k==='a350'){ [-1,1].forEach(s=>{ const xs=cx+s*0.92;   /* V10.41 : l'A350 a des mini-manches, comme l'A320 */ box(g,0.05,0.16,0.05,dk,xs,-0.5,-0.35); box(g,0.06,0.05,0.07,dk,xs,-0.41,-0.36); }); }   // mini-manches
     else { [0,xo].forEach(x=>{ box(g,0.04,0.32,0.04,dk,x,-0.62,-0.62); box(g,0.34,0.05,0.05,dk,x,-0.44,-0.62); }); }      // manches (777, Learjet)
     // cloison arrière : porte du poste, panneau de disjoncteurs, siège observateur replié
     const rz=air?1.25:0.95; box(g,2*Math.abs(cx)+(air?2.4:1.6),1.9,0.05,M(boe?0x4a453f:0x59636d),cx,-0.2,rz);

@@ -27,7 +27,7 @@ more.onclick=()=>{ bar.classList.toggle('compact'); store('sim-barc',bar.classLi
 scr.onclick=()=>{ scrHidden=!scrHidden; syncBtns(); resize(); };
 // recentrage de l'image 3D dans la zone visible
 function freeBottom(){ const H=innerHeight; let b=H; const r=bar.getBoundingClientRect(); if(!bar.hidden&&r.height) b=Math.min(b,r.top);
-  if(view==='ck'){ const ck=$('ck'); if(ck&&!ck.hidden){ const c=$('ckc').getBoundingClientRect(); if(c.height>4) b=Math.min(b,c.top); const f=$('fcu'); if(f&&!f.hidden){ const fr=f.getBoundingClientRect(); if(fr.height) b=Math.min(b,fr.top); } } }
+  if(view==='ck'){ const ck=$('ck'); if(ck&&!ck.hidden){ const c=$('ckc').getBoundingClientRect(); if(c.height>4) b=Math.min(b,c.top); const f=$('fcu'); if(f&&!f.hidden&&!document.body.classList.contains('p3d')){ const fr=f.getBoundingClientRect(); if(fr.height) b=Math.min(b,fr.top); } } }
   return Math.max(H*0.35,b); }
 let lastOff=null;
 function recentre(){ if(typeof camera==='undefined'||!camera.setViewOffset) return; const W=innerWidth, H=innerHeight, fb=freeBottom();
