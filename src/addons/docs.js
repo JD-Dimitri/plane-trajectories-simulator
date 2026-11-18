@@ -28,7 +28,7 @@ const pad2=n=>String(n).padStart(2,'0');
 function ctx(){ const k=(typeof ACK!=='undefined'&&ACK)||(typeof selAC!=='undefined'&&selAC)||'a320', a=AC[k]||{}, fw=a.kind==='fw';
  let mi=(typeof MI!=='undefined'&&MI&&MI.start)?MI:MISSIONS[fw?'jfk-cdg':'heli-ny'];
  if(fw&&mi.rw) mi=MISSIONS['jfk-cdg']; if(!fw&&mi.fw) mi=MISSIONS['heli-ny'];
- const dep=mi.dep||(fw&&mi.start&&!mi.full?(()=>{ try{ const s=mi.start(); let bk=null,bd=1e9; for(const q in APTS){ const a=APTS[q]; if(a.heli||!(a.rw||[]).length) continue; const x=gcKm(s.lat,s.lon,a.lat,a.lon); if(x<bd){ bd=x; bk=q; } } return bk; }catch(e){ return null; } })():null)||(fw?(mi===MISSIONS['cdg-jfk']?'LFPG':'KJFK'):(mi===MISSIONS['heli-cdg']?'LFPG':'KJRB')), dest=mi.dest||'LFPG';
+ const dep=(typeof MI!=='undefined'&&mi===MI&&window.TRAJET&&(TRAJET()||{}).dep)||mi.dep||(fw&&mi.start&&!mi.full?(()=>{ try{ const s=mi.start(); let bk=null,bd=1e9; for(const q in APTS){ const a=APTS[q]; if(a.heli||!(a.rw||[]).length) continue; const x=gcKm(s.lat,s.lon,a.lat,a.lon); if(x<bd){ bd=x; bk=q; } } return bk; }catch(e){ return null; } })():null)||(fw?(mi===MISSIONS['cdg-jfk']?'LFPG':'KJFK'):(mi===MISSIONS['heli-cdg']?'LFPG':'KJRB')), dest=mi.dest||'LFPG';
  let L={}; try{ if(typeof ACK!=='undefined'&&ACK===k&&LS&&LS.block) L=LS; else { const sv=[ACK,A,MI], keep=Object.assign({},LS); ACK=k; A=a; MI=mi; lsInit(); L=Object.assign({},LS); ACK=sv[0]; A=sv[1]; MI=sv[2]; Object.keys(LS).forEach(x=>delete LS[x]); Object.assign(LS,keep); } }catch(e){ L={}; }
  let crew={}; try{ crew=JSON.parse(localStorage.getItem('sa-crew')||'{}'); }catch(e){}
  const d=new Date(), date=`${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`, dof=`${String(d.getUTCFullYear()).slice(2)}${pad2(d.getUTCMonth()+1)}${pad2(d.getUTCDate())}`;
@@ -41,7 +41,8 @@ const RT={fw:[['KJFK',40.64,-73.78,'DÉP'],['BETTE',41.0,-69.5,'SID'],['YQX',48.
  rw:[['KJRB',40.701,-74.009,'DÉP'],['STATUE',40.69,-74.045,'VRP'],['VZ',40.607,-74.045,'Verrazano'],['CI',40.575,-73.98,'Coney Island'],['RCKY',40.6,-73.88,'VRP'],['KJFK',40.64,-73.78,'ARR']]};
 const gc=(a,b)=>{ const R=6371,r=Math.PI/180, dl=(b[2]-a[2])*r, p1=a[1]*r, p2=b[1]*r; return Math.acos(Math.min(1,Math.sin(p1)*Math.sin(p2)+Math.cos(p1)*Math.cos(p2)*Math.cos(dl)))*R; };
 const brg=(a,b)=>{ const r=Math.PI/180, y=Math.sin((b[2]-a[2])*r)*Math.cos(b[1]*r), x=Math.cos(a[1]*r)*Math.sin(b[1]*r)-Math.sin(a[1]*r)*Math.cos(b[1]*r)*Math.cos((b[2]-a[2])*r); return (Math.atan2(y,x)/r+360)%360; };
-function route(c){ try{ if(c.fw&&MI&&MI.route&&APTS[c.dep]&&APTS[c.dest]){ const a=APTS[c.dep], b=APTS[c.dest]; return [[c.dep,a.lat,a.lon,'DÉP']].concat(MI.route.map(p=>[p[2],p[0],p[1],'point péd.'])).concat([[c.dest,b.lat,b.lon,'ARR']]); } }catch(e){}
+function route(c){ try{ if(window.TRAJET&&typeof MI!=='undefined'&&c.mi===MI){ const t=TRAJET(); if(t&&t.pts.length>1) return t.pts; } }catch(e){}   // V10.41 (F28) : le trajet de la mission
+  try{ if(c.fw&&MI&&MI.route&&APTS[c.dep]&&APTS[c.dest]){ const a=APTS[c.dep], b=APTS[c.dest]; return [[c.dep,a.lat,a.lon,'DÉP']].concat(MI.route.map(p=>[p[2],p[0],p[1],'point péd.'])).concat([[c.dest,b.lat,b.lon,'ARR']]); } }catch(e){}
   let r=RT[c.fw?'fw':'rw']; if(c.fw&&c.dep==='LFPG') r=r.slice().reverse(); return r; }
 /* ---------- générateurs ---------- */
 const NOTE='EXEMPLE PÉDAGOGIQUE — ne pas utiliser pour la navigation réelle. Valeurs de masse, carburant et vitesses : calculées par le simulateur (formules simplifiées [ESTIMÉ]).';
@@ -442,5 +443,5 @@ setInterval(()=>{ if(typeof GD==='undefined'||!GD.on||!GD.steps) return; const s
 // 3) barre : dossier complet
 function barBtn(){ const m=document.getElementById('b-menu'); if(!m||document.getElementById('b-docs')) return; const b=document.createElement('button'); b.type='button'; b.id='b-docs'; b.textContent='📁 Documents'; b.onclick=()=>open('plan'); m.parentNode.insertBefore(b,m.nextSibling); }
 setInterval(barBtn,1000); barBtn();
-window.DOCS={open,close,reopen:()=>open(CUR,{go:GOTO,rel:REL}),cur:()=>CUR,list:()=>Object.keys(D),forStep};
+window.DOCS={ctx:()=>ctx(),route:()=>{ const c=ctx(); return {dep:c.dep,dest:c.dest,altn:c.altn,pts:route(c)}; },open,close,reopen:()=>open(CUR,{go:GOTO,rel:REL}),cur:()=>CUR,list:()=>Object.keys(D),forStep};
 })();

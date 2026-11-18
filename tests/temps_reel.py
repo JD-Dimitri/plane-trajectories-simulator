@@ -20,7 +20,7 @@ def check(name, ok, detail=''):
 
 async def start(pg, ac):
     await pg.goto(URL); await pg.wait_for_timeout(2000)
-    await pg.evaluate(f"localStorage.removeItem('pt-rt-save-v1'); selAC='{ac}'; selMI=FULLOF('{ac}'); renderMenu(); $('m-auto').checked=true; $('go').click(); document.getElementById('br-skip').click();")
+    await pg.evaluate(f"localStorage.removeItem('pt-rt-save-v1'); selAC='{ac}'; selMI=FULLOF('{ac}'); renderMenu(); $('m-auto').checked=true; $('go').click(); document.getElementById('br-skip').click(); const i=document.getElementById('intro'); if(i) i.hidden=true;")   # V10.40 : la proposition attend la fermeture de l'introduction
     for _ in range(20):
         await pg.wait_for_timeout(250)
         if await pg.evaluate("!!document.getElementById('rtprop')"): break

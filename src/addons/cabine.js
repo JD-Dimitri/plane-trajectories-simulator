@@ -9,14 +9,14 @@
 if(typeof scene==='undefined'||typeof THREE==='undefined'||typeof placeCamera!=='function') return;
 const G=new THREE.Group(); G.visible=false; scene.add(G); let built=null, mats=[], CAM=null;
 const D={ // largeur et hauteur intérieures (m), pas des rangs par classe (m), largeur de siège par classe (m), sièges des pilotes dans la cabine
- a320:{w:3.70,h:2.22,lead:2.6,pitch:{Y:0.76},sw:{Y:0.46},bins:true,col:0x2f4b6e},
- a350:{w:5.61,h:2.42,lead:2.8,pitch:{J:1.9,W:0.97,Y:0.79},sw:{J:0.62,W:0.48,Y:0.45},bins:true,col:0x2d3f57},   // largeur de cabine A350 5,61 m [RÉFÉRENCÉ Airbus], le reste [ESTIMÉ]
- b777:{w:5.86,h:2.45,lead:3.0,pitch:{J:1.55,W:0.97,Y:0.79},sw:{J:0.62,W:0.5,Y:0.45},bins:true,col:0x34465a},
- lj60:{w:1.80,h:1.74,lead:1.6,pitch:{C:1.25},sw:{C:0.56},col:0xb9a88c},
- s76:{w:1.90,h:1.35,lead:1.3,pitch:{P:0.95},sw:{P:0.48},col:0x4b5560},
- h125:{w:1.60,h:1.30,lead:0,pitch:{P:0.95},sw:{P:0.48},col:0x3f4650,crew:'R',small:true},
- r44:{w:1.28,h:1.20,lead:0,pitch:{P:0.95},sw:{P:0.46},col:0x5a4a3a,crew:'R',small:true},
- c172:{w:1.00,h:1.20,lead:0,pitch:{P:0.95},sw:{P:0.44},col:0x6b5d4c,crew:'L',small:true}};
+ a320:{src:'largeur 3,70 m [RÉFÉRENCÉ Airbus, famille A320] ; hauteur et pas des sièges [ESTIMÉ]',w:3.70,h:2.22,lead:2.6,pitch:{Y:0.76},sw:{Y:0.46},bins:true,col:0x2f4b6e},
+ a350:{src:'largeur 5,61 m [RÉFÉRENCÉ Airbus] ; hauteur, pas et plan de cabine [ESTIMÉ]',w:5.61,h:2.42,lead:2.8,pitch:{J:1.9,W:0.97,Y:0.79},sw:{J:0.62,W:0.48,Y:0.45},bins:true,col:0x2d3f57},   // largeur de cabine A350 5,61 m [RÉFÉRENCÉ Airbus], le reste [ESTIMÉ]
+ b777:{src:'largeur 5,87 m (19 ft 3 in) [RÉFÉRENCÉ Economy Class & Beyond, 2014] ; hauteur et pas [ESTIMÉ]',w:5.87,h:2.45,lead:3.0,pitch:{J:1.55,W:0.97,Y:0.79},sw:{J:0.62,W:0.5,Y:0.45},bins:true,col:0x34465a},
+ lj60:{src:'largeur 1,80 m (5 ft 11 in), hauteur 1,75 m (5 ft 9 in), longueur 5,38 m [RÉFÉRENCÉ Magellan Jets]',w:1.80,h:1.75,lead:1.6,pitch:{C:1.25},sw:{C:0.56},col:0xb9a88c},
+ s76:{src:'dimensions [ESTIMÉ] (sources publiques contradictoires, non retenues)',w:1.90,h:1.35,lead:1.3,pitch:{P:0.95},sw:{P:0.48},col:0x4b5560},
+ h125:{src:'dimensions [ESTIMÉ] (pas de source constructeur consultable)',w:1.60,h:1.30,lead:0,pitch:{P:0.95},sw:{P:0.48},col:0x3f4650,crew:'R',small:true},
+ r44:{src:'largeur 1,22 m (4 ft), hauteur 1,20 m (3 ft 11 in) [RÉFÉRENCÉ AeroCorner]',w:1.22,h:1.20,lead:0,pitch:{P:0.95},sw:{P:0.46},col:0x5a4a3a,crew:'R',small:true},
+ c172:{src:'largeur 1,02 m (40 in) [RÉFÉRENCÉ AOPA, fiche Cessna 172] ; hauteur [ESTIMÉ]',w:1.02,h:1.20,lead:0,pitch:{P:0.95},sw:{P:0.44},col:0x6b5d4c,crew:'L',small:true}};
 function M(color,map,emis){ const m=new THREE.MeshBasicMaterial({color,map:map||null}); m.userData.base=new THREE.Color(color); m.userData.emis=!!emis; mats.push(m); return m; }
 function box(par,w,h,d,mat,x,y,z){ const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); b.position.set(x,y,z); par.add(b); return b; }
 function tex(w,h,draw){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); return new THREE.CanvasTexture(c); }
@@ -98,6 +98,8 @@ function navUI(on){ let n=document.getElementById('cabnav'); if(!on){ if(n) n.hi
   if(!n){ n=document.createElement('div'); n.id='cabnav'; n.innerHTML='<button type="button" data-d="-1" title="Avancer dans l\'allée">▲</button><span>allée</span><button type="button" data-d="1" title="Reculer dans l\'allée">▼</button>';
     n.querySelectorAll('button').forEach(b=>{ const dd=+b.dataset.d; const st=()=>window.CAB_MV=(CAM&&CAM.back?-dd:dd), sp=()=>window.CAB_MV=0;
       b.addEventListener('pointerdown',st); ['pointerup','pointerleave','pointercancel'].forEach(t=>b.addEventListener(t,sp)); }); document.body.appendChild(n); }
+  { let sp=n.querySelector('.csrc'); if(!sp){ sp=document.createElement('span'); sp.className='csrc'; sp.style.cssText='max-width:120px;text-align:center;cursor:help'; n.prepend(sp); }
+    const d=D[ACK]; if(d){ sp.textContent='ⓘ '+d.w.toFixed(2).replace('.',',')+' × '+d.h.toFixed(2).replace('.',',')+' m'; sp.title='Cabine : '+d.src; sp.setAttribute('aria-label',sp.title); } }   // V10.41 (F27) : dimensions et leur source
   n.hidden=false; }
 function addBtn(){ const ext=document.querySelector('[data-v="ext"]'); if(!ext||document.querySelector('[data-v="cab"]')) return;
   const b=document.createElement('button'); b.type='button'; b.dataset.v='cab'; b.textContent='Cabine'; b.title='Cabine passagers (Page préc. / Page suiv. ou ▲ ▼ pour se déplacer dans l\'allée)';
