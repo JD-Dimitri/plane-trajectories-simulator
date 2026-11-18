@@ -194,7 +194,9 @@ function open(id){ const b=$(id); if(b) b.click(); }
 function act(h){ const a=h.p.act; tip.hidden=true; window.P3LAST=h.p.label;
   if(a==='scr'){ const S=h.p.scr, c=h.uv&&toCk(S,h.uv), z=$('zoomscr'); if(c) tapCk(c.x,c.y);
     // repli : clic entre deux instruments (ou sur l'OIS, le profil vertical…) → l'écran ou la planche entière, agrandis
-    if(!window.MANON&&window.ZOOMSCR&&(!z||z.hidden)) ZOOMSCR.open(S.id==='panel'?'all':S.id.replace(/^out/,'pfd').replace(/^in/,'nd')); return; }
+    if(!window.MANON&&window.ZOOMSCR&&(!z||z.hidden)){ let k=S.id.replace(/^out/,'pfd').replace(/^in/,'nd');
+      if(S.id==='panel'){ const R=(ZOOMSCR.rects&&ZOOMSCR.rects())||[]; let best=null, bd=1e9; R.forEach(o=>{ const d=c?Math.hypot(o.r.left+o.x+o.w/2-c.x,o.r.top+o.y+o.h/2-c.y):0; if(d<bd){ bd=d; best=o.k; } }); k=best; }
+      if(k) ZOOMSCR.open(k); } return; }
   if(a==='zoom'){ if(window.ZOOMSCR) ZOOMSCR.open(h.p.k); return; }
   if(a==='fcu'){ const f=$('fcu'); if(!f||!holder) return; if(holder.classList.contains('open')&&!f.hidden){ holder.classList.remove('open'); return; }
     const chip=document.querySelector('[data-reopen="fcu"]'); if(chip) chip.click(); f.hidden=false; holder.classList.add('open'); return; }

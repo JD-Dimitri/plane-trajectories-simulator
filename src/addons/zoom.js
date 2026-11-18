@@ -69,5 +69,5 @@ cv.addEventListener('pointerup',e=>{ if(!down) return; const d=down; down=null; 
   const hit=rects().find(o=>e.clientX>=o.r.left+o.x&&e.clientX<=o.r.left+o.x+o.w&&e.clientY>=o.r.top+o.y&&e.clientY<=o.r.top+o.y+o.h); if(hit) open(hit.k); });
 cv.style.cursor='zoom-in';
 addEventListener('keydown',e=>{ if(e.key==='Escape'&&!ov.hidden) close(); });
-window.ZOOMSCR={open,close};
+window.ZOOMSCR={open,close,rects};
 })();
