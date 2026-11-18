@@ -12,6 +12,7 @@ const css=document.createElement('style'); css.textContent=`
 .pclose:hover{background:#4a1a22!important;border-color:var(--red)!important}
 .pclose.abs{position:absolute;top:6px;right:6px}
 .pclose.out{top:-11px;right:-11px;width:26px;height:26px;font-size:13px!important}
+#msg{pointer-events:none}/* V10.40 (F24) : les messages d'alerte ne masquent plus la ✕ du bandeau d'informations */
 #pchips{position:fixed;left:8px;top:calc(8px + env(safe-area-inset-top,0px));z-index:22;display:flex;gap:6px;flex-wrap:wrap}
 #pchips button{font-size:11px;padding:5px 9px;background:#101b26ee}`;
 document.head.appendChild(css);
@@ -41,6 +42,8 @@ addEventListener('click',e=>{ const r=e.target.closest&&e.target.closest('[data-
   const b=e.target.closest&&e.target.closest('#bar button'); if(b){ for(const id in BTN) if(BTN[id]===b.id) FORCE.delete(id); } },true);
 // fermeture sur pointerdown : fonctionne même si le panneau est reconstruit entre l'appui et le relâchement
 addEventListener('pointerdown',e=>{ const x=e.target.closest&&e.target.closest('.pclose'); if(!x) return; e.preventDefault(); e.stopPropagation(); closeP(x.dataset.for); },true);
+// V10.40 (F24) : aussi au clic (clavier : Entrée / Espace, lecteurs d'écran, clic programmé), sans double fermeture
+addEventListener('click',e=>{ const x=e.target.closest&&e.target.closest('.pclose'); if(!x) return; e.preventDefault(); e.stopPropagation(); const p=document.getElementById(x.dataset.for); if(p&&!p.hidden) closeP(x.dataset.for); },true);
 
 function candidates(){ const out=[]; document.querySelectorAll('.panel, #ovh, #menu').forEach(p=>{ if(!p.id||p.hidden||p.offsetParent===null&&getComputedStyle(p).position!=='fixed') return;
   if(['bar','brief','pchips'].includes(p.id)) return; if(p.id==='menu'&&!started) return; if(p.closest('#brief')) return; out.push(p); }); return out; }
@@ -52,5 +55,8 @@ let raf=0; new MutationObserver(()=>{ if(raf) return; raf=requestAnimationFrame(
 setInterval(()=>{ try{
   FORCE.forEach(id=>{ const p=document.getElementById(id); if(p&&!p.hidden) p.hidden=true; });
   candidates().forEach(inject); renderChips();
+  // V10.40 (F24) : une croix ne doit jamais sortir de l'écran (FCU très large, panneaux déplacés) : on la ramène à l'intérieur
+  document.querySelectorAll('.pclose.abs').forEach(x=>{ if(x.closest('[hidden]')) return; const r=x.getBoundingClientRect(); if(!r.width) return;
+    if(r.right>innerWidth-2||r.left<2||r.top<2){ x.classList.remove('out'); x.style.right='4px'; x.style.top='4px'; } });
 }catch(e){ console.warn('croix',e); } },400);
 })();

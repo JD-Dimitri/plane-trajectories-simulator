@@ -14,7 +14,7 @@ const hm=h=>{ if(!isFinite(h)) return '—'; const m=Math.round(h*60); return Ma
 const loc=(ms,tz)=>{ try{ return new Intl.DateTimeFormat('fr-FR',{timeZone:tz,hour:'2-digit',minute:'2-digit',weekday:'short'}).format(new Date(ms)); }catch(e){ return '—'; } };
 const css=document.createElement('style'); css.textContent=`
 #calcform{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:125;width:min(760px,calc(100vw - 16px));max-height:calc(100vh - 24px);overflow:auto;background:#0a131c;border:2px solid #3fd0ff;border-radius:12px;color:#e8eef2;font:13px/1.45 Inter,sans-serif;padding:12px;box-shadow:0 10px 40px #000c;box-sizing:border-box}
-#calcform h3{margin:0 0 4px;font:700 21px 'Barlow Condensed',sans-serif;letter-spacing:.04em} #calcform .s{color:#8ea3b8;font-size:11.5px}
+#calcform .cfx{flex:0 0 auto;width:32px;height:32px;padding:0;border-radius:50%;display:inline-grid;place-items:center;font:700 15px/1 Inter,sans-serif;background:#2a1418;border:1px solid #6a3a44;color:#ffd7dc;cursor:pointer}#calcform .cfx:hover{background:#4a1a22}#calcform h3{margin:0 0 4px;font:700 21px 'Barlow Condensed',sans-serif;letter-spacing:.04em} #calcform .s{color:#8ea3b8;font-size:11.5px}
 #calcform section{border:1px solid #2b3d50;border-radius:10px;padding:8px 10px;margin:8px 0} #calcform h4{margin:0 0 6px;font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#3fd0ff}
 #calcform .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 10px} #calcform label{display:flex;flex-direction:column;font-size:11px;color:#9fb3c4}
 #calcform input{background:#0e1822;color:#e8eef2;border:1px solid #2b3d50;border-radius:5px;padding:4px 6px;font:12px 'JetBrains Mono',monospace;margin-top:2px}
@@ -72,7 +72,7 @@ function calc(){ const v=V, o={}, dep=v.dep, dest=v.dest;
   return o; }
 function render(){ const w=document.getElementById('calcform'); if(!w) return; const o=calc(); Object.keys(o).forEach(k=>{ const e=w.querySelector(`[data-o="${k}"]`); if(e) e.innerHTML=o[k]; }); }
 function open(){ close(); try{ if(!LS.tow&&typeof lsInit==='function'&&MI) lsInit(); }catch(e){} V=defaults(); const w=document.createElement('div'); w.id='calcform';
-  w.innerHTML=`<h3>🧮 Calculs du vol</h3><div class="s">${(typeof A!=='undefined'&&A.name)||''} · ${V.dep} → ${V.dest} · valeurs préremplies avec la mission, modifiables. Formules : Académie, partie 9 « Calculs du pilote de ligne ». Résultats [CALCULÉ] ; les documents de l'exploitant font foi.</div>${body()}
+  w.innerHTML=`<h3 style="display:flex;align-items:center;gap:8px"><span style="flex:1">🧮 Calculs du vol</span><button type="button" data-x class="cfx" title="Fermer" aria-label="Fermer">✕</button></h3><div class="s">${(typeof A!=='undefined'&&A.name)||''} · ${V.dep} → ${V.dest} · valeurs préremplies avec la mission, modifiables. Formules : Académie, partie 9 « Calculs du pilote de ligne ». Résultats [CALCULÉ] ; les documents de l'exploitant font foi.</div>${body()}
    <div class="bt"><button type="button" data-ap class="go">Appliquer au dossier de vol</button><button type="button" data-acad>📘 Cours (partie 9)</button><button type="button" data-x>Fermer</button></div>`;
   document.body.appendChild(w);
   w.addEventListener('input',e=>{ const k=e.target.dataset&&e.target.dataset.k; if(!k) return; V[k]=e.target.type==='number'?(parseFloat(e.target.value)||0):e.target.value; render(); });
@@ -81,6 +81,7 @@ function open(){ close(); try{ if(!LS.tow&&typeof lsInit==='function'&&MI) lsIni
     if(b.dataset.ap!=null){ try{ Object.assign(LS,{pax:V.pax,bag:V.bag,cargo:V.cargo,extra:V.extra}); lsCalc(); flash('Dossier de vol recalculé : devis de masse, bilan carburant et documents à jour','am'); render(); }catch(er){ console.warn('appliquer',er); } } });
   render(); }
 function close(){ const w=document.getElementById('calcform'); if(w) w.remove(); }
+addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('calcform')) close(); }); /* V10.40 (F24) */
 window.CALCF={open,close,calc:()=>calc(),vals:()=>V};
 function barBtn(){ const d=document.getElementById('b-docs'); if(!d||document.getElementById('b-calc')) return; const b=document.createElement('button'); b.type='button'; b.id='b-calc'; b.textContent='🧮 Calculs du vol'; b.title='Tous les calculs du dossier de vol, dans l\'ordre, reliés aux documents'; b.onclick=open; d.parentNode.insertBefore(b,d.nextSibling); }
 setInterval(barBtn,1000); barBtn();

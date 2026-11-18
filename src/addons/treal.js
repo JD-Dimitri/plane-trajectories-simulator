@@ -85,7 +85,7 @@ RT.open=open; RT.close=close;
 /* proposition discrète au lancement d'un parcours complet (non bloquante) */
 function propose(n){ const old=document.getElementById('rtprop'); if(old) old.remove(); if(RT.on||!MI||!MI.full||(window.EXAM&&EXAM.on)) return;
   // V10.38 : pas de proposition par-dessus l'introduction ou un panneau plein écran (téléphone) : elle attend leur fermeture (2 min au plus)
-  const ov=['intro','acad','docv','sysat'].map(id=>document.getElementById(id)).find(e=>e&&!e.hidden&&e.offsetParent!==null); if(ov){ if((n||0)<120) setTimeout(()=>propose((n||0)+1),1000); return; }
+  const ov=['intro','acad','docv','sysat'].map(id=>document.getElementById(id)).find(e=>e&&!e.hidden&&e.getClientRects().length>0) /* V10.40 : getClientRects (les panneaux en position fixe n'ont pas d'offsetParent) */; if(ov){ if((n||0)<120) setTimeout(()=>propose((n||0)+1),1000); return; }
   let I; try{ I=info(); }catch(e){ return; } const d=document.createElement('div'); d.id='rtprop';
   d.innerHTML=`<span>Trajet réel : <b>${hm(I.p.block)}</b>${I.r?` (référence ${hm(I.r.min)})`:''}</span><button type="button">⏱ Confirmation trajet temps réel</button><button type="button" class="x" aria-label="Fermer">✕</button>`;
   document.body.appendChild(d); d.querySelector('button').onclick=()=>{ d.remove(); open(); }; d.querySelector('.x').onclick=()=>d.remove(); setTimeout(()=>d.remove(),15000); }

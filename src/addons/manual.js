@@ -170,8 +170,11 @@ let ON=false; window.MANON=false;
 function pick(e){ const t=e.target; if(!(t instanceof Element)) return null; if(t.closest('#mancard,#manbar,#manlist')) return null;
   let el=t.closest(SEL); if(!el){ const w=t.closest('.sw,.k320,.c320'); if(w) el=w.querySelector('select[data-sw],select[data-pd]'); }
   if(el) return ident(el); if(t.id==='ckc'||t.closest('#ckc')) return {k:'scrn',id:screenAt(e.clientX,e.clientY)}; return null; }
-['pointerdown','mousedown','touchstart'].forEach(ev=>addEventListener(ev,e=>{ if(!ON) return; const c=pick(e); if(c) e.stopImmediatePropagation(); },{capture:true,passive:true}));
-addEventListener('click',e=>{ if(!ON) return; const c=pick(e); if(!c) return; e.stopImmediatePropagation(); e.preventDefault(); card(c); },true);
+// V10.40 (F24) : une croix de fermeture ferme toujours, même en mode d'emploi (elle n'est pas « expliquée »)
+const isX=t=>{ const b=t&&t.closest&&t.closest('button,[role=button],.pclose'); if(!b) return false; const x=(b.textContent||'').trim();
+  return b.classList.contains('pclose')||/^(✕|×|✖|Fermer ✕|✕ Fermer)$/.test(x)||/^fermer$/i.test(b.getAttribute('aria-label')||b.title||''); };
+['pointerdown','mousedown','touchstart'].forEach(ev=>addEventListener(ev,e=>{ if(!ON) return; if(isX(e.target)) return; const c=pick(e); if(c) e.stopImmediatePropagation(); },{capture:true,passive:true}));
+addEventListener('click',e=>{ if(!ON) return; if(isX(e.target)) return; const c=pick(e); if(!c) return; e.stopImmediatePropagation(); e.preventDefault(); card(c); },true);
 addEventListener('change',e=>{ if(ON&&e.target.closest&&e.target.closest(SEL)) e.stopImmediatePropagation(); },true);
 function toggle(v){ ON=v===undefined?!ON:!!v; window.MANON=ON; document.body.classList.toggle('manon',ON); const b=$$('b-man'); if(b) b.classList.toggle('on',ON);
   let bar=$$('manbar'); if(!bar){ bar=document.createElement('div'); bar.id='manbar'; bar.innerHTML='<span>ⓘ Mode d\'emploi : touchez un instrument, un bouton ou un écran (rien n\'est actionné)</span><button type="button" data-l>📖 Liste numérotée</button><button type="button" data-q>Quitter</button>'; document.body.appendChild(bar);

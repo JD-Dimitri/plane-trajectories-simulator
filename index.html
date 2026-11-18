@@ -3897,6 +3897,7 @@ const css=document.createElement('style'); css.textContent=`
 .pclose:hover{background:#4a1a22!important;border-color:var(--red)!important}
 .pclose.abs{position:absolute;top:6px;right:6px}
 .pclose.out{top:-11px;right:-11px;width:26px;height:26px;font-size:13px!important}
+#msg{pointer-events:none}/* V10.40 (F24) : les messages d'alerte ne masquent plus la ✕ du bandeau d'informations */
 #pchips{position:fixed;left:8px;top:calc(8px + env(safe-area-inset-top,0px));z-index:22;display:flex;gap:6px;flex-wrap:wrap}
 #pchips button{font-size:11px;padding:5px 9px;background:#101b26ee}`;
 document.head.appendChild(css);
@@ -3926,6 +3927,8 @@ addEventListener('click',e=>{ const r=e.target.closest&&e.target.closest('[data-
   const b=e.target.closest&&e.target.closest('#bar button'); if(b){ for(const id in BTN) if(BTN[id]===b.id) FORCE.delete(id); } },true);
 // fermeture sur pointerdown : fonctionne même si le panneau est reconstruit entre l'appui et le relâchement
 addEventListener('pointerdown',e=>{ const x=e.target.closest&&e.target.closest('.pclose'); if(!x) return; e.preventDefault(); e.stopPropagation(); closeP(x.dataset.for); },true);
+// V10.40 (F24) : aussi au clic (clavier : Entrée / Espace, lecteurs d'écran, clic programmé), sans double fermeture
+addEventListener('click',e=>{ const x=e.target.closest&&e.target.closest('.pclose'); if(!x) return; e.preventDefault(); e.stopPropagation(); const p=document.getElementById(x.dataset.for); if(p&&!p.hidden) closeP(x.dataset.for); },true);
 
 function candidates(){ const out=[]; document.querySelectorAll('.panel, #ovh, #menu').forEach(p=>{ if(!p.id||p.hidden||p.offsetParent===null&&getComputedStyle(p).position!=='fixed') return;
   if(['bar','brief','pchips'].includes(p.id)) return; if(p.id==='menu'&&!started) return; if(p.closest('#brief')) return; out.push(p); }); return out; }
@@ -3937,6 +3940,9 @@ let raf=0; new MutationObserver(()=>{ if(raf) return; raf=requestAnimationFrame(
 setInterval(()=>{ try{
   FORCE.forEach(id=>{ const p=document.getElementById(id); if(p&&!p.hidden) p.hidden=true; });
   candidates().forEach(inject); renderChips();
+  // V10.40 (F24) : une croix ne doit jamais sortir de l'écran (FCU très large, panneaux déplacés) : on la ramène à l'intérieur
+  document.querySelectorAll('.pclose.abs').forEach(x=>{ if(x.closest('[hidden]')) return; const r=x.getBoundingClientRect(); if(!r.width) return;
+    if(r.right>innerWidth-2||r.left<2||r.top<2){ x.classList.remove('out'); x.style.right='4px'; x.style.top='4px'; } });
 }catch(e){ console.warn('croix',e); } },400);
 })();
 
@@ -8435,8 +8441,11 @@ let ON=false; window.MANON=false;
 function pick(e){ const t=e.target; if(!(t instanceof Element)) return null; if(t.closest('#mancard,#manbar,#manlist')) return null;
   let el=t.closest(SEL); if(!el){ const w=t.closest('.sw,.k320,.c320'); if(w) el=w.querySelector('select[data-sw],select[data-pd]'); }
   if(el) return ident(el); if(t.id==='ckc'||t.closest('#ckc')) return {k:'scrn',id:screenAt(e.clientX,e.clientY)}; return null; }
-['pointerdown','mousedown','touchstart'].forEach(ev=>addEventListener(ev,e=>{ if(!ON) return; const c=pick(e); if(c) e.stopImmediatePropagation(); },{capture:true,passive:true}));
-addEventListener('click',e=>{ if(!ON) return; const c=pick(e); if(!c) return; e.stopImmediatePropagation(); e.preventDefault(); card(c); },true);
+// V10.40 (F24) : une croix de fermeture ferme toujours, même en mode d'emploi (elle n'est pas « expliquée »)
+const isX=t=>{ const b=t&&t.closest&&t.closest('button,[role=button],.pclose'); if(!b) return false; const x=(b.textContent||'').trim();
+  return b.classList.contains('pclose')||/^(✕|×|✖|Fermer ✕|✕ Fermer)$/.test(x)||/^fermer$/i.test(b.getAttribute('aria-label')||b.title||''); };
+['pointerdown','mousedown','touchstart'].forEach(ev=>addEventListener(ev,e=>{ if(!ON) return; if(isX(e.target)) return; const c=pick(e); if(c) e.stopImmediatePropagation(); },{capture:true,passive:true}));
+addEventListener('click',e=>{ if(!ON) return; if(isX(e.target)) return; const c=pick(e); if(!c) return; e.stopImmediatePropagation(); e.preventDefault(); card(c); },true);
 addEventListener('change',e=>{ if(ON&&e.target.closest&&e.target.closest(SEL)) e.stopImmediatePropagation(); },true);
 function toggle(v){ ON=v===undefined?!ON:!!v; window.MANON=ON; document.body.classList.toggle('manon',ON); const b=$$('b-man'); if(b) b.classList.toggle('on',ON);
   let bar=$$('manbar'); if(!bar){ bar=document.createElement('div'); bar.id='manbar'; bar.innerHTML='<span>ⓘ Mode d\'emploi : touchez un instrument, un bouton ou un écran (rien n\'est actionné)</span><button type="button" data-l>📖 Liste numérotée</button><button type="button" data-q>Quitter</button>'; document.body.appendChild(bar);
@@ -9764,7 +9773,7 @@ const NAMES={prep:'Préparation',taxi:'Roulage',to:'Décollage',cruise:'Croisiè
 function rebuild(ph){ while(G.children.length) G.remove(G.children[0]); const k=ACK, P=parts(k), list=(A.kind==='rw'?RW:FW)[ph](k);
   EXT=[]; (list||[]).forEach(([p,t])=>{ const xyz=P[p]; if(!xyz) return; EXT.push(t); const s=spr(String(EXT.length),ph==='land'?'#ffb347':ph==='to'?'#4ade80':'#3fd0ff'), sc=Math.min(innerWidth,innerHeight)<700?0.04:0.03; s.scale.set(sc*s.userData.ar,sc,1); s.center.set(0.5,-0.15); /* taille constante à l'écran */ s.position.set(...xyz); G.add(s); }); }
 // encadré intérieur (vue cockpit)
-function box(){ let b=document.getElementById('legck'); if(!b){ b=document.createElement('div'); b.id='legck'; b.style.cssText='position:fixed;right:8px;'+(innerWidth<700?'bottom:calc(var(--barh,64px) + 10px);max-height:30vh;overflow:auto;':'top:96px;')+'z-index:44;max-width:250px;background:rgba(8,16,24,.86);color:#e8eef2;border:1px solid #3fd0ff;border-radius:10px;padding:7px 10px;font:12px/1.35 Inter,sans-serif;pointer-events:none'; document.body.appendChild(b); } return b; }
+function box(){ let b=document.getElementById('legck'); if(!b){ b=document.createElement('div'); b.id='legck'; b.style.cssText='position:fixed;right:8px;'+(innerWidth<700?'bottom:calc(var(--barh,64px) + 10px);max-height:30vh;overflow:auto;':'top:96px;')+'z-index:8;max-width:250px;background:rgba(8,16,24,.86);color:#e8eef2;border:1px solid #3fd0ff;border-radius:10px;padding:7px 10px;font:12px/1.35 Inter,sans-serif;pointer-events:none'; document.body.appendChild(b); } return b; }
 function fam(){ return A.kind==='rw'?'rw':ACK==='c172'?'sep':ACK==='lj60'?'bus':'air'; }
 // bouton
 function sync(){ const b=document.getElementById('b-leg'); if(b){ b.textContent=LEG.on?'🏷 Légende ON':'🏷 Légende OFF'; b.classList.toggle('on',LEG.on); } }
@@ -10565,7 +10574,7 @@ RT.open=open; RT.close=close;
 /* proposition discrète au lancement d'un parcours complet (non bloquante) */
 function propose(n){ const old=document.getElementById('rtprop'); if(old) old.remove(); if(RT.on||!MI||!MI.full||(window.EXAM&&EXAM.on)) return;
   // V10.38 : pas de proposition par-dessus l'introduction ou un panneau plein écran (téléphone) : elle attend leur fermeture (2 min au plus)
-  const ov=['intro','acad','docv','sysat'].map(id=>document.getElementById(id)).find(e=>e&&!e.hidden&&e.offsetParent!==null); if(ov){ if((n||0)<120) setTimeout(()=>propose((n||0)+1),1000); return; }
+  const ov=['intro','acad','docv','sysat'].map(id=>document.getElementById(id)).find(e=>e&&!e.hidden&&e.getClientRects().length>0) /* V10.40 : getClientRects (les panneaux en position fixe n'ont pas d'offsetParent) */; if(ov){ if((n||0)<120) setTimeout(()=>propose((n||0)+1),1000); return; }
   let I; try{ I=info(); }catch(e){ return; } const d=document.createElement('div'); d.id='rtprop';
   d.innerHTML=`<span>Trajet réel : <b>${hm(I.p.block)}</b>${I.r?` (référence ${hm(I.r.min)})`:''}</span><button type="button">⏱ Confirmation trajet temps réel</button><button type="button" class="x" aria-label="Fermer">✕</button>`;
   document.body.appendChild(d); d.querySelector('button').onclick=()=>{ d.remove(); open(); }; d.querySelector('.x').onclick=()=>d.remove(); setTimeout(()=>d.remove(),15000); }
@@ -11015,7 +11024,7 @@ const hm=h=>{ if(!isFinite(h)) return '—'; const m=Math.round(h*60); return Ma
 const loc=(ms,tz)=>{ try{ return new Intl.DateTimeFormat('fr-FR',{timeZone:tz,hour:'2-digit',minute:'2-digit',weekday:'short'}).format(new Date(ms)); }catch(e){ return '—'; } };
 const css=document.createElement('style'); css.textContent=`
 #calcform{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:125;width:min(760px,calc(100vw - 16px));max-height:calc(100vh - 24px);overflow:auto;background:#0a131c;border:2px solid #3fd0ff;border-radius:12px;color:#e8eef2;font:13px/1.45 Inter,sans-serif;padding:12px;box-shadow:0 10px 40px #000c;box-sizing:border-box}
-#calcform h3{margin:0 0 4px;font:700 21px 'Barlow Condensed',sans-serif;letter-spacing:.04em} #calcform .s{color:#8ea3b8;font-size:11.5px}
+#calcform .cfx{flex:0 0 auto;width:32px;height:32px;padding:0;border-radius:50%;display:inline-grid;place-items:center;font:700 15px/1 Inter,sans-serif;background:#2a1418;border:1px solid #6a3a44;color:#ffd7dc;cursor:pointer}#calcform .cfx:hover{background:#4a1a22}#calcform h3{margin:0 0 4px;font:700 21px 'Barlow Condensed',sans-serif;letter-spacing:.04em} #calcform .s{color:#8ea3b8;font-size:11.5px}
 #calcform section{border:1px solid #2b3d50;border-radius:10px;padding:8px 10px;margin:8px 0} #calcform h4{margin:0 0 6px;font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#3fd0ff}
 #calcform .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 10px} #calcform label{display:flex;flex-direction:column;font-size:11px;color:#9fb3c4}
 #calcform input{background:#0e1822;color:#e8eef2;border:1px solid #2b3d50;border-radius:5px;padding:4px 6px;font:12px 'JetBrains Mono',monospace;margin-top:2px}
@@ -11073,7 +11082,7 @@ function calc(){ const v=V, o={}, dep=v.dep, dest=v.dest;
   return o; }
 function render(){ const w=document.getElementById('calcform'); if(!w) return; const o=calc(); Object.keys(o).forEach(k=>{ const e=w.querySelector(`[data-o="${k}"]`); if(e) e.innerHTML=o[k]; }); }
 function open(){ close(); try{ if(!LS.tow&&typeof lsInit==='function'&&MI) lsInit(); }catch(e){} V=defaults(); const w=document.createElement('div'); w.id='calcform';
-  w.innerHTML=`<h3>🧮 Calculs du vol</h3><div class="s">${(typeof A!=='undefined'&&A.name)||''} · ${V.dep} → ${V.dest} · valeurs préremplies avec la mission, modifiables. Formules : Académie, partie 9 « Calculs du pilote de ligne ». Résultats [CALCULÉ] ; les documents de l'exploitant font foi.</div>${body()}
+  w.innerHTML=`<h3 style="display:flex;align-items:center;gap:8px"><span style="flex:1">🧮 Calculs du vol</span><button type="button" data-x class="cfx" title="Fermer" aria-label="Fermer">✕</button></h3><div class="s">${(typeof A!=='undefined'&&A.name)||''} · ${V.dep} → ${V.dest} · valeurs préremplies avec la mission, modifiables. Formules : Académie, partie 9 « Calculs du pilote de ligne ». Résultats [CALCULÉ] ; les documents de l'exploitant font foi.</div>${body()}
    <div class="bt"><button type="button" data-ap class="go">Appliquer au dossier de vol</button><button type="button" data-acad>📘 Cours (partie 9)</button><button type="button" data-x>Fermer</button></div>`;
   document.body.appendChild(w);
   w.addEventListener('input',e=>{ const k=e.target.dataset&&e.target.dataset.k; if(!k) return; V[k]=e.target.type==='number'?(parseFloat(e.target.value)||0):e.target.value; render(); });
@@ -11082,6 +11091,7 @@ function open(){ close(); try{ if(!LS.tow&&typeof lsInit==='function'&&MI) lsIni
     if(b.dataset.ap!=null){ try{ Object.assign(LS,{pax:V.pax,bag:V.bag,cargo:V.cargo,extra:V.extra}); lsCalc(); flash('Dossier de vol recalculé : devis de masse, bilan carburant et documents à jour','am'); render(); }catch(er){ console.warn('appliquer',er); } } });
   render(); }
 function close(){ const w=document.getElementById('calcform'); if(w) w.remove(); }
+addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('calcform')) close(); }); /* V10.40 (F24) */
 window.CALCF={open,close,calc:()=>calc(),vals:()=>V};
 function barBtn(){ const d=document.getElementById('b-docs'); if(!d||document.getElementById('b-calc')) return; const b=document.createElement('button'); b.type='button'; b.id='b-calc'; b.textContent='🧮 Calculs du vol'; b.title='Tous les calculs du dossier de vol, dans l\'ordre, reliés aux documents'; b.onclick=open; d.parentNode.insertBefore(b,d.nextSibling); }
 setInterval(barBtn,1000); barBtn();
