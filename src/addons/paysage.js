@@ -77,4 +77,45 @@ detailMap=function(lat,lon,dl,dlo){ const base=_dm.apply(this,arguments); try{
   const t=new THREE.CanvasTexture(c); t.anisotropy=4; t.minFilter=THREE.LinearMipmapLinearFilter; base.dispose(); return t;
  }catch(e){ console.warn('paysage',e); return base; } };
 window.PAYSAGE={REUNION,URB,FOR,RIV,statut:'[APPROX.]'};
+
+/* ---------- V10.43 : côte nord de La Réunion — relief, NRL et Saint-Denis en 3D [APPROX.] ---------- */
+const inPoly=(la,lo,P)=>{ let c=false; for(let i=0,j=P.length-1;i<P.length;j=i++){ const [a1,b1]=P[i],[a2,b2]=P[j]; if((a1>la)!==(a2>la)&&lo<(b2-b1)*(la-a1)/(a2-a1)+b1) c=!c; } return c; };
+try{ if(typeof RELIEF!=='undefined') RELIEF.push(
+  [-20.985,55.44,2100,4.2],[-20.95,55.47,900,3.5],                              // Roche Écrite (2 276 m) et pentes au-dessus de Saint-Denis
+  [-20.912,55.415,650,1.8],[-20.925,55.39,750,1.8],[-20.935,55.365,750,1.8],[-20.945,55.345,650,1.8],   // plateau de La Montagne : falaises de la route du Littoral
+  [-20.95,55.40,1100,3.0],[-21.0,55.38,1300,5.0]); }catch(e){}                   // arrière-pays (Dos d'Âne, Mafate)
+const FLAT={FMEE:[2.4,4.5]};    // aplanissement autour de la piste : rayon plein, rayon de raccord (km)
+if(typeof elevAt==='function'&&typeof reliefAt==='function'){ const _el=elevAt; elevAt=function(lat,lon){
+  if(lat<-20.6&&lat>-21.6&&lon>55.0&&lon<56.0){ if(!inPoly(lat,lon,REUNION)) return 0; let e=reliefAt(lat,lon); const a=APTS.FMEE;
+    if(a){ const d=gcKm(lat,lon,a.lat,a.lon), [r0,r1]=FLAT.FMEE; if(d<r1){ const w=clamp((r1-d)/(r1-r0),0,1); e=e*(1-w)+a.elev*w; } }
+    for(const k in APTS){ if(k==='FMEE') continue; const b=APTS[k], d=gcKm(lat,lon,b.lat,b.lon); if(d<4){ const w=clamp((4-d)/2,0,1); e=e*(1-w)+b.elev*w; } }
+    // bord de mer : la pente rejoint 0 sur les 300 derniers mètres
+    let near=1e9; for(let i=0;i<REUNION.length;i++){ const [a1,b1]=REUNION[i],[a2,b2]=REUNION[(i+1)%REUNION.length]; const t=Math.max(0,Math.min(1,((lat-a1)*(a2-a1)+(lon-b1)*(b2-b1))/((a2-a1)**2+(b2-b1)**2))); near=Math.min(near,gcKm(lat,lon,a1+(a2-a1)*t,b1+(b2-b1)*t)); }
+    return near<0.3?e*near/0.3:e; }
+  return _el(lat,lon); }; }
+function put(obj,lat,lon,elev,hdg){ const p=ecef(lat,lon,elev||0), b=enuBasis(lat,lon), g=new THREE.Group(); g.matrixAutoUpdate=false;
+  const m=new THREE.Matrix4().makeBasis(new THREE.Vector3(...b.E),new THREE.Vector3(...b.U),new THREE.Vector3(-b.N[0],-b.N[1],-b.N[2])); m.setPosition(p[0],p[1],p[2]); g.matrix.copy(m);
+  if(hdg) obj.rotation.y=-hdg*Math.PI/180; g.add(obj); world.add(g); return g; }
+function coastLat(lon){ for(let i=0;i<REUNION.length;i++){ const [a1,b1]=REUNION[i],[a2,b2]=REUNION[(i+1)%REUNION.length]; if(a1>-20.95&&a2>-20.95&&((b1<=lon&&lon<=b2)||(b2<=lon&&lon<=b1))) return a1+(a2-a1)*(lon-b1)/((b2-b1)||1e-9); } return null; }
+try{ const L=new THREE.MeshLambertMaterial({color:0xd9d6cf}), PIL=new THREE.MeshLambertMaterial({color:0xbab6ad}), ROCK=new THREE.MeshLambertMaterial({color:0x6d6a64}), ROAD=new THREE.MeshLambertMaterial({color:0x3d3f42});
+  // NRL : de La Possession au Barachois, 300 m au large de la côte ; viaduc sur piles entre 55,350° et 55,405° E, digues ailleurs
+  const lons=[]; for(let lo=55.338;lo<=55.444;lo+=0.0035) lons.push(lo);
+  const P=lons.map(lo=>{ const c=coastLat(lo); return c==null?null:[c+0.0028,lo]; }).filter(Boolean);
+  for(let i=1;i<P.length;i++){ const [a1,b1]=P[i-1],[a2,b2]=P[i], la=(a1+a2)/2, lo=(b1+b2)/2, dE=(b2-b1)*111320*Math.cos(la*Math.PI/180), dN=(a2-a1)*110570, L2=Math.hypot(dE,dN), hdg=Math.atan2(dE,dN)*180/Math.PI;
+    const via=lo>55.350&&lo<55.405, g=new THREE.Group(), h=via?28:7;
+    const deck=new THREE.Mesh(new THREE.BoxGeometry(30,2.4,L2+1),L); deck.position.y=h; g.add(deck); const rd=new THREE.Mesh(new THREE.BoxGeometry(24,0.3,L2+1),ROAD); rd.position.y=h+1.3; g.add(rd);
+    if(via){ for(const zz of [-L2/2,0]){ const pl=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.6,h,10),PIL); pl.position.set(0,h/2-1,zz); g.add(pl); } }
+    else { const dg=new THREE.Mesh(new THREE.BoxGeometry(46,h,L2+1),ROCK); dg.position.y=h/2-1.2; g.add(dg); }
+    put(g,la,lo,0,hdg); }
+  // Saint-Denis : immeubles du centre (Barachois, rue de Paris, Champ-Fleuri) et front de mer
+  const R=H('saint-denis'), N=380, geo=new THREE.BoxGeometry(1,1,1), FA=new THREE.MeshLambertMaterial({color:0xe8e2d6}), IM=new THREE.InstancedMesh(geo,FA,N), mx=new THREE.Matrix4(), c0=[-20.882,55.452]; let n=0;
+  for(let i=0;i<N*3&&n<N;i++){ const la=c0[0]-R()*0.022, lo=c0[1]+(R()-0.5)*0.05; if(!inPoly(la,lo,REUNION)) continue; const e=elevAt(la,lo), dE=(lo-c0[1])*111320*Math.cos(la*Math.PI/180), dN=(la-c0[0])*110570;
+    if(e>260) continue; const hh=8+R()*(Math.abs(dE)<900&&dN>-1200?36:16), w=14+R()*22, d=12+R()*20; mx.compose(new THREE.Vector3(dE,e+hh/2,-dN),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),(R()-0.5)*0.4),new THREE.Vector3(w,hh,d)); IM.setMatrixAt(n++,mx); }
+  IM.count=n; IM.instanceMatrix.needsUpdate=true; put(IM,c0[0],c0[1],0,0);
+  const bar=new THREE.Group(); const grass=new THREE.Mesh(new THREE.BoxGeometry(520,1,70),new THREE.MeshLambertMaterial({color:0x5f8a3e})); grass.position.y=2; bar.add(grass);   // Barachois : promenade et pelouse du front de mer
+  for(let i=0;i<14;i++){ const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.5,12,6),new THREE.MeshLambertMaterial({color:0x6b5a44})); tr.position.set(-240+i*37,8,-20); bar.add(tr);
+    const pa=new THREE.Mesh(new THREE.SphereGeometry(4,8,6),new THREE.MeshLambertMaterial({color:0x2f6b2a})); pa.position.set(-240+i*37,14,-20); bar.add(pa); }
+  put(bar,-20.8755,55.4485,0,95);
+}catch(e){ console.warn('côte nord',e); }
+window.PAYSAGE.coteNord={statut:'[APPROX.]',NRL:'viaduc et digues dessinés au large de la côte',stDenis:'immeubles génériques'};
 })();
