@@ -19,6 +19,7 @@ function enginesOn(){ try{ const n=A.twin||AL()||ACK==='lj60'?2:1; S.eng=[true,n
 const ll=(r,x,y)=>{ const h=r.hdg*D2R; return offsetLL(r.lat,r.lon,x*Math.cos(h)-y*Math.sin(h),x*Math.sin(h)+y*Math.cos(h)); };   // x le long de l'axe, y à droite
 function air(lat,lon,altM,casKt,hdgDeg,o){ o=o||{}; const V=o.tas||tasFromCas(kt(casKt),altM);
   Object.assign(S,{lat,lon,alt:altM,V,onGround:false,gam:(o.gam||0)*D2R,th:(o.th!=null?o.th:2)*D2R,ph:0,psi:hdgDeg*D2R,gear:!!o.gear,flap:o.flap||0,thr:o.thr!=null?o.thr:0.6,pbrake:false,brake:false,pushed:true});
+  if(ACK==='c172') S.gear=true;   /* train fixe */
   if(A.kind==='rw'){ S.ve=V*Math.sin(S.psi); S.vn=V*Math.cos(S.psi); S.vu=0; S.coll=0.6; try{ DIR.iv=0; }catch(e){} }   /* mémoire (terme intégral) du pilotage automatique remise à zéro après le saut */
   TX.auto=false; try{ showRoute(null); }catch(e){} }
 function ground(lat,lon,hdgDeg,elev){ Object.assign(S,{lat,lon,alt:(elev!=null?elev:elevAt(lat,lon)),V:0,onGround:true,gam:0,th:0,ph:0,psi:hdgDeg*D2R,thr:0,pbrake:true,pushed:true}); if(A.kind==='rw'){ S.ve=S.vn=S.vu=0; S.coll=0; try{ DIR.iv=0; }catch(e){} } TX.auto=false; }
@@ -35,7 +36,7 @@ function place(k){ const st=GD.steps[k]||{}, fly=st.fly||'', idxLand=GD.steps.fi
   if(A.kind==='rw'){ const D=APTS[MI.dest], s0=MI.start(), dD=gcKm(s0.lat,s0.lon,D.lat,D.lon)*1000, h=brg(s0.lat,s0.lon,D.lat,D.lon);
     if(fly==='hTakeoff'){ ground(s0.lat,s0.lon,s0.hdg!=null?s0.hdg:h,s0.elev); return 'au sol, prêt au décollage'; }   /* altitude de l'hélistation, pas celle du relief */
     if(fly==='hCruise'){ const p=offsetLL(s0.lat,s0.lon,dD*0.4*Math.cos(h*D2R),dD*0.4*Math.sin(h*D2R)); air(p[0],p[1],elevAt(p[0],p[1])+300,A===AC.r44?90:110,h); return 'en transit à 300 m'; }
-    if(fly==='hLand'){ const b=before(D.lat,D.lon,1.7,s0.lat,s0.lon); air(b.p[0],b.p[1],elevAt(b.p[0],b.p[1])+200,70,b.hdg); return 'en approche à 1,7 km'; }
+    if(fly==='hLand'){ const b=before(D.lat,D.lon,2.7,s0.lat,s0.lon); air(b.p[0],b.p[1],elevAt(b.p[0],b.p[1])+300,58,b.hdg); return 'en approche à 2,7 km'; }   /* état réel observé en fin de croisière automatique : 2,7 km, 300 m, ≈ 58 kt */
     if(idxLand>=0&&k>idxLand){ ground(D.lat,D.lon,h,D.elev); GD.landed=true; return 'posé à destination'; }
     return null; }
   // Cessna 172 : tour de piste de Toussus (main gauche, 1 000 ft)

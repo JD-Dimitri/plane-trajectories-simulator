@@ -1709,11 +1709,15 @@ function flyFW(dt){ const L=LS, st=GD.steps[GD.i]||{}, agl=(S.alt-elevAt(S.lat,S
 /* ---- pilotage automatique hélicoptère ---- */
 function flyRW(dt){ const st=GD.steps[GD.i]||{}, dest=APTS[MI.dest], elev=elevAt(S.lat,S.lon), agl=S.alt-elev, d=gcKm(S.lat,S.lon,dest.lat,dest.lon)*1000;
   DIR.pitch=DIR.roll=DIR.yaw=DIR.coll=null; if(!st.fly||!S.eng[0]&&!(A.twin&&S.eng[1])) return; if(S.nr<0.95) return;
-  const hdgT=brg(S.lat,S.lon,dest.lat,dest.lon), vh=Math.hypot(S.ve,S.vn), vfwd=S.ve*Math.sin(S.psi)+S.vn*Math.cos(S.psi), wv=MI?windNow().map(v=>v*clamp((agl-0.3)/3,0,1)):[0,0], gs=Math.hypot(S.ve+wv[0],S.vn+wv[1]);   // vent : guidage par la vitesse SOL
+  let hdgT=brg(S.lat,S.lon,dest.lat,dest.lon); const vh=Math.hypot(S.ve,S.vn), vfwd=S.ve*Math.sin(S.psi)+S.vn*Math.cos(S.psi), wv=MI?windNow().map(v=>v*clamp((agl-0.3)/3,0,1)):[0,0], gs=Math.hypot(S.ve+wv[0],S.vn+wv[1]);   // vent : guidage par la vitesse SOL
   let altT, vT;
   if(S.onGround&&(GD.landed||d<60)){ DIR.coll=0; GD.landed=true; return; }
-  if(d>1800){ altT=elev+300; vT=agl>40?(A===AC.r44?45:55):0; }
-  else { altT=elev+Math.max(0,Math.min(300,d*0.12)); vT=Math.max(d>80?3:0,Math.min(45,d/30)); if(d<25){ vT=0; altT=elev+(gs<1.5?-2:3); } }
+  if(d>1800){ altT=elev+300; vT=agl>40?(A===AC.r44?45:55):0;
+    // V10.37 : départ dans l'axe de l'hélistation (côté dégagé, au-dessus de l'eau à Manhattan) au lieu d'une montée verticale qui dérive avec le vent vers les immeubles [SIMULÉ]
+    if(agl<=40){ const s0=MI.start(); if(s0&&s0.hdg!=null){ hdgT=s0.hdg; vT=Math.min(8,2+agl*0.2); } } }
+  else { altT=elev+Math.max(0,Math.min(300,d*0.12)); vT=Math.max(d>80?3:0,Math.min(45,d/30));
+    // V10.37 : au-dessus du point de posé, descente finale dès que la vitesse sol est faible ou après 8 s de stationnaire (rafales)
+    if(d<25){ vT=0; GD.hovT=(GD.hovT||0)+dt; altT=elev+(gs<1.5||GD.hovT>8?-2:3); } else GD.hovT=0; }
   // collectif : hauteur
   const Tmax=A.tw*A.m*G0, sig=isaRho(S.alt)/1.225, hover=(S.mass||A.m)*G0/(Tmax*sig*Math.max(0.3,S.nr*S.nr));
   const vuT=clamp((altT-S.alt)*0.25,-2.5,4); S.coll=clamp(hover*(vh>12?0.86:1)+(vuT-S.vu)*0.06,0,1); DIR.coll=S.coll;

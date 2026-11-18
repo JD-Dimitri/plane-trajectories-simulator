@@ -1709,11 +1709,15 @@ function flyFW(dt){ const L=LS, st=GD.steps[GD.i]||{}, agl=(S.alt-elevAt(S.lat,S
 /* ---- pilotage automatique hélicoptère ---- */
 function flyRW(dt){ const st=GD.steps[GD.i]||{}, dest=APTS[MI.dest], elev=elevAt(S.lat,S.lon), agl=S.alt-elev, d=gcKm(S.lat,S.lon,dest.lat,dest.lon)*1000;
   DIR.pitch=DIR.roll=DIR.yaw=DIR.coll=null; if(!st.fly||!S.eng[0]&&!(A.twin&&S.eng[1])) return; if(S.nr<0.95) return;
-  const hdgT=brg(S.lat,S.lon,dest.lat,dest.lon), vh=Math.hypot(S.ve,S.vn), vfwd=S.ve*Math.sin(S.psi)+S.vn*Math.cos(S.psi), wv=MI?windNow().map(v=>v*clamp((agl-0.3)/3,0,1)):[0,0], gs=Math.hypot(S.ve+wv[0],S.vn+wv[1]);   // vent : guidage par la vitesse SOL
+  let hdgT=brg(S.lat,S.lon,dest.lat,dest.lon); const vh=Math.hypot(S.ve,S.vn), vfwd=S.ve*Math.sin(S.psi)+S.vn*Math.cos(S.psi), wv=MI?windNow().map(v=>v*clamp((agl-0.3)/3,0,1)):[0,0], gs=Math.hypot(S.ve+wv[0],S.vn+wv[1]);   // vent : guidage par la vitesse SOL
   let altT, vT;
   if(S.onGround&&(GD.landed||d<60)){ DIR.coll=0; GD.landed=true; return; }
-  if(d>1800){ altT=elev+300; vT=agl>40?(A===AC.r44?45:55):0; }
-  else { altT=elev+Math.max(0,Math.min(300,d*0.12)); vT=Math.max(d>80?3:0,Math.min(45,d/30)); if(d<25){ vT=0; altT=elev+(gs<1.5?-2:3); } }
+  if(d>1800){ altT=elev+300; vT=agl>40?(A===AC.r44?45:55):0;
+    // V10.37 : départ dans l'axe de l'hélistation (côté dégagé, au-dessus de l'eau à Manhattan) au lieu d'une montée verticale qui dérive avec le vent vers les immeubles [SIMULÉ]
+    if(agl<=40){ const s0=MI.start(); if(s0&&s0.hdg!=null){ hdgT=s0.hdg; vT=Math.min(8,2+agl*0.2); } } }
+  else { altT=elev+Math.max(0,Math.min(300,d*0.12)); vT=Math.max(d>80?3:0,Math.min(45,d/30));
+    // V10.37 : au-dessus du point de posé, descente finale dès que la vitesse sol est faible ou après 8 s de stationnaire (rafales)
+    if(d<25){ vT=0; GD.hovT=(GD.hovT||0)+dt; altT=elev+(gs<1.5||GD.hovT>8?-2:3); } else GD.hovT=0; }
   // collectif : hauteur
   const Tmax=A.tw*A.m*G0, sig=isaRho(S.alt)/1.225, hover=(S.mass||A.m)*G0/(Tmax*sig*Math.max(0.3,S.nr*S.nr));
   const vuT=clamp((altT-S.alt)*0.25,-2.5,4); S.coll=clamp(hover*(vh>12?0.86:1)+(vuT-S.vu)*0.06,0,1); DIR.coll=S.coll;
@@ -5165,17 +5169,21 @@ function nearRunway(lat,lon,half){ try{ const R=6371000, D=Math.PI/180; for(cons
    const t=(P[0]*B[0]+P[1]*B[1])/(L*L), tc=Math.max(0,Math.min(1,t)), d=Math.hypot(P[0]-B[0]*tc,P[1]-B[1]*tc), past=Math.max(0,-t,t-1)*L;
    if(d<160+(half||0)&&past<300) return true; } }catch(e){} return false; }
 window.NEAR_RWY=nearRunway;
+/* V10.37 : aucun immeuble généré à moins de 250 m d'une hélistation (Downtown Manhattan est sur une jetée au-dessus de l'East River) :
+   un immeuble tiré au hasard à côté de l'aire coupait la trajectoire de départ des hélicoptères. Rayon de 250 m [HYPOTHÈSE] */
+function nearHeli(lat,lon){ try{ for(const a of Object.values(APTS)) if(a.heli&&gcKm(lat,lon,a.lat,a.lon)<0.25) return true; }catch(e){} return false; }
 function city(lat0,lon0,lat1,lon1,step,hMin,hMax,seed,elev,hdg,ellipse){ const rnd=rng(seed), c=[(lat0+lat1)/2,(lon0+lon1)/2], kx=111320*Math.cos(c[0]*Math.PI/180), list=[];
   const W=(lon1-lon0)*kx/2, H=(lat1-lat0)*111320/2;
   for(let x=-W;x<=W;x+=step) for(let z=-H;z<=H;z+=step){ if(ellipse&&(x*x/(W*W)+z*z/(H*H))>1) continue; if(rnd()<0.18) continue;
     const it={x,z,h:hMin+Math.pow(rnd(),2.2)*(hMax-hMin),w:step*(0.45+rnd()*0.35),d:step*(0.45+rnd()*0.35),k:Math.floor(rnd()*4),r:-(hdg||0)*Math.PI/180};
-    if(nearRunway(c[0]-z/111320,c[1]+x/kx,Math.hypot(it.w,it.d)/2)) continue; list.push(it); }
+    if(nearRunway(c[0]-z/111320,c[1]+x/kx,Math.hypot(it.w,it.d)/2)||nearHeli(c[0]-z/111320,c[1]+x/kx)) continue; list.push(it); }
   place(merged(list),c[0],c[1],elev); }
 /* bande urbaine le long d'un axe (île de Manhattan) : largeurs en mètres le long de l'axe */
 function strip(A,B,widths,step,hFn,seed,elev,hdg){ const rnd=rng(seed), c=[(A[0]+B[0])/2,(A[1]+B[1])/2], kx=111320*Math.cos(c[0]*Math.PI/180);
   const ax=(B[1]-A[1])*kx, az=-(B[0]-A[0])*111320, L=Math.hypot(ax,az), ux=ax/L, uz=az/L, vx=-uz, vz=ux, list=[];
   for(let u=-L/2;u<=L/2;u+=step){ const f=(u+L/2)/L, wi=widths[Math.min(widths.length-1,Math.floor(f*widths.length))]; for(let v=-wi/2;v<=wi/2;v+=step){ if(rnd()<0.15) continue;
-    list.push({x:u*ux+v*vx,z:u*uz+v*vz,h:hFn(f,rnd),w:step*(0.5+rnd()*0.3),d:step*(0.5+rnd()*0.3),k:Math.floor(rnd()*4),r:-(hdg||0)*Math.PI/180}); } }
+    const bx=u*ux+v*vx, bz=u*uz+v*vz; if(nearHeli(c[0]-bz/111320,c[1]+bx/kx)){ hFn(f,rnd); rnd(); rnd(); rnd(); continue; }
+    list.push({x:bx,z:bz,h:hFn(f,rnd),w:step*(0.5+rnd()*0.3),d:step*(0.5+rnd()*0.3),k:Math.floor(rnd()*4),r:-(hdg||0)*Math.PI/180}); } }
   place(merged(list),c[0],c[1],elev); }
 function landmark(kind,lat,lon,elev){ const g=new T.Group();
   if(kind==='1wtc'){ const sh=new T.Mesh(new T.CylinderGeometry(18,42,417,4),GLASS); sh.rotation.y=Math.PI/4; sh.position.y=208; g.add(sh); const sp=new T.Mesh(new T.CylinderGeometry(1.2,2.5,124,6),GREY); sp.position.y=417+62; g.add(sp); }
@@ -10110,9 +10118,10 @@ function enginesOn(){ try{ const n=A.twin||AL()||ACK==='lj60'?2:1; S.eng=[true,n
 const ll=(r,x,y)=>{ const h=r.hdg*D2R; return offsetLL(r.lat,r.lon,x*Math.cos(h)-y*Math.sin(h),x*Math.sin(h)+y*Math.cos(h)); };   // x le long de l'axe, y à droite
 function air(lat,lon,altM,casKt,hdgDeg,o){ o=o||{}; const V=o.tas||tasFromCas(kt(casKt),altM);
   Object.assign(S,{lat,lon,alt:altM,V,onGround:false,gam:(o.gam||0)*D2R,th:(o.th!=null?o.th:2)*D2R,ph:0,psi:hdgDeg*D2R,gear:!!o.gear,flap:o.flap||0,thr:o.thr!=null?o.thr:0.6,pbrake:false,brake:false,pushed:true});
-  if(A.kind==='rw'){ S.ve=V*Math.sin(S.psi); S.vn=V*Math.cos(S.psi); S.vu=0; S.coll=0.6; }
+  if(ACK==='c172') S.gear=true;   /* train fixe */
+  if(A.kind==='rw'){ S.ve=V*Math.sin(S.psi); S.vn=V*Math.cos(S.psi); S.vu=0; S.coll=0.6; try{ DIR.iv=0; }catch(e){} }   /* mémoire (terme intégral) du pilotage automatique remise à zéro après le saut */
   TX.auto=false; try{ showRoute(null); }catch(e){} }
-function ground(lat,lon,hdgDeg,elev){ Object.assign(S,{lat,lon,alt:(elev!=null?elev:elevAt(lat,lon)),V:0,onGround:true,gam:0,th:0,ph:0,psi:hdgDeg*D2R,thr:0,pbrake:true,pushed:true}); if(A.kind==='rw'){ S.ve=S.vn=S.vu=0; S.coll=0; } TX.auto=false; }
+function ground(lat,lon,hdgDeg,elev){ Object.assign(S,{lat,lon,alt:(elev!=null?elev:elevAt(lat,lon)),V:0,onGround:true,gam:0,th:0,ph:0,psi:hdgDeg*D2R,thr:0,pbrake:true,pushed:true}); if(A.kind==='rw'){ S.ve=S.vn=S.vu=0; S.coll=0; try{ DIR.iv=0; }catch(e){} } TX.auto=false; }
 function routePoint(frac){ const F=window.FPLN; if(!F||!F.pts||F.pts.length<2) return null; const P=F.pts; let tot=0; const seg=[]; for(let i=1;i<P.length;i++){ const d=gcKm(P[i-1][0],P[i-1][1],P[i][0],P[i][1]); seg.push(d); tot+=d; }
   let want=tot*frac; for(let i=1;i<P.length;i++){ if(want<=seg[i-1]){ const f=want/Math.max(1e-6,seg[i-1]), la=P[i-1][0]+(P[i][0]-P[i-1][0])*f, lo=P[i-1][1]+(P[i][1]-P[i-1][1])*f; F.i=i; return {lat:la,lon:lo,hdg:brg(P[i-1][0],P[i-1][1],P[i][0],P[i][1])}; } want-=seg[i-1]; }
   return null; }
@@ -10126,7 +10135,7 @@ function place(k){ const st=GD.steps[k]||{}, fly=st.fly||'', idxLand=GD.steps.fi
   if(A.kind==='rw'){ const D=APTS[MI.dest], s0=MI.start(), dD=gcKm(s0.lat,s0.lon,D.lat,D.lon)*1000, h=brg(s0.lat,s0.lon,D.lat,D.lon);
     if(fly==='hTakeoff'){ ground(s0.lat,s0.lon,s0.hdg!=null?s0.hdg:h,s0.elev); return 'au sol, prêt au décollage'; }   /* altitude de l'hélistation, pas celle du relief */
     if(fly==='hCruise'){ const p=offsetLL(s0.lat,s0.lon,dD*0.4*Math.cos(h*D2R),dD*0.4*Math.sin(h*D2R)); air(p[0],p[1],elevAt(p[0],p[1])+300,A===AC.r44?90:110,h); return 'en transit à 300 m'; }
-    if(fly==='hLand'){ const b=before(D.lat,D.lon,1.7,s0.lat,s0.lon); air(b.p[0],b.p[1],elevAt(b.p[0],b.p[1])+200,70,b.hdg); return 'en approche à 1,7 km'; }
+    if(fly==='hLand'){ const b=before(D.lat,D.lon,2.7,s0.lat,s0.lon); air(b.p[0],b.p[1],elevAt(b.p[0],b.p[1])+300,58,b.hdg); return 'en approche à 2,7 km'; }   /* état réel observé en fin de croisière automatique : 2,7 km, 300 m, ≈ 58 kt */
     if(idxLand>=0&&k>idxLand){ ground(D.lat,D.lon,h,D.elev); GD.landed=true; return 'posé à destination'; }
     return null; }
   // Cessna 172 : tour de piste de Toussus (main gauche, 1 000 ft)

@@ -48,17 +48,21 @@ function nearRunway(lat,lon,half){ try{ const R=6371000, D=Math.PI/180; for(cons
    const t=(P[0]*B[0]+P[1]*B[1])/(L*L), tc=Math.max(0,Math.min(1,t)), d=Math.hypot(P[0]-B[0]*tc,P[1]-B[1]*tc), past=Math.max(0,-t,t-1)*L;
    if(d<160+(half||0)&&past<300) return true; } }catch(e){} return false; }
 window.NEAR_RWY=nearRunway;
+/* V10.37 : aucun immeuble généré à moins de 250 m d'une hélistation (Downtown Manhattan est sur une jetée au-dessus de l'East River) :
+   un immeuble tiré au hasard à côté de l'aire coupait la trajectoire de départ des hélicoptères. Rayon de 250 m [HYPOTHÈSE] */
+function nearHeli(lat,lon){ try{ for(const a of Object.values(APTS)) if(a.heli&&gcKm(lat,lon,a.lat,a.lon)<0.25) return true; }catch(e){} return false; }
 function city(lat0,lon0,lat1,lon1,step,hMin,hMax,seed,elev,hdg,ellipse){ const rnd=rng(seed), c=[(lat0+lat1)/2,(lon0+lon1)/2], kx=111320*Math.cos(c[0]*Math.PI/180), list=[];
   const W=(lon1-lon0)*kx/2, H=(lat1-lat0)*111320/2;
   for(let x=-W;x<=W;x+=step) for(let z=-H;z<=H;z+=step){ if(ellipse&&(x*x/(W*W)+z*z/(H*H))>1) continue; if(rnd()<0.18) continue;
     const it={x,z,h:hMin+Math.pow(rnd(),2.2)*(hMax-hMin),w:step*(0.45+rnd()*0.35),d:step*(0.45+rnd()*0.35),k:Math.floor(rnd()*4),r:-(hdg||0)*Math.PI/180};
-    if(nearRunway(c[0]-z/111320,c[1]+x/kx,Math.hypot(it.w,it.d)/2)) continue; list.push(it); }
+    if(nearRunway(c[0]-z/111320,c[1]+x/kx,Math.hypot(it.w,it.d)/2)||nearHeli(c[0]-z/111320,c[1]+x/kx)) continue; list.push(it); }
   place(merged(list),c[0],c[1],elev); }
 /* bande urbaine le long d'un axe (île de Manhattan) : largeurs en mètres le long de l'axe */
 function strip(A,B,widths,step,hFn,seed,elev,hdg){ const rnd=rng(seed), c=[(A[0]+B[0])/2,(A[1]+B[1])/2], kx=111320*Math.cos(c[0]*Math.PI/180);
   const ax=(B[1]-A[1])*kx, az=-(B[0]-A[0])*111320, L=Math.hypot(ax,az), ux=ax/L, uz=az/L, vx=-uz, vz=ux, list=[];
   for(let u=-L/2;u<=L/2;u+=step){ const f=(u+L/2)/L, wi=widths[Math.min(widths.length-1,Math.floor(f*widths.length))]; for(let v=-wi/2;v<=wi/2;v+=step){ if(rnd()<0.15) continue;
-    list.push({x:u*ux+v*vx,z:u*uz+v*vz,h:hFn(f,rnd),w:step*(0.5+rnd()*0.3),d:step*(0.5+rnd()*0.3),k:Math.floor(rnd()*4),r:-(hdg||0)*Math.PI/180}); } }
+    const bx=u*ux+v*vx, bz=u*uz+v*vz; if(nearHeli(c[0]-bz/111320,c[1]+bx/kx)){ hFn(f,rnd); rnd(); rnd(); rnd(); continue; }
+    list.push({x:bx,z:bz,h:hFn(f,rnd),w:step*(0.5+rnd()*0.3),d:step*(0.5+rnd()*0.3),k:Math.floor(rnd()*4),r:-(hdg||0)*Math.PI/180}); } }
   place(merged(list),c[0],c[1],elev); }
 function landmark(kind,lat,lon,elev){ const g=new T.Group();
   if(kind==='1wtc'){ const sh=new T.Mesh(new T.CylinderGeometry(18,42,417,4),GLASS); sh.rotation.y=Math.PI/4; sh.position.y=208; g.add(sh); const sp=new T.Mesh(new T.CylinderGeometry(1.2,2.5,124,6),GREY); sp.position.y=417+62; g.add(sp); }
