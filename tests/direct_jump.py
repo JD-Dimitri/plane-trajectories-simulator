@@ -12,8 +12,8 @@ Usage : python3 direct_jump.py [appareil ...]     (par défaut : les 7)
 import asyncio, sys, time, json
 from playwright.async_api import async_playwright
 
-ACS = sys.argv[1:] or ['a320', 'b777', 'lj60', 'c172', 'h125', 'r44', 's76']
-CRUISE = {'a320': 35000, 'b777': 35000, 'lj60': 41000}
+ACS = sys.argv[1:] or ['a320', 'b777', 'a350', 'lj60', 'c172', 'h125', 'r44', 's76']
+CRUISE = {'a320': 35000, 'b777': 35000, 'a350': 35000, 'lj60': 41000}
 FLIGHT = {'takeoff', 'climb', 'cruise', 'descent', 'approach', 'land', 'pattern', 'hTakeoff', 'hCruise', 'hLand'}
 
 SETUP = """window.VT=performance.now(); performance.now=()=>window.VT; loop=function(){}; renderer.render=()=>{}; drawCockpit=()=>{};

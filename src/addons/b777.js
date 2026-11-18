@@ -38,7 +38,7 @@ if(typeof PED!=='undefined'&&PED.a320&&!PED.b777) PED.b777=PED.a320;
 // leviers de volets : crans de l'appareil choisi (A320 : 0-1-2-3-FULL ; 777 : 0-1-5-15-20-25-30)
 const FLAPOPT=[]; const grab=(n,d)=>{ if(!n||d>9) return; if(Array.isArray(n)){ if(n[0]==='flapL'&&Array.isArray(n[3])){ FLAPOPT.push(n[3]); return; } n.forEach(x=>grab(x,d+1)); } else if(typeof n==='object') for(const k in n) grab(n[k],d+1); };
 try{ grab(PED.a320,0); }catch(e){} try{ grab(P320,0); }catch(e){}
-function flapOpts(k){ if(!AC[k]||!(k==='a320'||k==='b777')) return; const names=AC[k].flaps.map(f=>f.n); FLAPOPT.forEach(a=>a.splice(0,a.length,...names)); }
+function flapOpts(k){ if(!AC[k]||!(k==='a320'||k==='b777'||k==='a350')) return;   /* V10.39 : A350 (crans Airbus 0-1-2-3-FULL) */ const names=AC[k].flaps.map(f=>f.n); FLAPOPT.forEach(a=>a.splice(0,a.length,...names)); }
 
 /* ---- aéroports ---- */
 APTS.LFPO={n:'Paris-Orly',lat:48.7233,lon:2.3794,elev:89,rw:[

@@ -305,7 +305,7 @@ function prep(){ if(!BR.fromSim){ ACK=selAC; A=AC[ACK]; MI=MISSIONS[selMI]; } bu
 function show(fromSim,page){ BR.fromSim=!!fromSim; if(fromSim){ BR.wasPaused=paused; paused=true; } prep(); BR.i=page||0; BR.all=false; dom().hidden=false; $('br-all').classList.remove('on'); render(); try{ SND.unlock&&SND.unlock(); }catch(e){} }
 function close(){ const b=$('brief'); if(b) b.hidden=true; if(BR.fromSim){ paused=BR.wasPaused; } }
 // bouton « Lancer » de chaque carte : démarre directement le parcours correspondant
-function launchMode(id){ const fw=(AC[selAC]||A).kind==='fw', full=window.FULLOF?FULLOF(selAC):(fw?'full-fw':'full-rw'), libre=selAC==='b777'?'af-cdg-run':fw?'jfk-cdg':'heli-ny';
+function launchMode(id){ const fw=(AC[selAC]||A).kind==='fw', full=window.FULLOF?FULLOF(selAC):(fw?'full-fw':'full-rw'), libre=selAC==='b777'?'af-cdg-run':selAC==='a350'?'a350-cdg-run':fw?'jfk-cdg':'heli-ny';
   if(BR.fromSim){ BR.fromSim=false; paused=false; }
   let m='guide';
   if(['guide','auto','free','exam'].includes(id)){ if(!MISSIONS[selMI]||!MISSIONS[selMI].full) selMI=full; m=id==='exam'?'guide':id; window.EXAM_PENDING=id==='exam'; }

@@ -15,6 +15,7 @@ const KEY='pt-rt-save-v1', MAXAGE=72*3600e3;
 /* Durées de référence des vols réels (temps bloc, porte à porte) [RÉFÉRENCÉ] — vérifiées le 18/11/2026 */
 const REF={
   'full-777-af':{min:660,txt:'Air France AF652 Paris-CDG → La Réunion, Boeing 777-300ER : départ 18 h 00, arrivée 08 h 00 (heure locale) = 11 h 00',src:'FlightStats, vol AF652, horaires de novembre 2026'},
+  'full-350':{min:660,txt:'Même route Paris-CDG → La Réunion : Air France AF652 (Boeing 777-300ER) 18 h 00 → 08 h 00 locale = 11 h 00 ; sur A350-900, durée du même ordre [ESTIMÉ]',src:'FlightStats, vol AF652, horaires de novembre 2026'},
   'full-fw':{min:435,txt:'Vols réguliers New York JFK → Paris-CDG : 7 h 15 à 7 h 25 (Air France AF1)',src:'FlightMapper, vol Air France AF 1 JFK → CDG'},
   'full-rw':{min:7.5,range:[5,10],kind:'flight',txt:'Hélicoptère Manhattan → JFK : environ 5 à 10 min de vol selon l\'itinéraire',src:'Blade, « How do you get from Manhattan to JFK by helicopter? »'},
   'full-c172':{min:7,range:[6,8],kind:'flight',txt:'Tour de piste à Toussus en Cessna 172 : environ 6 à 8 min [ESTIMÉ], ordre de grandeur courant en école',src:'[ESTIMÉ] — pas de source officielle'}};

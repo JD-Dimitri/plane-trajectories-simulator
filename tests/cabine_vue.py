@@ -15,7 +15,7 @@ CREW = {'c172': 1, 'h125': 1, 'r44': 1}
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader']); errs = []
-        for ac in ['a320', 'b777', 'lj60', 'c172', 'h125', 'r44', 's76']:
+        for ac in ['a320', 'b777', 'a350', 'lj60', 'c172', 'h125', 'r44', 's76']:
             pg = await b.new_page(viewport={'width': 900, 'height': 600}); pg.on('pageerror', lambda e: errs.append(str(e)))
             await pg.goto('http://localhost:8765/final.html'); await pg.wait_for_timeout(1800)
             await pg.evaluate(f"selAC='{ac}'; selMI=FULLOF('{ac}'); renderMenu(); $('go').click(); document.getElementById('br-skip').click(); const i=document.getElementById('intro'); if(i) i.hidden=true;")

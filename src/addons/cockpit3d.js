@@ -25,8 +25,8 @@ function box(par,w,h,d,mat,x,y,z,rx,ry,rz){ const b=new THREE.Mesh(new THREE.Box
 // montant oblique entre deux points (repère du poste)
 function post(par,a,b,t,mat){ const A=new THREE.Vector3(...a), B=new THREE.Vector3(...b), d=B.clone().sub(A), m=new THREE.Mesh(new THREE.BoxGeometry(t,d.length(),t*0.8),mat); m.position.copy(A).add(B).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); par.add(m); return m; }
 function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; const e=A.eye, cx=-e[0], g=new THREE.Group(); g.position.set(e[0],e[1],e[2]); G.add(g);
-  const air=k==='a320'||k==='b777', boe=k==='b777';
-  if(air||k==='lj60'||k==='s76'){ const W=k==='b777'?1.45:k==='a320'?1.3:k==='s76'?0.95:0.85, top=k==='lj60'?0.28:0.34, gz=k==='lj60'?-0.78:-0.95;
+  const air=k==='a320'||k==='b777'||k==='a350', boe=k==='b777';
+  if(air||k==='lj60'||k==='s76'){ const W=k==='b777'?1.45:k==='a350'?1.4:k==='a320'?1.3:k==='s76'?0.95:0.85, top=k==='lj60'?0.28:0.34, gz=k==='lj60'?-0.78:-0.95;
     const col=boe?0x4a443e:k==='lj60'?0x3b3e43:k==='s76'?0x3d4146:0x56616c, frame=M(boe?0x2e2a27:0x24282c), glare=M(col), sill=M(boe?0x5a534c:0x66707a);
     box(g,2*W,0.10,0.45,glare,cx,-0.30,gz);                                                           // casquette
     if(k!=='lj60'||true){ const p=box(g,Math.min(1.4,2*W-0.2),0.09,0.02,M(0xffffff,mcpTex(boe?'#3e3934':'#4a545e',boe?'#ffb347':'#ffd27a'),true),cx,-0.30,gz-0.235); }   // MCP / FCU rétroéclairé
@@ -53,7 +53,7 @@ function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; co
 /* V10.38 (F4) : poste plus détaillé, sur ce qui est réellement visible au-dessus de la planche 2D : siège et commandes du copilote,
    pare-soleil, rails de fenêtre, console latérale, cloison arrière avec porte du poste, panneaux de disjoncteurs, boîte à masque à oxygène.
    Formes simplifiées et originales, cotes [ESTIMÉ]. */
-function detail(g,k,cx){ const air=k==='a320'||k==='b777', boe=k==='b777', heli=k==='h125'||k==='r44'||k==='s76', small=k==='c172'||k==='r44'||k==='h125';
+function detail(g,k,cx){ const air=k==='a320'||k==='b777'||k==='a350', boe=k==='b777', heli=k==='h125'||k==='r44'||k==='s76', small=k==='c172'||k==='r44'||k==='h125';
   const seat=M(boe?0x3a3632:k==='c172'?0x6b5d4c:k==='r44'?0x5a4a3a:0x2f3640), seatL=M(boe?0x4a453f:0x3c4552), dk=M(0x1a1c1f), mid=M(boe?0x4a443e:0x56616c), pale=M(0xc9ced3);
   const half=air?(boe?0.62:0.55):k==='lj60'?0.42:k==='s76'?0.48:k==='c172'?0.3:0.36, xo=2*cx;                // x du copilote (symétrique du pilote)
   const back=heli||k==='c172'?0.35:0.55, hz=0.32;

@@ -32,7 +32,7 @@ async def main():
         pg = await ctx.new_page(); errs = []
         pg.on('pageerror', lambda e: errs.append(str(e)))
         # 1. durées prévues de chaque parcours
-        for ac, ref in [('b777', 660), ('a320', 435), ('lj60', None), ('h125', 7.5), ('r44', 7.5), ('s76', 7.5), ('c172', 7)]:
+        for ac, ref in [('b777', 660), ('a350', 660), ('a320', 435), ('lj60', None), ('h125', 7.5), ('r44', 7.5), ('s76', 7.5), ('c172', 7)]:
             await start(pg, ac)
             prop = await pg.evaluate("!!document.getElementById('rtprop')")
             i = await pg.evaluate("(()=>{ const I=RT.info(); return {block:Math.round(I.p.block), flight:Math.round(I.p.flight), ref:I.refMin, gap:I.gap, warn:I.warn, eta:I.etaUTC, loc:I.etaLoc, km:Math.round(I.p.km)}; })()")
@@ -41,7 +41,7 @@ async def main():
             check(f'{ac} : proposition au lancement', prop)
             check(f'{ac} : durée prévue {h} (vol {i["flight"]} min, route {i["km"]} km), référence {i["ref"]}, écart {i["gap"]} %',
                   ('Durée prévue' in txt and 'Arrivée estimée' in txt and (ref is not None or 'pas de durée de référence' in txt))
-                  and (ac not in ('b777', 'a320') or abs(i['gap']) <= 10),
+                  and (ac not in ('b777', 'a350', 'a320') or abs(i['gap']) <= 10),
                   f"ETA {i['eta']} UTC / {i['loc']} local" + (' — écart signalé' if i['warn'] else ''))
         await start(pg, 'b777')
         i = await pg.evaluate("RT.info().p.block")

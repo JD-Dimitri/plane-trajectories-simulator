@@ -6,6 +6,7 @@
 (function(){
 const MAP=[
  [/Airbus A320-200/g,'Aéralis AL-20'],[/\bA320-200\b/g,'AL-20'],[/\bA320\b/g,'AL-20'],[/\bA32[01N]\b/g,'AL-20'],
+ [/Airbus A350-900/g,'Aéralis AL-35'],[/\bA350-900\b/g,'AL-35'],[/\bA350\b/g,'AL-35'],[/\bA359\b/g,'AL-35'],[/Rolls-Royce Trent XWB-84/g,'Vectra TX-84'],[/\bTrent XWB-84\b/g,'TX-84'],[/\bTrent XWB\b/g,'TX'],[/\bRolls-Royce\b/g,'Vectra'],
  [/Boeing 777-300ER/g,'Celestra C-77 LR'],[/\b777-300ER\b/g,'C-77 LR'],[/\b777\b/g,'C-77'],[/\bBoeing\b/g,'Celestra'],
  [/Airbus H125/g,'Héliane H-25'],[/\bH125\b/g,'H-25'],[/Écureuil/g,'Héliane'],[/\s*\(AS ?350 ?B3e?\)/g,''],[/\bAS ?350( ?B3e?)?\b/g,'H-25'],[/\bAirbus\b/g,'Aéralis'],
  [/Learjet 60/g,'Stratus SJ-6'],[/\bLearjet\b/g,'Stratus'],[/\bLJ60\b/g,'SJ-6'],

@@ -8,7 +8,7 @@
    le parcours Germanwings au FL380 n'a pas de sens pour un avion non pressurisé ou un hélicoptère. */
 (function(){
 if(typeof SCNS==='undefined') return;
-const NM={a320:'A320',b777:'Boeing 777',lj60:'Learjet 60',c172:'Cessna 172',h125:'H125',r44:'R44',s76:'S-76'};
+const NM={a320:'A320',b777:'Boeing 777',a350:'A350-900',lj60:'Learjet 60',c172:'Cessna 172',h125:'H125',r44:'R44',s76:'S-76'};
 const clone=(id,ac,o)=>{ const b=SCNS.find(s=>s.id===id); if(!b||SCNS.find(s=>s.id===id+'@'+ac)) return; SCNS.push(Object.assign({},b,{id:id+'@'+ac,ac,name:b.name.replace(/A320-?200|A320/g,NM[ac])+(/A320/.test(b.name)?'':' · '+NM[ac])},o||{})); };
 
 /* --- pannes propres au Cessna 172 (aussi dans le panneau « Pannes ») --- */
@@ -40,13 +40,15 @@ const ljBase=SCNS.find(s=>s.id==='F-LJENG')||{};
   const o=Object.assign({},ljBase,{id,ac:'lj60',cat:'A',name,context:ctx,triggers:trg,fails,expected:exp,init,eval:ev}); if(cr) o.cruise=cr; else delete o.cruise; SCNS.push(o); });
 /* --- 777 : tous les scénarios fictifs de l'A320 --- */
 ['F-FIRE','F-DEPRESS','F-ELEC','F-ICE','F-TCAS','F-FUEL','GW-SEC','GW-ROUTE'].forEach(id=>clone(id,'b777'));
+/* --- V10.39 : A350-900, mêmes systèmes modélisés que l'A320 : tous les scénarios fictifs de l'A320 --- */
+['F-FIRE','F-DEPRESS','F-ELEC','F-ICE','F-TCAS','F-FUEL','GW-SEC','GW-ROUTE'].forEach(id=>clone(id,'a350'));
 /* --- fuite carburant : Learjet 60 --- */
 clone('F-FUEL','lj60',{expected:'Reconnaître l\'écart carburant, prévenir le contrôle, se dérouter vers le terrain le plus proche.'});
 
 /* --- impact d'oiseaux / double perte de poussée (fictif, d'après US 1549) : 777, Learjet 60, Cessna 172 --- */
 const birdStart=()=>{ const p=offsetLL(APTS.KLGA.lat,APTS.KLGA.lon,4.5*1609*Math.cos(337*D2R),4.5*1609*Math.sin(337*D2R)); return {lat:p[0],lon:p[1],hdg:315,elev:6}; };
 const birdEval=L=>{ const d=L.ditch; return [['MAYDAY transmis',!!L.mayday,L.mayday?'oui':'non'],['Issue',!!(d&&!/rupture/.test(L.out||''))||L.out==='atterrissage',L.out||'—'],['Train rentré à l\'amerrissage',d?!d.gear:null,d?(d.gear?'SORTI':'rentré'):'—']]; };
-[['b777',250000,215,2818],['lj60',9000,200,2818],['c172',1000,85,2000]].forEach(([ac,m,kt,ft])=>{ if(SCNS.find(s=>s.id==='BIRDS@'+ac)) return;
+[['b777',250000,215,2818],['a350',230000,210,2818],['lj60',9000,200,2818],['c172',1000,85,2000]].forEach(([ac,m,kt,ft])=>{ if(SCNS.find(s=>s.id==='BIRDS@'+ac)) return;
   SCNS.push({id:'BIRDS@'+ac,cat:'A',ac,name:'Impact d\'oiseaux au départ de LaGuardia — '+(ac==='c172'?'panne moteur':'double perte de poussée')+' (fictif, d\'après US 1549) · '+NM[ac],
     context:'Variante fictive du vol US 1549 transposée sur '+NM[ac]+' : mêmes lieu et altitude, l\'avion et ses performances changent. La reconstitution historique fidèle reste sur A320.',
     wx:'Jour, vent 290°/8 kt [ESTIMÉ].',phase:'Montée initiale au nord-ouest de LaGuardia, '+ft+' ft.',triggers:'t = 0 : ingestion d\'oiseaux.',fails:ac==='c172'?'Panne moteur.':'Perte de poussée des deux moteurs.',
@@ -90,13 +92,13 @@ clone('F-R44','h125',{name:'H125 — panne de génératrice de nuit',fails:'Voya
 clone('F-R44','s76',{name:'S-76 — perte d\'une génératrice de nuit',init(){ SCN.trig=[{t:60,f:()=>failSet('genGA0',true)}]; },fails:'Une génératrice sur deux : charge à surveiller.',expected:'Constater, délester si besoin, poursuivre sur la génératrice restante.'});
 
 /* --- menu : cartes de scénarios avec un bouton par appareil compatible --- */
-const CARD={'sc-1549':{acs:['a320','b777','lj60','c172'],id:{a320:'US1549',b777:'BIRDS@b777',lj60:'BIRDS@lj60',c172:'BIRDS@c172'},d:'Amerrissage sur l\'Hudson (2009) : reconstitution guidée sur A320 ; variante fictive (mêmes lieu et altitude) sur les autres avions.'},
-  'sc-9525':{acs:['a320','b777'],id:{a320:'GW-ROUTE',b777:'GW-ROUTE@b777'}},
-  'sc-dep':{acs:['a320','b777','lj60'],id:{a320:'F-DEPRESS',b777:'F-DEPRESS@b777',lj60:'LJ-DEP'},n:'Scénario fictif · dépressurisation en croisière',d:'Perte de pressurisation en altitude : masques, descente d\'urgence, MAYDAY.'},
-  'sc-fict':{acs:['a320','b777','lj60','c172'],id:{a320:'F-FUEL',b777:'F-FUEL@b777',lj60:'F-FUEL@lj60',c172:'C-FUEL'},n:'Scénario fictif · fuite carburant'},
-  'sc-eng':{acs:['lj60','c172','h125','r44','s76','b777','a320'],id:{a320:'F-FIRE',b777:'F-FIRE@b777',lj60:'LJ-FIRE',c172:'C-EFATO',h125:'F-H125',r44:'F-H125@r44',s76:'F-S76'},n:'Scénario fictif · panne moteur au décollage',d:'Feu ou panne moteur juste après le décollage, sur chaque appareil : procédure propre au type (feu moteur sur avion de ligne, panne au décollage sur monomoteur, autorotation sur hélicoptère).'},
-  'sc-elec':{acs:['a320','b777','lj60','c172','h125','r44','s76'],id:{a320:'F-ELEC',b777:'F-ELEC@b777',lj60:'F-LJGEN',c172:'C-ALT',h125:'F-R44@h125',r44:'F-R44',s76:'F-R44@s76'},n:'Scénario fictif · panne électrique',d:'Perte de génératrice(s) ou d\'alternateur : reconnaître, délester, rejoindre un terrain.'},
-  'sc-ice':{acs:['a320','b777','lj60','c172'],id:{a320:'F-ICE',b777:'F-ICE@b777',lj60:'LJ-ICE',c172:'C-ICE'},n:'Scénario fictif · givrage',d:'Sonde Pitot non réchauffée sur avion de ligne ; givrage du carburateur sur le Cessna 172.'}};
+const CARD={'sc-1549':{acs:['a320','b777','a350','lj60','c172'],id:{a320:'US1549',b777:'BIRDS@b777',a350:'BIRDS@a350',lj60:'BIRDS@lj60',c172:'BIRDS@c172'},d:'Amerrissage sur l\'Hudson (2009) : reconstitution guidée sur A320 ; variante fictive (mêmes lieu et altitude) sur les autres avions.'},
+  'sc-9525':{acs:['a320','b777','a350'],id:{a320:'GW-ROUTE',b777:'GW-ROUTE@b777',a350:'GW-ROUTE@a350'}},
+  'sc-dep':{acs:['a320','b777','a350','lj60'],id:{a320:'F-DEPRESS',b777:'F-DEPRESS@b777',a350:'F-DEPRESS@a350',lj60:'LJ-DEP'},n:'Scénario fictif · dépressurisation en croisière',d:'Perte de pressurisation en altitude : masques, descente d\'urgence, MAYDAY.'},
+  'sc-fict':{acs:['a320','b777','a350','lj60','c172'],id:{a320:'F-FUEL',b777:'F-FUEL@b777',a350:'F-FUEL@a350',lj60:'F-FUEL@lj60',c172:'C-FUEL'},n:'Scénario fictif · fuite carburant'},
+  'sc-eng':{acs:['lj60','c172','h125','r44','s76','b777','a350','a320'],id:{a320:'F-FIRE',b777:'F-FIRE@b777',a350:'F-FIRE@a350',lj60:'LJ-FIRE',c172:'C-EFATO',h125:'F-H125',r44:'F-H125@r44',s76:'F-S76'},n:'Scénario fictif · panne moteur au décollage',d:'Feu ou panne moteur juste après le décollage, sur chaque appareil : procédure propre au type (feu moteur sur avion de ligne, panne au décollage sur monomoteur, autorotation sur hélicoptère).'},
+  'sc-elec':{acs:['a320','b777','a350','lj60','c172','h125','r44','s76'],id:{a320:'F-ELEC',b777:'F-ELEC@b777',a350:'F-ELEC@a350',lj60:'F-LJGEN',c172:'C-ALT',h125:'F-R44@h125',r44:'F-R44',s76:'F-R44@s76'},n:'Scénario fictif · panne électrique',d:'Perte de génératrice(s) ou d\'alternateur : reconnaître, délester, rejoindre un terrain.'},
+  'sc-ice':{acs:['a320','b777','a350','lj60','c172'],id:{a320:'F-ICE',b777:'F-ICE@b777',a350:'F-ICE@a350',lj60:'LJ-ICE',c172:'C-ICE'},n:'Scénario fictif · givrage',d:'Sonde Pitot non réchauffée sur avion de ligne ; givrage du carburateur sur le Cessna 172.'}};
 if(!SCNS.find(s=>s.id==='F-LJGEN')) SCNS.push(Object.assign({},SCNS.find(s=>s.id==='F-R44'),{id:'F-LJGEN',ac:'lj60',name:'Learjet 60 — perte des deux génératrices de nuit',base:'jfk-cdg',context:'Croisière de nuit, les deux génératrices lâchent.',triggers:'t = 60 s : génératrices 1 et 2.',fails:'Batteries seules.',init(){ SCN.trig=[{t:60,f:()=>{ failSet('genGA0',true); failSet('genGA1',true); }}]; },expected:'Délester, descendre et se poser avant l\'épuisement des batteries.'}));
 Object.keys(CARD).forEach(k=>{ const c=CARD[k]; if(!MISSIONS[k]) MISSIONS[k]={n:c.n||k,d:c.d||''}; const m=MISSIONS[k]; m.soon=false; m.acs=c.acs; if(c.n) m.n=c.n; if(c.d) m.d=c.d; if(typeof MI_AC!=='undefined') delete MI_AC[k]; });
 const goB=document.getElementById('go'); if(goB){ const _go=goB.onclick; goB.onclick=function(){ const c=CARD[selMI]; if(c){ const id=c.id[selAC]||c.id[c.acs[0]]; if(SCNS.find(s=>s.id===id)){ document.getElementById('menu').hidden=true; paused=false; scnStart(id); try{ SCN.view='run'; scnOpen(true,'run'); }catch(e){} return; } } return _go&&_go.apply(this,arguments); }; }

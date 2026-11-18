@@ -11,7 +11,7 @@ Préparation : python3 tools/build.py --test ; cd tests ; python3 -m http.server
 import asyncio, sys
 from playwright.async_api import async_playwright
 URL = 'http://localhost:8765/final.html'
-ACS = ['a320', 'b777', 'lj60', 'c172', 'h125', 'r44', 's76']
+ACS = ['a320', 'b777', 'a350', 'lj60', 'c172', 'h125', 'r44', 's76']
 ok_all = True
 def check(name, ok, detail=''):
     global ok_all; ok_all &= bool(ok); print(('✔' if ok else '✘'), name, ('— ' + str(detail)) if detail != '' else '', flush=True)

@@ -508,7 +508,7 @@ function buildModel(key){ const a=AC[key], g=new THREE.Group(), W=new THREE.Mesh
 
 /* ====================== état, commandes, pilote automatique ====================== */
 const IN={pitch:0,roll:0,yaw:0,thrD:0,collD:0, kb:{}, pad:{pitch:0,roll:0,yaw:0,thr:null}, tL:{x:0,y:0}, tR:{x:0,y:0}};
-function AL(k){ if(k===undefined) k=ACK; return k==='a320'||k==='b777'; }   // avions de ligne (A320, 777)
+function AL(k){ if(k===undefined) k=ACK; return k==='a320'||k==='b777'||k==='a350'; }   // avions de ligne (A320, 777, A350)
 let ACK='a320', A=AC.a320, MI=MISSIONS['jfk-cdg'];
 const S={};          // état de l'appareil
 const AP={on:false,ath:false,lat:'HDG',hdg:0,alt:5000,spd:250,vs:1800,gamHold:0,althold:false,hold:null};
@@ -1799,7 +1799,7 @@ const QB={
 };
 const QTH=[['tout','Toutes les questions'],['proc','Procédures'],['wb','Masse et centrage'],['fuel','Carburant'],['nav','Navigation, approche'],['ground','Roulage, aéroport'],['ac','Appareil sélectionné']];
 const QZ={list:[],i:0,score:0,answered:false};
-function qPool(th){ const ac={a320:['a320'],b777:['a320'],lj60:['lj60'],s76:['heli','s76'],h125:['heli','h125'],r44:['heli','r44']}[ACK]||[];
+function qPool(th){ const ac={a320:['a320'],b777:['a320'],a350:['a320'],lj60:['lj60'],s76:['heli','s76'],h125:['heli','h125'],r44:['heli','r44']}[ACK]||[];
   if(th==='ac') return ac.flatMap(k=>QB[k]); if(th==='tout') return [...QB.proc,...QB.wb,...QB.fuel,...QB.nav,...QB.ground,...ac.flatMap(k=>QB[k])]; return QB[th]||[]; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function qcmOpen(th,n){ let el=$('qcm'); if(!el){ el=document.createElement('aside'); el.id='qcm'; el.className='panel'; document.body.appendChild(el); }

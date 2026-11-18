@@ -508,7 +508,7 @@ function buildModel(key){ const a=AC[key], g=new THREE.Group(), W=new THREE.Mesh
 
 /* ====================== état, commandes, pilote automatique ====================== */
 const IN={pitch:0,roll:0,yaw:0,thrD:0,collD:0, kb:{}, pad:{pitch:0,roll:0,yaw:0,thr:null}, tL:{x:0,y:0}, tR:{x:0,y:0}};
-function AL(k){ if(k===undefined) k=ACK; return k==='a320'||k==='b777'; }   // avions de ligne (A320, 777)
+function AL(k){ if(k===undefined) k=ACK; return k==='a320'||k==='b777'||k==='a350'; }   // avions de ligne (A320, 777, A350)
 let ACK='a320', A=AC.a320, MI=MISSIONS['jfk-cdg'];
 const S={};          // état de l'appareil
 const AP={on:false,ath:false,lat:'HDG',hdg:0,alt:5000,spd:250,vs:1800,gamHold:0,althold:false,hold:null};
@@ -1799,7 +1799,7 @@ const QB={
 };
 const QTH=[['tout','Toutes les questions'],['proc','Procédures'],['wb','Masse et centrage'],['fuel','Carburant'],['nav','Navigation, approche'],['ground','Roulage, aéroport'],['ac','Appareil sélectionné']];
 const QZ={list:[],i:0,score:0,answered:false};
-function qPool(th){ const ac={a320:['a320'],b777:['a320'],lj60:['lj60'],s76:['heli','s76'],h125:['heli','h125'],r44:['heli','r44']}[ACK]||[];
+function qPool(th){ const ac={a320:['a320'],b777:['a320'],a350:['a320'],lj60:['lj60'],s76:['heli','s76'],h125:['heli','h125'],r44:['heli','r44']}[ACK]||[];
   if(th==='ac') return ac.flatMap(k=>QB[k]); if(th==='tout') return [...QB.proc,...QB.wb,...QB.fuel,...QB.nav,...QB.ground,...ac.flatMap(k=>QB[k])]; return QB[th]||[]; }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function qcmOpen(th,n){ let el=$('qcm'); if(!el){ el=document.createElement('aside'); el.id='qcm'; el.className='panel'; document.body.appendChild(el); }
@@ -3681,7 +3681,7 @@ function prep(){ if(!BR.fromSim){ ACK=selAC; A=AC[ACK]; MI=MISSIONS[selMI]; } bu
 function show(fromSim,page){ BR.fromSim=!!fromSim; if(fromSim){ BR.wasPaused=paused; paused=true; } prep(); BR.i=page||0; BR.all=false; dom().hidden=false; $('br-all').classList.remove('on'); render(); try{ SND.unlock&&SND.unlock(); }catch(e){} }
 function close(){ const b=$('brief'); if(b) b.hidden=true; if(BR.fromSim){ paused=BR.wasPaused; } }
 // bouton « Lancer » de chaque carte : démarre directement le parcours correspondant
-function launchMode(id){ const fw=(AC[selAC]||A).kind==='fw', full=window.FULLOF?FULLOF(selAC):(fw?'full-fw':'full-rw'), libre=selAC==='b777'?'af-cdg-run':fw?'jfk-cdg':'heli-ny';
+function launchMode(id){ const fw=(AC[selAC]||A).kind==='fw', full=window.FULLOF?FULLOF(selAC):(fw?'full-fw':'full-rw'), libre=selAC==='b777'?'af-cdg-run':selAC==='a350'?'a350-cdg-run':fw?'jfk-cdg':'heli-ny';
   if(BR.fromSim){ BR.fromSim=false; paused=false; }
   let m='guide';
   if(['guide','auto','free','exam'].includes(id)){ if(!MISSIONS[selMI]||!MISSIONS[selMI].full) selMI=full; m=id==='exam'?'guide':id; window.EXAM_PENDING=id==='exam'; }
@@ -5105,7 +5105,68 @@ function c172(){ const g=new T.Group(), L={}, W=mat(0xf6f7f8), Bl=mat(0x1f4e9c),
   lights(g,L,{s:1.1,port:[-5.52,1.15,-0.6],tail:[0,1.62,4.78],bcn:[0,1.64,4.4],bcn2:[0,-0.62,0.3],land:[-1.4,0.96,-1.1]});
   return {g,L}; }
 
-const BUILD={a320,lj60,h125,r44,s76,b777,c172};
+/* V10.39 : Airbus A350-900, Rolls-Royce Trent XWB-84. Longueur 66,8 m et envergure 64,75 m [RÉFÉRENCÉ Airbus, A350 Family Facts & Figures 2022] ;
+   autres cotes (diamètre du fuselage ≈ 5,96 m, soufflante ≈ 3 m, voie, empattement, empennages) [ESTIMÉ]. Signes distinctifs : cadre noir des vitres
+   du poste, saumons d'aile courbés vers le haut, Trent XWB à 22 aubes, trains principaux à bogie de 4 roues, 4 paires de portes. Livrée fictive, sans logo. */
+function a350(){ const g=new T.Group(), L={}, W=mat(0xf4f6f8), Wg=mat(0xd3d8dd), Gy=mat(0x9aa3ab), Dk=mat(0x1c2126), Tyre=mat(0x111316), Hub=mat(0xb9c0c6), Mt=mat(0x8c939a);
+  const st=[[-33.4,.06,.06,-.6],[-33.05,.72,.72,-.55],[-32.4,1.42,1.48,-.42],[-31.4,2.08,2.18,-.28],[-30.4,2.55,2.65,-.15],[-29.4,2.85,2.95,-.06],[-28,2.97,3.06,0],[-26,2.98,3.08,0],
+    [17,2.98,3.08,0],[20,2.84,2.88,.25],[23,2.45,2.4,.7],[26,1.95,1.85,1.2],[29,1.35,1.2,1.7],[31.3,.8,.7,2.1],[32.9,.38,.38,2.3],[33.4,.24,.24,2.35]].map(([z,w,h,y])=>({z,w,h,y}));
+  g.add(new T.Mesh(loft(st,40,(z,a)=>{ const ca=Math.cos(a);
+    if(z>-31.3&&z<-29.7&&ca>0.4&&ca<0.86) return GLASS;               // vitres du poste
+    if(z>-31.7&&z<-29.2&&ca>0.28&&ca<0.94) return 0x15181c;           // cadre noir caractéristique (« masque »)
+    if(ca<-0.55&&z>-25&&z<17) return 0xe3e7ea; return 0xf4f6f8; }),VC()));
+  // hublots et 4 paires de portes
+  const wg=new T.BoxGeometry(0.06,0.42,0.3), win=new T.InstancedMesh(wg,mat(WIN),190), m4=new T.Matrix4(); let k=0; const DOORS=[-27.4,-13.2,8.4,16.4];
+  for(let z=-26.4;z<16.8;z+=0.54){ if(DOORS.some(d=>Math.abs(z-d)<0.75)) continue; [-1,1].forEach(s=>{ if(k<190){ m4.makeTranslation(s*2.94,0.95,z); win.setMatrixAt(k++,m4); } }); } win.count=k; g.add(win);
+  DOORS.forEach(z=>[-1,1].forEach(s=>{ const d=new T.Mesh(new T.BoxGeometry(0.05,1.95,1.07),mat(0xe1e5e9)); d.position.set(s*2.96,0.35,z); g.add(d); }));
+  // voilure : dièdre ≈ 5°, flèche ≈ 32° [ESTIMÉ], saumon courbé vers le haut (élément distinctif de l'A350)
+  const dh=Math.tan(5*D), wy=x=>-2.1+(x-3)*dh, le=x=>-8.6+(x-3)*Math.tan(32*D);
+  const ws=[{x:0.8,y:wy(3),z:-9.0,c:13,t:.14},{x:3,y:wy(3),z:le(3),c:12.2,t:.14},{x:10.5,y:wy(10.5),z:le(10.5),c:7.2,t:.12},{x:29.4,y:wy(29.4),z:le(29.4),c:2.3,t:.1},
+    {x:31.2,y:wy(29.4)+0.55,z:le(29.4)+1.3,c:1.5,t:.09},{x:32.0,y:wy(29.4)+1.5,z:le(29.4)+2.2,c:0.95,t:.08},{x:32.37,y:wy(29.4)+2.5,z:le(29.4)+2.9,c:0.5,t:.07}];
+  pair(wing(ws),Wg,g);
+  pair(wing([{x:0.5,y:1.5,z:25.2,c:6.8,t:.11},{x:9.3,y:2.4,z:30.6,c:2.2,t:.09}]),Wg,g);
+  // dérive (livrée fictive : bande bleu nuit et filet turquoise)
+  const fin=[], N=14; for(let i=0;i<N;i++){ const f=i/(N-1); fin.push({x:0,y:2.5+f*9.6,z:21.2+f*9.0,c:10.2-f*6.7,t:.11-f*.02}); }
+  const fg=wing(fin), R=8, fc=[], cc=new T.Color(); const finCol=f=>f>0.22&&f<0.62?0x14284a:f>0.64&&f<0.7?0x22b3b8:0xf4f6f8;
+  for(let i=0;i<N;i++){ cc.set(finCol(i/(N-1))); for(let j=0;j<R;j++) fc.push(cc.r,cc.g,cc.b); }
+  fg.setAttribute('color',new T.Float32BufferAttribute(fc,3)); g.add(new T.Mesh(fg,VC()));
+  // Trent XWB-84 sous l'aile : soufflante ≈ 3,0 m, nacelle ≈ 6,3 m [ESTIMÉ], garde au sol ≈ 0,7 m
+  [-1,1].forEach(s=>{ const e=new T.Group(); e.position.set(s*9.4,-2.45,0);
+    e.add(lathe([[1.6,-12.0],[1.76,-11.85],[1.8,-11.4],[1.8,-9.8],[1.66,-8.2],[1.3,-6.6],[0.98,-5.7]],W,32));
+    e.add(lathe([[1.58,-12.01],[1.74,-11.95],[1.76,-11.85]],Mt,32));
+    const fan=new T.Mesh(new T.CircleGeometry(1.48,28),Dk); fan.position.z=-11.5; e.add(fan);
+    e.add(lathe([[0.98,-5.75],[0.74,-4.8],[0.0,-3.6]],Gy,20));
+    e.add(new T.Mesh(wing([{x:0,y:1.45,z:-9.6,c:6.0,t:.08},{x:0,y:2.1,z:-7.4,c:5.2,t:.08}]),W)); g.add(e); });
+  // trains : avant 2 roues, principaux 2 × 4 roues ; voie ≈ 10,6 m, empattement ≈ 28,7 m [ESTIMÉ]
+  const gear=new T.Group(), Gd=-4.9, zn=-26.9, zm=zn+28.67;
+  gear.add(strut([0,-2.5,zn],[0,Gd+0.55,zn],0.15,Mt)); [-0.34,0.34].forEach(x=>gear.add(wheel(x,Gd+0.55,zn,0.55,0.36,Tyre,Hub)));
+  [-1,1].forEach(s=>{ const x=s*5.3; gear.add(strut([x,wy(5.3)-0.2,zm-0.3],[x,Gd+0.72,zm],0.23,Mt)); gear.add(strut([x,Gd+0.66,zm-1.1],[x,Gd+0.66,zm+1.1],0.11,Mt));
+    [-0.8,0.8].forEach(dz=>[-0.66,0.66].forEach(dx=>gear.add(wheel(x+dx,Gd+0.63,zm+dz,0.63,0.46,Tyre,Hub)))); });
+  g.add(gear); g.userData.gear=gear;
+  // détails : soufflantes tournantes (22 aubes), entrées d'air, panneaux, déperditeurs, sondes, antennes, APU, portes cargo
+  g.userData.fans=[];
+  const wsP=ws.slice(0,4);
+  [-1,1].forEach((s,i)=>{ const e=g.children.find(c=>c.isGroup&&Math.abs(c.position.x-s*9.4)<0.01&&Math.abs(c.position.y+2.45)<0.01); if(!e) return;
+    e.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='CircleGeometry') c.position.z=-11.2; });
+    const f=fanRotor(1.46,0.5,22,0.5,0.72,[[0.001,-11.9],[0.38,-11.55],[0.52,-11.35]],-11.7); e.add(f); g.userData.fans.push({o:f,i});
+    e.add(inlet(1.52,-12.0,-11.4)); e.add(ring(1.67,-8.2)); e.add(ring(0.99,-5.75,METAL)); });
+  lines(g,[...panel(wsP,21,28.6,0.78,0.99,1),...panel(wsP,3.4,10.5,0.72,0.99,1),...panel(wsP,10.5,20.5,0.74,0.99,1),
+    ...[4.5,7.6,12,15,18].map(x=>panel(wsP,x,x+2.7,0.6,0.73,1)).flat(),spanL(wsP,0.12,4.2,29,1),...[9,15,21,26].map(x=>chordL(wsP,x,0,0.12,1))]);
+  canoes(g,wsP,[6.4,12.8,16.4,19.9,23.2,26.4],3.4,0.32,Wg); dischargers(g,wsP,[27.6,28.4,29.2],0.3);
+  const htP=[{x:0.5,y:1.5,z:25.2,c:6.8,t:.11},{x:9.3,y:2.4,z:30.6,c:2.2,t:.09}]; lines(g,panel(htP,1.2,8.8,0.7,0.99,1)); dischargers(g,htP,[8.2,9.1],0.22);
+  pitot(g,-2.86,0.35,-31.9,1.25); pitot(g,2.86,0.35,-31.9,1.25); pitot(g,-2.55,-1.1,-31.5,1.25); aoa(g,-3.0,-0.25,-32.6,1.25); aoa(g,3.0,-0.25,-32.6,1.25);
+  blade(g,0,3.1,-12,0.55,0.5); blade(g,0,-3.1,4,0.5,0.45,true); blade(g,0,3.1,-22,0.16,0.3); blade(g,0,-3.1,-23,0.16,0.3,true);
+  const sat=new T.Mesh(new T.SphereGeometry(0.85,16,8,0,Math.PI*2,0,Math.PI/2),mat(0xe6e9ec)); sat.scale.set(1,0.35,2.1); sat.position.set(0,3.08,5); g.add(sat);
+  const apu=new T.Mesh(new T.CircleGeometry(0.19,16),DARK); apu.position.set(0,2.35,33.42); g.add(apu);
+  sideDoor(g,2.75,-2.4,-0.6,-22.5,-19.9); sideDoor(g,2.75,-2.4,-0.6,9.5,12.1); sideDoor(g,2.55,-2.6,-1.4,15.2,16.3);
+  wiper(g,-0.7,1.95,-32.7,0.85); wiper(g,0.7,1.95,-32.7,0.85);
+  gearDoor(gear,-0.33,Gd+2.1,zn,1.5,2.1); gearDoor(gear,0.33,Gd+2.1,zn,1.5,2.1); taxiLight(gear,0,Gd+1.4,zn-0.35); gear.add(strut([0,Gd+1.3,zn-0.1],[0,Gd+0.85,zn+0.2],0.05,Mt));
+  [-1,1].forEach(s=>{ gearDoor(gear,s*6.0,Gd+2.9,zm-0.3,2.2,1.9); gear.add(strut([s*5.3,Gd+1.7,zm+0.2],[s*5.3,Gd+1.15,zm+0.5],0.06,Mt)); });
+  const tip=ws[ws.length-1];
+  lights(g,L,{s:4,port:[-tip.x,tip.y,tip.z+0.3],tail:[0,2.35,33.43],bcn:[0,3.15,-4],bcn2:[0,-3.15,-1.5],land:[0,-3.0,-26.6]});
+  return {g,L}; }
+
+const BUILD={a320,lj60,h125,r44,s76,b777,c172,a350};
 // soufflantes : rotation visuelle proportionnelle au régime (N2), moulinet en vol moteur arrêté [visuel ralenti pour éviter l'effet stroboscopique]
 let _ft=performance.now(); const _lu=lightsUpdate; lightsUpdate=function(){ _lu.apply(this,arguments); try{ const F=MODEL&&MODEL.userData.fans; if(!F) return; const now=performance.now(), dt=Math.min(0.1,(now-_ft)/1000); _ft=now;
   F.forEach(x=>{ const n=(S.n2&&S.n2[x.i])||0, wm=S.onGround?0:Math.min(1,(S.V||0)/120)*1.5; x.o.rotation.z-=(n>0.02?4+n*26:wm)*dt; }); }catch(e){} };
@@ -5308,7 +5369,7 @@ window.ZOOMSCR={open,close};
 const ad=()=>{ try{ return airdata(); }catch(e){ return {alt:S.alt/FT,cas:0,gs:0}; } };
 const air=()=>!S.onGround, A_=()=>ad().alt, V=()=>ad().cas, fw=()=>A.kind==='fw';
 const fail=k=>!!(window.FAIL&&FAIL[k]);
-const VFE={a320:{'1':230,'2':200,'3':185,'FULL':177},b777:{'1':255,'5':235,'15':215,'20':195,'25':185,'30':170},lj60:{'8':250,'20':200,'40':150},c172:{'10':110,'20':85,'30':85}};
+const VFE={a320:{'1':230,'2':200,'3':185,'FULL':177},a350:{'1':255,'2':220,'3':195,'FULL':186}/* A350 [ESTIMÉ] : à sourcer */,b777:{'1':255,'5':235,'15':215,'20':195,'25':185,'30':170},lj60:{'8':250,'20':200,'40':150},c172:{'10':110,'20':85,'30':85}};
 const R=[];   // {ids, bad(next,el), y (titre, texte jaune), r (conséquences), no (impossible : pas de forçage), fx (effet supplémentaire)}
 const rule=(ids,bad,y,r,o)=>R.push(Object.assign({ids:[].concat(ids),bad,y,r},o||{}));
 /* ---- train ---- */
@@ -5642,7 +5703,7 @@ if(typeof PED!=='undefined'&&PED.a320&&!PED.b777) PED.b777=PED.a320;
 // leviers de volets : crans de l'appareil choisi (A320 : 0-1-2-3-FULL ; 777 : 0-1-5-15-20-25-30)
 const FLAPOPT=[]; const grab=(n,d)=>{ if(!n||d>9) return; if(Array.isArray(n)){ if(n[0]==='flapL'&&Array.isArray(n[3])){ FLAPOPT.push(n[3]); return; } n.forEach(x=>grab(x,d+1)); } else if(typeof n==='object') for(const k in n) grab(n[k],d+1); };
 try{ grab(PED.a320,0); }catch(e){} try{ grab(P320,0); }catch(e){}
-function flapOpts(k){ if(!AC[k]||!(k==='a320'||k==='b777')) return; const names=AC[k].flaps.map(f=>f.n); FLAPOPT.forEach(a=>a.splice(0,a.length,...names)); }
+function flapOpts(k){ if(!AC[k]||!(k==='a320'||k==='b777'||k==='a350')) return;   /* V10.39 : A350 (crans Airbus 0-1-2-3-FULL) */ const names=AC[k].flaps.map(f=>f.n); FLAPOPT.forEach(a=>a.splice(0,a.length,...names)); }
 
 /* ---- aéroports ---- */
 APTS.LFPO={n:'Paris-Orly',lat:48.7233,lon:2.3794,elev:89,rw:[
@@ -5740,6 +5801,92 @@ const _ed=engData; engData=function(){ const d=_ed.apply(this,arguments); if(ACK
 (function(){ if(typeof buildA320!=='function') return; const _b=buildA320; buildA320=function(){ const r=_b.apply(this,arguments);
   try{ if(ACK==='b777'){ document.getElementById('ovh-t').textContent='777-300ER · POSTE COMPLET'; const s=document.getElementById('ovh-s'); if(s&&!s.querySelector('.b7n')) s.insertAdjacentHTML('afterbegin','<b class="b7n">[SIMULÉ] Disposition simplifiée commune aux avions de ligne du simulateur : les commandes et leur logique sont celles d\'un biréacteur moderne, l\'emplacement réel des panneaux Boeing diffère. </b>'); } }catch(e){}
   return r; }; })();
+
+</script>
+<script>
+/* ===== V10.39 : AIRBUS A350-900 · ROLLS-ROYCE TRENT XWB-84 · PARIS ↔ LA RÉUNION =====
+   Données reprises (lecture seule) du projet COCKPIT PLANE SIMULATION, qui les a sourcées :
+   [RÉFÉRENCÉ] Airbus « A350 Family Facts & Figures » (sept. 2022) : masse maximale au décollage 283 t, envergure 64,75 m, longueur 66,8 m,
+               carburant 141 000 L, moteur Trent XWB-84 ;
+   [RÉFÉRENCÉ] EASA TCDS E.111 (Trent XWB), issue 12 : poussée de décollage 374,5 kN par moteur (5 min), maximale continue 317,6 kN,
+               température TGT 900 °C au décollage ;
+   [ESTIMÉ]    masse maximale à l'atterrissage 207 t, masse maximale sans carburant 195,7 t, surface alaire 443 m², VMO 340 kt, MMO 0,89,
+               masse à vide en opération 142,4 t, aménagement de cabine, coefficients aérodynamiques, consommation, vitesses de décollage.
+   Poste de pilotage : disposition commune Airbus du simulateur (FCU, ECAM, MCDU) [SIMPLIFICATION] ; l'A350 réel a 6 grands écrans,
+   un clavier et une boule de commande (KCCU) et des écrans OIS. Compagnie et livrée fictives. */
+(function(){
+if(typeof AC==='undefined'||!AC.a320) return;
+AC.a350={kind:'fw',name:'Airbus A350-900',sub:'Biréacteur long-courrier · Rolls-Royce Trent XWB-84 · Paris ↔ La Réunion',law:'fbw',cockpit:'a320',
+  m:230000,S:443,Tmax:2*374500,CD0:0.0185,k:0.043,CL0:0.25,CLa:5.7,CLmax:1.55,gearCD:0.015,Vr:150,V2:158,Vmo:340,Mmo:0.89,ceil:43100,range:15000,ffK:2.2,
+  flaps:AC.a320.flaps.map(f=>Object.assign({},f)),
+  eye:[-0.55,6.45,-30.1],yOff:4.9,ap:'fcu',ext:{len:66.8,span:64.75}};
+WB.a350={unit:'kg',dow:142400,seats:326,pax:290,stdPax:84,child:35,bag:15,cargo:12000,mzfw:195700,mtow:283000,mlw:207000,fuelMax:110700,burn:5800,taxi:600,alt:3800,res30:3000,gs:485,
+  lemac:29.0,mac:6.9,dowArm:31.0,zones:[['Cabine avant (J + W, rangs 1-12)',17.0,0.25],['Cabine arrière (Y, rangs 20-49)',37.0,0.75],['Soute avant',21.0,0.55],['Soute arrière',42.0,0.45]],fuelArm:30.5,cgLim:[14,40],crewMass:0};
+REFS.a350=[['Airbus — A350 Family Facts & Figures (sept. 2022) : masses, dimensions, carburant, motorisation','https://www.airbus.com/sites/g/files/jlcbta136/files/2022-09/airbus-a350-family-facts-and-figures_sept-2022.pdf'],
+  ['EASA — TCDS E.111 Rolls-Royce Trent XWB, issue 12 : poussées, régimes, températures limites','https://www.easa.europa.eu/sites/default/files/dfu/EASA%20E111%20TCDS%20issue%2012_Trent%20XWB.pdf'],
+  ['FAA — Airplane Flying Handbook FAA-H-8083-3C (tour avion, check-lists, phases de vol)','https://www.faa.gov/regulations_policies/handbooks_manuals/aviation/airplane_handbook'],
+  ['Airbus FCOM / QRH A350 : documents opérateur non publics — séquence reformulée, valeurs [ESTIMÉ]',null]];
+// tour avion A350 (repère du modèle : nez vers −z, mètres) — mêmes points que les autres avions de ligne
+WALKPTS.a350=[[0,-36,'Nez, radôme, sondes','Radôme sans impact ; sondes pitot et d\'incidence libres, caches retirés ; essuie-glaces rangés ; cadre noir des vitres du poste sans fissure.'],
+  [0,-26.9,'Train avant','Pneus (2) : usure, coupures, gonflage ; amortisseur ; goupille de remorquage retirée après le repoussage.'],
+  [-3.9,-27.4,'Porte L1 · prises statiques gauche','Prises statiques propres ; antennes intactes ; porte et toboggan en état.'],
+  [-9.4,-15,'Moteur gauche (Trent XWB-84)','Entrée d\'air dégagée ; soufflante de 22 aubes sans dommage ; capots fermés et verrouillés ; inverseur rangé ; pas de fuite d\'huile.'],
+  [-31,10,'Aile gauche, saumon courbé','Bord d\'attaque, becs ; saumon courbé (aile en composite) sans impact ; feu de navigation rouge et strobe ; déperditeurs ; volets et ailerons libres.'],
+  [-7.2,1.8,'Train principal gauche (bogie 4 roues)','Quatre pneus, freins carbone (indicateurs d\'usure), fuites hydrauliques.'],
+  [-4,28,'Empennage gauche','Plan horizontal réglable, gouverne de profondeur ; feux ; déperditeurs.'],
+  [0,36,'Cône de queue · APU','Échappement APU dégagé ; feu de queue ; trappes fermées.'],
+  [4,28,'Empennage droit','Gouverne de profondeur ; feux ; déperditeurs.'],
+  [7.2,1.8,'Train principal droit (bogie 4 roues)','Pneus, freins, fuites hydrauliques.'],
+  [31,10,'Aile droite, saumon courbé','Feu de navigation vert et strobe ; ailerons, volets, spoilers ; saumon courbé sans dommage.'],
+  [9.4,-15,'Moteur droit (Trent XWB-84)','Entrée d\'air, soufflante, capots ; pas de fuite d\'huile ; inverseur rangé.'],
+  [3.9,-23,'Côté droit avant','Prises statiques droites ; trappes de service fermées ; portes cargo fermées et verrouillées.'],
+  [-3.9,-25.4,'Retour porte L1 : monter à bord','Fin du tour avion.']];
+// panneaux : disposition commune Airbus du simulateur [SIMPLIFICATION]
+if(typeof OVH!=='undefined'&&OVH.a320&&!OVH.a350) OVH.a350=Object.assign({},OVH.a320,{t:'A350 · PANNEAU PLAFOND (disposition simplifiée, commune Airbus)'});
+if(typeof PED!=='undefined'&&PED.a320&&!PED.a350) PED.a350=PED.a320;
+
+/* ---- missions : la route naturelle de l'A350 du projet COCKPIT PLANE SIMULATION (La Réunion ⇄ Paris) ---- */
+const RT=[[45.9,6.1,'ALPES'],[41.8,12.25,'ROMA'],[32.1,20.27,'BENGHAZI'],[15.59,32.55,'KHARTOUM'],[8.98,38.8,'ADDIS'],[-1.32,36.93,'NAIROBI'],[-12.8,45.28,'MAYOTTE']];   // points pédagogiques
+const RTb=RT.slice().reverse(), APRON_RUN=()=>({lat:-20.8917,lon:55.5195,hdg:282,elev:20});
+const M=(key,o)=>{ MISSIONS[key]=Object.assign({fw:true,ac:'a350',livery:'pt'},o); MI_AC[key]='a350'; };
+M('a350-cdg-run',{n:'A350-900 · Paris-CDG → La Réunion',d:'Airbus A350-900 (Trent XWB-84), compagnie fictive. Décollage piste 26R de CDG, croisière ≈ FL350 à Mach 0,85, arrivée ILS piste 14 à Roland-Garros (≈ 9 400 km, ≈ 11 h).',start:()=>rwStart('LFPG','26R'),dest:'FMEE',destRw:'14',route:RT});
+M('a350-run-cdg',{n:'A350-900 · La Réunion → Paris-CDG',d:'Airbus A350-900. Décollage piste 12 de Roland-Garros, retour de nuit vers CDG, arrivée piste 26L.',start:()=>rwStart('FMEE','12'),dest:'LFPG',destRw:'26L',route:RTb});
+M('a350-ory-run',{n:'A350-900 · Paris-Orly → La Réunion',d:'Airbus A350-900. Décollage piste 24 d\'Orly, arrivée ILS piste 14 à Roland-Garros.',start:()=>rwStart('LFPO','24'),dest:'FMEE',destRw:'14',route:RT});
+M('a350-run-ory',{n:'A350-900 · La Réunion → Paris-Orly',d:'Airbus A350-900. Décollage piste 12 de Roland-Garros, arrivée piste 25 à Orly.',start:()=>rwStart('FMEE','12'),dest:'LFPO',destRw:'25',route:RTb});
+const FULL='Arrivée au parking à pied, tour avion, cockpit, dossier de vol Paris–Réunion, devis de masse et carburant, mise en route des Trent XWB, roulage réel à CDG, décollage 26R, croisière ≈ 11 h au-dessus de l\'Europe et de l\'Afrique, approche ILS piste 14 à Roland-Garros, roulage simplifié, parking.';
+M('full-350',{n:'Parcours pilote complet Paris-CDG → La Réunion · A350-900',d:FULL,full:true,dep:'LFPG',depRw:'26R',start:()=>standOf('LFPG'),dest:'FMEE',destRw:'14',route:RT});
+M('full-350-ret',{n:'Parcours pilote complet La Réunion → Paris-CDG · A350-900',d:'Départ de l\'aire de trafic de Roland-Garros (roulage simplifié), décollage piste 12 (3 200 m), croisière de nuit ≈ 11 h, arrivée piste 26L à CDG, roulage réel vers le poste, parking.',full:true,dep:'FMEE',depRw:'12',start:APRON_RUN,dest:'LFPG',destRw:'26L',route:RTb});
+const _fo=window.FULLOF; window.FULLOF=k=>k==='a350'?'full-350':(_fo?_fo(k):((AC[k]||A).kind==='fw'?'full-fw':'full-rw'));
+
+// plan de vol par la route pédagogique (comme pour le 777)
+const _sm=startMission; startMission=function(){ const m=MISSIONS[selMI]; if(selAC==='a350') window.LIVERY=(m&&m.livery)||'pt'; const r=_sm.apply(this,arguments);
+  try{ if(ACK==='a350'&&!MI.full) lsInit(); }catch(e){}
+  try{ if(ACK==='a350'&&MI&&MI.route&&APTS[MI.dest]){ const D=APTS[MI.dest], st=MI.start(); window.FPLN={pts:[[st.lat,st.lon,'']].concat(MI.route.map(p=>p.slice())).concat([[D.lat,D.lon,MI.dest]]),i:1}; } }catch(e){}
+  return r; };
+
+/* ---- étapes : nom de l'appareil, motorisation et Mach de croisière de l'A350 ; roulage simplifié là où le plan de roulage n'est pas modélisé ---- */
+function a35(t){ if(typeof t!=='string') return t; return t.replace(/Airbus A320-200|Airbus A320|A320-200|A320/g,'Airbus A350-900').replace(/Mach 0,78/g,'Mach 0,85').replace(/CFM56(-5B)?/g,'Trent XWB-84')
+  .replace(/ILS 12/g,MI&&MI.dest==='FMEE'?'RNP 12':'ILS 12'); }
+const APRON={FMEE:[-20.8925,55.5195,282],LFPO:[48.7290,2.3640,240]};
+const _sf=stepsFor; stepsFor=function(){ const st=_sf.apply(this,arguments); if(ACK!=='a350') return st;
+  st.forEach(s=>{ s.t=a35(s.t); s.txt=a35(s.txt); (s.items||[]).forEach(it=>{ it[0]=a35(it[0]); });
+    if(s.fly==='taxiOut'&&MI&&MI.dep&&!GN[MI.dep]){ const r=rwStart(MI.dep,MI.depRw), h=r.hdg*D2R, hp=offsetLL(r.lat,r.lon,-80*Math.cos(h)+170*Math.cos(h+Math.PI/2),-80*Math.sin(h)+170*Math.sin(h+Math.PI/2));
+      s.txt='Repoussage terminé, roulage vers le point d\'arrêt de la piste '+MI.depRw+' (plan de roulage détaillé de cet aéroport non modélisé : roulage simplifié [SIMPLIFICATION]). Volets de décollage, auto-frein RTO, puis alignement après l\'autorisation.';
+      const al=s.items.find(it=>/^Alignement/.test(it[0])); s.items=[s.items[0],s.items[1],['Roulage jusqu\'au point d\'arrêt '+MI.depRw,()=>S.onGround&&S.V<1&&gcKm(S.lat,S.lon,hp[0],hp[1])<0.2,()=>{ S.lat=hp[0]; S.lon=hp[1]; S.psi=h; S.V=0; flash('Au point d\'arrêt '+MI.depRw,'am'); }]].concat(al?[al]:[]); }
+    if(s.fly==='taxiIn'&&MI&&!GN[MI.dest]&&APRON[MI.dest]){ const ap=APRON[MI.dest];
+      s.txt='Dégagez la piste, spoilers rentrés, volets 0, STROBE AUTO, LAND OFF, APU START. Roulez vers l\'aire de trafic indiquée par le contrôle (plan de roulage détaillé de cet aéroport non modélisé : roulage simplifié [SIMPLIFICATION]).';
+      s.items=[s.items[0],['Roulage jusqu\'à l\'aire de trafic',()=>S.onGround&&S.V<1&&gcKm(S.lat,S.lon,ap[0],ap[1])<0.25,()=>{ S.lat=ap[0]; S.lon=ap[1]; S.psi=ap[2]*D2R; S.V=0; flash('Arrivé sur l\'aire de trafic','am'); }]]; } });
+  return st; };
+
+/* ---- vitesses de décollage (formule pédagogique [ESTIMÉ], pas les tables Airbus) et consommation ---- */
+const _lc=lsCalc; lsCalc=function(){ const L=_lc.apply(this,arguments); if(ACK==='a350'&&LS.tow){ const t=LS.tow/1000; LS.vr=Math.round(118+(t-140)*0.27); LS.v1=LS.vr-5; LS.v2=LS.vr+7; LS.vapp=LS.vls+5; LS.trim=(4.5-(LS.cg-25)*0.15).toFixed(1); } return L||LS; };
+const _ed=engData; engData=function(){ const d=_ed.apply(this,arguments); if(ACK==='a350'&&d) d.ff=Math.round(d.ff*2.2); return d; };   // Trent XWB-84 ≈ 2,2 × CFM56 [ESTIMÉ]
+
+/* ---- titre du poste complet ---- */
+if(typeof buildA320==='function'){ const _b=buildA320; buildA320=function(){ const r=_b.apply(this,arguments);
+  try{ if(ACK==='a350'){ document.getElementById('ovh-t').textContent='A350-900 · POSTE COMPLET'; const s=document.getElementById('ovh-s'); if(s&&!s.querySelector('.a35n')) s.insertAdjacentHTML('afterbegin','<b class="a35n">[SIMULÉ] Disposition commune Airbus du simulateur : l\'A350 réel a six grands écrans, un clavier et une boule de commande (KCCU) et des écrans d\'information (OIS). </b>'); } }catch(e){}
+  return r; }; }
+})();
 
 </script>
 <script>
@@ -7597,8 +7744,8 @@ const MOD=SYSAT.MOD, mv=(...a)=>SYSAT.moveActor(...a);
 /* ---------- feuille d'équipage et manifeste ---------- */
 const DEF={vol:'AT 123',imm:'F-HTRJ',dep:'KJFK',arr:'LFPG',cdb:'Claire Martin',opl:'Thomas Leroy',cc:'Sarah Benali',pnc2:'Hugo Petit',g2:'Steward',pnc3:'Léa Moreau',g3:'Hôtesse',pnc4:'Inès Faure',g4:'Hôtesse',meca:'Marc Dubois',pax:132,paxl:'DURAND Paul · 3A\nNGUYEN Linh · 3B\nMARTINS Ana · 12C\nKOWALSKI Jan · 18F'};
 // une feuille d'équipage et une liste de passagers PAR APPAREIL (sièges conformes à sa cabine)
-const KEYOF=x=>typeof x==='string'?x:x===442?'b777':x===6?'lj60':x===5?'h125':x===12?'s76':x===3?(typeof ACK!=='undefined'&&ACK==='c172'?'c172':'r44'):'a320';
-const PERAC={ a320:{vol:'AT 123',imm:'F-HTRJ',dep:'KJFK',arr:'LFPG',pax:132}, b777:{vol:'AT 975',imm:'F-HTUB',dep:'LFPG',arr:'FMEE',pax:380}, lj60:{vol:'AT 60',imm:'F-HTLJ',dep:'KJFK',arr:'LFPG',pax:4,cc:'',pnc2:'',pnc3:'',pnc4:''},
+const KEYOF=x=>typeof x==='string'?x:x===442?'b777':x===326?'a350':x===6?'lj60':x===5?'h125':x===12?'s76':x===3?(typeof ACK!=='undefined'&&ACK==='c172'?'c172':'r44'):'a320';
+const PERAC={ a320:{vol:'AT 123',imm:'F-HTRJ',dep:'KJFK',arr:'LFPG',pax:132}, b777:{vol:'AT 975',imm:'F-HTUB',dep:'LFPG',arr:'FMEE',pax:380}, a350:{vol:'AT 350',imm:'F-HTXW',dep:'LFPG',arr:'FMEE',pax:290}, lj60:{vol:'AT 60',imm:'F-HTLJ',dep:'KJFK',arr:'LFPG',pax:4,cc:'',pnc2:'',pnc3:'',pnc4:''},
   h125:{vol:'AT 125',imm:'F-HTEC',dep:'KJRB',arr:'JFKH',pax:4,opl:'',cc:'',pnc2:'',pnc3:'',pnc4:''}, s76:{vol:'AT 76',imm:'F-HTSK',dep:'KJRB',arr:'JFKH',pax:10,cc:'',pnc2:'',pnc3:'',pnc4:''},
   r44:{vol:'AT 44',imm:'F-HTRB',dep:'KJRB',arr:'JFKH',pax:2,opl:'',cc:'',pnc2:'',pnc3:'',pnc4:''},
   c172:{vol:'F-HTCA',imm:'F-HTCA',dep:'LFPN',arr:'LFPN',pax:1,cc:'',pnc2:'',pnc3:'',pnc4:''} };
@@ -7630,7 +7777,7 @@ const css=document.createElement('style'); css.textContent=`#sacrew{position:fix
 #seatmap svg{max-width:min(560px,100%);height:auto}#seatmap .seat{cursor:pointer}`; document.head.appendChild(css);
 function form(cb,small){ useCrew(small); let m=document.getElementById('sacrew'); if(m) m.remove(); m=document.createElement('div'); m.id='sacrew'; const v=CREW;
  const f=(k,l,t='text',ex='')=>`<label>${l}<input name="${k}" type="${t}" value="${String(v[k]??'').replace(/"/g,'&quot;')}" ${ex}></label>`, g=(k)=>`<select name="${k}">${['Hôtesse','Steward'].map(o=>`<option ${v[k]===o?'selected':''}>${o}</option>`).join('')}</select>`;
- m.innerHTML=`<div class="w"><div class="hd"><b>FEUILLE D'ÉQUIPAGE · MANIFESTE · ${({b777:'777-300ER',a320:'A320',lj60:'LEARJET 60',h125:'H125',s76:'S-76',r44:'R44',c172:'CESSNA 172'})[CKEY]}</b><small>GENERAL DECLARATION / CREW LIST</small><span style="float:right"><button type="button" data-ex="pdf">⬇ PDF</button> <button type="button" data-ex="docx">⬇ Word</button></span></div><div class="bd">
+ m.innerHTML=`<div class="w"><div class="hd"><b>FEUILLE D'ÉQUIPAGE · MANIFESTE · ${({b777:'777-300ER',a350:'A350-900',a320:'A320',lj60:'LEARJET 60',h125:'H125',s76:'S-76',r44:'R44',c172:'CESSNA 172'})[CKEY]}</b><small>GENERAL DECLARATION / CREW LIST</small><span style="float:right"><button type="button" data-ex="pdf">⬇ PDF</button> <button type="button" data-ex="docx">⬇ Word</button></span></div><div class="bd">
   <h4>Vol</h4><div class="g">${f('vol','N° de vol')}${f('imm','Immatriculation')}${f('dep','Départ (OACI)')}${f('arr','Arrivée (OACI)')}</div>
   <h4>Équipage technique</h4><div class="g">${f('cdb','Commandant de bord (CDB)')}${['h125','r44'].includes(CKEY)?'':f('opl',CKEY==='a320'?'Officier pilote de ligne (OPL)':CKEY==='c172'?'Instructeur (FI) ou passager avant':'Copilote')}${f('meca','Mécanicien sol')}</div>
   ${small&&small<100?'':`<h4>Équipage de cabine (PNC)</h4><div class="g">${f('cc','Chef de cabine')}<label>PNC 2 ${g('g2')}<input name="pnc2" value="${v.pnc2}"></label><label>PNC 3 ${g('g3')}<input name="pnc3" value="${v.pnc3}"></label><label>PNC 4 ${g('g4')}<input name="pnc4" value="${v.pnc4}"></label></div>`}
@@ -7653,6 +7800,7 @@ function LAY(small){ const k=small==null?CKEY:KEYOF(small);
   const R=(c,a,b,g,ex)=>{ const o=[]; for(let r=a;r<=b;r++) o.push({r,c,g,ex:(ex||[]).includes(r)}); return o; };
   const L={ a320:{n:'A320 · 180 sièges (30 rangs, 3-3) · issues au-dessus de l\'aile rangs 11-12',rows:R('Y',1,30,[['A','B','C'],['D','E','F']],[11,12])},
     b777:{n:'777-300ER · 442 sièges type Air Austral (18 J · 40 W · 384 Y)',rows:[...R('J',1,3,[['A','C'],['D','G'],['H','K']]),...R('W',6,10,[['A','C'],['D','E','F','G'],['H','K']]),...R('Y',20,57,[['A','B','C'],['D','E','F','G'],['H','J','K']],[20,33,47]),{r:58,c:'Y',g:[[],['D','E','F','G'],[]]}]},
+    a350:{n:'A350-900 · 326 sièges, configuration type 3 classes [ESTIMÉ] (32 J · 24 W · 270 Y)',rows:[...R('J',1,8,[['A'],['D','G'],['K']]),...R('W',10,12,[['A','C'],['D','E','F','G'],['H','K']]),...R('Y',20,49,[['A','B','C'],['D','E','F'],['H','J','K']],[20,33])]},
     lj60:{n:'Learjet 60 · 6 sièges club',rows:R('C',1,3,[['A'],['C']])}, h125:{n:'H125 · 5 passagers (1 avant gauche, banquette arrière 4)',rows:[{r:1,c:'P',g:[['A'],[]]},{r:2,c:'P',g:[['A','B'],['C','D']]}]},
     s76:{n:'S-76 · 12 passagers (3 rangs, 2-2)',rows:R('P',1,3,[['A','B'],['C','D']])}, r44:{n:'R44 · 3 passagers (avant gauche, arrière 2)',rows:[{r:1,c:'P',g:[['A'],[]]},{r:2,c:'P',g:[['A'],['B']]}]},
     c172:{n:'Cessna 172 · 3 passagers (avant droit, banquette arrière 2)',rows:[{r:1,c:'P',g:[[],['B']]},{r:2,c:'P',g:[['A'],['B']]}]} };
@@ -7843,6 +7991,17 @@ if(MOD.b777){ const lay=LAY('b777'), X0=200, sx=3.15, ord=(()=>{ const a=lay.all
     Q('Descente et approche ILS 14','',{ph:'Atterrissage',fl:{tAlt:2000,rate:2500,tIas:170},w:s=>s.fl.alt<=2100}),K('gear','DOWN','',[],s=>s.gp>0.99,'Attendre'),K('flaps',30,'Volets 30.'),K('thr','IDLE',''),
     Q('Finale et toucher','',{fl:{tAlt:0,rate:700,tIas:150},w:s=>s.fl.alt<=40}),Q('Piste','',{fl:{env:'rwy',alt:0,ias:145,tIas:15,acc:4}}),K('ground',true,''),K('flaps',0,''),Q('Roulage vers le parking','',{fl:{env:'taxi',tIas:12},d:4}),Q('Parking','',{fl:{env:'park',apt:CREW.arr,tIas:0,ias:0},d:2}),
     K('fcL','CUTOFF','Arrêt des moteurs (FUEL CONTROL CUTOFF).'),K('fcR','CUTOFF',''),K('bcn',false,'')]}); }
+// V10.39 : A350-900 : atelier sur le schéma de principe commun Airbus du simulateur [SIMPLIFIÉ] (l'A350 réel : 2 circuits hydrauliques vert et jaune à 5 000 psi + actionneurs électriques de secours, architecture « 2H/2E »)
+if(MOD.a320&&!MOD.a350){ MOD.a350=Object.assign({},MOD.a320,{name:'Airbus A350-900',sub:'2 turboréacteurs Rolls-Royce Trent XWB-84 · commandes électriques · schéma de principe commun Airbus [SIMPLIFIÉ] : l\'A350 réel a 2 circuits hydrauliques (vert, jaune) à 5 000 psi et des actionneurs électriques de secours (architecture 2H/2E)'});
+  const lay=LAY('a350'), X0=200, sx=2.4, ord=(()=>{ const a=lay.all.slice(); let sd=350; const r=()=>{ sd=(sd*16807)%2147483647; return sd/2147483647; }; for(let i=a.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; })();
+  const xy=id=>{ const r=parseInt(id,10), l=id.replace(/^\d+/,''), row=lay.rows.find(q=>q.r===r); let cols=[]; row.g.forEach((g,gi)=>{ g.forEach(x=>cols.push([x,gi])); }); const n=cols.length, i=cols.findIndex(c=>c[0]===l), gi=cols[i][1];
+    const x=X0+(i-(n-1)/2)*sx+(gi-(row.g.length-1)/2)*1.8; const y=r<=8?92+(r-1)*7:r<=12?150+(r-10)*7:176+(r-20)*7.6; return [x,y]; };
+  generic('a350',{two:true,rx:150,ry:270,cy:300,seat1:[196,60],seat2:[204,60],maxPax:326,paxSeats:ord.map(xy),walkSay:'Soufflantes des Trent XWB, trains à bogie de quatre roues, saumons courbés, empennage, APU : rien à signaler.',
+   flight:()=>[Q('Roulage','',{ph:'Roulage',fl:{env:'taxi',tIas:15},d:4}),K('flaps',1,'Volets 1 pour le décollage.'),Q('Alignement','',{ph:'Décollage',fl:{env:'rwy',ias:0,tIas:0},say:[TWRL('Air Trajectoires three five zero, runway two six right, cleared for take-off.','Autorisé au décollage piste 26 droite.')]}),
+    K('thr','TOGA','Poussée de décollage (TOGA ; FLEX en exploitation réelle).',[['CDB','Poussée de décollage.']]),Q('Course au décollage','',{fl:{tIas:160,acc:4},w:s=>s.fl.ias>=155,say:[['OPL','V1… Rotate.']]}),K('ground',false,''),Q('Montée','',{ph:'Vol',fl:{env:'air',tAlt:1500,rate:500,tIas:175},w:s=>s.fl.alt>500}),
+    K('gear','UP','',[['OPL','Positive climb, gear up.']],s=>s.gp<0.01,'Attendre'),K('thr','CL','Poussée de montée (cran CL).'),K('flaps',0,'Volets rentrés.'),Q('Croisière','Niveau 350, Mach 0,85, ≈ 11 h vers La Réunion.',{fl:{tAlt:35000,rate:2500,tIas:285},w:s=>s.fl.alt>=34900}),
+    Q('Descente et approche ILS 14','',{ph:'Atterrissage',fl:{tAlt:2000,rate:2500,tIas:165},w:s=>s.fl.alt<=2100}),K('gear','DOWN','',[],s=>s.gp>0.99,'Attendre'),K('flaps',4,'Volets FULL.'),K('thr','IDLE',''),
+    Q('Finale et toucher','',{fl:{tAlt:0,rate:700,tIas:145},w:s=>s.fl.alt<=40}),Q('Piste','',{fl:{env:'rwy',alt:0,ias:140,tIas:15,acc:4}}),K('ground',true,''),K('flaps',0,''),Q('Roulage vers le parking','',{fl:{env:'taxi',tIas:12},d:4}),Q('Parking','',{fl:{env:'park',apt:CREW.arr,tIas:0,ias:0},d:2})]}); }
 const heliFlight=(gear,two)=>()=>[K('coll',1,'Décollage en stationnaire.',[['CDB','Paramètres moteur au vert, décollage.']],s=>!s.ground,'Attendre le décollage'),
  ...(gear?[K('gear','UP','',[],s=>s.gp<0.01,'Attendre')]:[]),K('cyc','F','Cyclique en avant : le disque s\'incline, l\'appareil accélère.'),
  Q('Vol en palier','Transit à basse altitude.',{ph:'Vol',fl:{env:'air',tAlt:1500,rate:300,tIas:120},w:s=>s.fl.alt>=1450,say:[TWRL('Helicopter, proceed via the Hudson corridor, report the Verrazano bridge.','Suivez le couloir de l\'Hudson, rappelez au pont Verrazano.')],d:4}),
@@ -8410,7 +8569,7 @@ function ctx(){ const k=(typeof ACK!=='undefined'&&ACK)||(typeof selAC!=='undefi
  let crew={}; try{ crew=JSON.parse(localStorage.getItem('sa-crew')||'{}'); }catch(e){}
  const d=new Date(), date=`${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`, dof=`${String(d.getUTCFullYear()).slice(2)}${pad2(d.getUTCMonth()+1)}${pad2(d.getUTCDate())}`;
  const W=WB[k]||{}, etd=fw?'1830':'1500', fh=L.tripH||(fw?7.3:0.3), eta=(()=>{ const m=18*60+30+Math.round(fh*60); return pad2(Math.floor(m/60)%24)+pad2(m%60); })();
- return {k,a,fw,mi,dep,dest,altn:fw?(dest==='LFPG'?'LFPO':dest==='LFPO'?'LFPG':dest==='FMEE'?'FIMP':'KEWR'):(dest==='KJFK'?'KLGA':'LFPB'),L,W,crew,date,dof,etd,eta,fh,flt:crew.vol?String(crew.vol).replace(/\s/g,''):'PTA722',cs:(typeof CSN==='function'?CSN():'SIMU 320'),reg:crew.imm||({a320:'F-HTRJ',b777:'F-GSQA',c172:'F-GBQT',lj60:'N60PT',s76:'N76PT',h125:'F-HPTJ',r44:'F-HPTR'}[k]||'F-HTRJ'),type:{a320:'A320',lj60:'LJ60',s76:'S76',h125:'AS50',r44:'R44'}[k],name:a.name||k}; }
+ return {k,a,fw,mi,dep,dest,altn:fw?(dest==='LFPG'?'LFPO':dest==='LFPO'?'LFPG':dest==='FMEE'?'FIMP':'KEWR'):(dest==='KJFK'?'KLGA':'LFPB'),L,W,crew,date,dof,etd,eta,fh,flt:crew.vol?String(crew.vol).replace(/\s/g,''):'PTA722',cs:(typeof CSN==='function'?CSN():'SIMU 320'),reg:crew.imm||({a320:'F-HTRJ',b777:'F-GSQA',a350:'F-HTXW',c172:'F-GBQT',lj60:'N60PT',s76:'N76PT',h125:'F-HPTJ',r44:'F-HPTR'}[k]||'F-HTRJ'),type:{a350:'A359',a320:'A320',lj60:'LJ60',s76:'S76',h125:'AS50',r44:'R44'}[k],name:a.name||k}; }
 const apN=c=>(APTS[c]&&APTS[c].n)||({FIMP:'Maurice — Sir Seewoosagur Ramgoolam',KJRB:'Downtown Manhattan Heliport',LFPO:'Paris-Orly',KEWR:'Newark',KLGA:'LaGuardia',LFPB:'Paris-Le Bourget'}[c]||c);
 function metar(c){ try{ const m=WXS.met[c]; if(m&&m.raw) return 'METAR '+m.raw.replace(/^METAR /,''); }catch(e){} return {LFPO:'METAR LFPO 030200Z 20005KT CAVOK 08/06 Q1019 NOSIG',KEWR:'METAR KEWR 021851Z 21011KT 10SM FEW050 15/04 A3024',KLGA:'METAR KLGA 021851Z 20009KT 10SM FEW050 14/05 A3025',KJRB:'METAR KJRB (pas de station : voir KJFK / KLGA)',LFPB:'METAR LFPB 030200Z 21005KT CAVOK 07/06 Q1019'}[c]||'METAR '+c+' NIL'; }
 /* itinéraire (exemple pédagogique) */
@@ -8834,6 +8993,7 @@ window.DOCS={open,close,reopen:()=>open(CUR,{go:GOTO,rel:REL}),cur:()=>CUR,list:
 const M2=(l)=>l.concat(l.filter(c=>c[0]||c[2]).map(c=>[-c[0],c[1],-c[2],c[3],c[4]]));
 const HULL={
  a320:M2([[0,-10,0,12,2.05],[5.75,-6.9,5.75,-1.7,1.3],[3.8,0.4,3.8,1.7,0.55],[0,-15.9,0,-15.2,0.35]]),   // fuselage central (ventre bas) ; on passe sous le nez et sous le cône de queue
+ a350:M2([[0,-22,0,19,3.1],[9.4,-12,9.4,-3.8,1.85],[5.3,0.9,5.3,2.5,0.9],[0,-27.3,0,-26.5,0.5]]),   // V10.39 [ESTIMÉ]
  b777:M2([[0,-24,0,22,3.25],[9.75,-12.7,9.75,-3.6,2.05],[5.49,1.0,5.49,4.0,1.0],[0,-29.1,0,-28.3,0.5]]),
  lj60:M2([[0,-8.4,0,8.6,1.0],[0,-9.3,0,-8.4,0.6],[1.0,0.6,3.8,1.2,1.0],[3.8,1.2,6.6,1.7,0.6],[1.65,3.5,1.65,7.6,0.65]]),
  h125:M2([[0,-4.2,0,1.6,1.05],[0,1.6,0,6.6,0.35],[0,6.6,0,7.3,0.45],[1.15,-2.6,1.15,1.6,0.1]]),
@@ -8841,7 +9001,7 @@ const HULL={
  c172:M2([[0,-3.3,0,0.8,0.62],[0,0.8,0,4.6,0.3],[1.25,-0.2,1.25,0.25,0.05],[0,-3.6,0,-3.3,0.25]]),   // fuselage, cône arrière ; jambes de train ; aile haute : on passe dessous
  s76:M2([[0,-6.0,0,3.0,1.15],[0,-6.7,0,-6.0,0.7],[0,3.0,0,8.3,0.45],[0,8.3,0,8.9,0.5],[1.3,0.6,1.3,1.4,0.3],[0,-4.8,0,-4.3,0.3]])
 };
-const RAD={c172:5.5,a320:17.9,b777:32.4,lj60:6.7,h125:5.4,r44:5.0,s76:6.7};   // demi-envergure / rayon rotor : pour les bâtiments
+const RAD={c172:5.5,a320:17.9,b777:32.4,a350:32.4,lj60:6.7,h125:5.4,r44:5.0,s76:6.7};   // demi-envergure / rayon rotor : pour les bâtiments
 const MARGIN=0.35;                                          // demi-largeur d'épaules d'un piéton
 function segDist(px,pz,c){ const [x1,z1,x2,z2]=c, dx=x2-x1, dz=z2-z1, L=dx*dx+dz*dz, t=L?Math.max(0,Math.min(1,((px-x1)*dx+(pz-z1)*dz)/L)):0, cx=x1+dx*t, cz=z1+dz*t, d=Math.hypot(px-cx,pz-cz); return [d,px-cx,pz-cz]; }
 function hullHit(mx,mz,k){ let best=null; (HULL[k||ACK]||[]).forEach(c=>{ const [d,nx,nz]=segDist(mx,mz,c), pen=c[4]+MARGIN-d; if(pen>0&&(!best||pen>best.pen)){ const n=d>1e-6?[nx/d,nz/d]:[mx>=0?1:-1,0]; best={pen,n}; } }); return best; }
@@ -9141,6 +9301,7 @@ window.MAP={toggle,draw,ST};
 (function(){
 const MAP=[
  [/Airbus A320-200/g,'Aéralis AL-20'],[/\bA320-200\b/g,'AL-20'],[/\bA320\b/g,'AL-20'],[/\bA32[01N]\b/g,'AL-20'],
+ [/Airbus A350-900/g,'Aéralis AL-35'],[/\bA350-900\b/g,'AL-35'],[/\bA350\b/g,'AL-35'],[/\bA359\b/g,'AL-35'],[/Rolls-Royce Trent XWB-84/g,'Vectra TX-84'],[/\bTrent XWB-84\b/g,'TX-84'],[/\bTrent XWB\b/g,'TX'],[/\bRolls-Royce\b/g,'Vectra'],
  [/Boeing 777-300ER/g,'Celestra C-77 LR'],[/\b777-300ER\b/g,'C-77 LR'],[/\b777\b/g,'C-77'],[/\bBoeing\b/g,'Celestra'],
  [/Airbus H125/g,'Héliane H-25'],[/\bH125\b/g,'H-25'],[/Écureuil/g,'Héliane'],[/\s*\(AS ?350 ?B3e?\)/g,''],[/\bAS ?350( ?B3e?)?\b/g,'H-25'],[/\bAirbus\b/g,'Aéralis'],
  [/Learjet 60/g,'Stratus SJ-6'],[/\bLearjet\b/g,'Stratus'],[/\bLJ60\b/g,'SJ-6'],
@@ -9190,7 +9351,7 @@ window.BRAND={set,get on(){ return ON; },tx};
    le parcours Germanwings au FL380 n'a pas de sens pour un avion non pressurisé ou un hélicoptère. */
 (function(){
 if(typeof SCNS==='undefined') return;
-const NM={a320:'A320',b777:'Boeing 777',lj60:'Learjet 60',c172:'Cessna 172',h125:'H125',r44:'R44',s76:'S-76'};
+const NM={a320:'A320',b777:'Boeing 777',a350:'A350-900',lj60:'Learjet 60',c172:'Cessna 172',h125:'H125',r44:'R44',s76:'S-76'};
 const clone=(id,ac,o)=>{ const b=SCNS.find(s=>s.id===id); if(!b||SCNS.find(s=>s.id===id+'@'+ac)) return; SCNS.push(Object.assign({},b,{id:id+'@'+ac,ac,name:b.name.replace(/A320-?200|A320/g,NM[ac])+(/A320/.test(b.name)?'':' · '+NM[ac])},o||{})); };
 
 /* --- pannes propres au Cessna 172 (aussi dans le panneau « Pannes ») --- */
@@ -9222,13 +9383,15 @@ const ljBase=SCNS.find(s=>s.id==='F-LJENG')||{};
   const o=Object.assign({},ljBase,{id,ac:'lj60',cat:'A',name,context:ctx,triggers:trg,fails,expected:exp,init,eval:ev}); if(cr) o.cruise=cr; else delete o.cruise; SCNS.push(o); });
 /* --- 777 : tous les scénarios fictifs de l'A320 --- */
 ['F-FIRE','F-DEPRESS','F-ELEC','F-ICE','F-TCAS','F-FUEL','GW-SEC','GW-ROUTE'].forEach(id=>clone(id,'b777'));
+/* --- V10.39 : A350-900, mêmes systèmes modélisés que l'A320 : tous les scénarios fictifs de l'A320 --- */
+['F-FIRE','F-DEPRESS','F-ELEC','F-ICE','F-TCAS','F-FUEL','GW-SEC','GW-ROUTE'].forEach(id=>clone(id,'a350'));
 /* --- fuite carburant : Learjet 60 --- */
 clone('F-FUEL','lj60',{expected:'Reconnaître l\'écart carburant, prévenir le contrôle, se dérouter vers le terrain le plus proche.'});
 
 /* --- impact d'oiseaux / double perte de poussée (fictif, d'après US 1549) : 777, Learjet 60, Cessna 172 --- */
 const birdStart=()=>{ const p=offsetLL(APTS.KLGA.lat,APTS.KLGA.lon,4.5*1609*Math.cos(337*D2R),4.5*1609*Math.sin(337*D2R)); return {lat:p[0],lon:p[1],hdg:315,elev:6}; };
 const birdEval=L=>{ const d=L.ditch; return [['MAYDAY transmis',!!L.mayday,L.mayday?'oui':'non'],['Issue',!!(d&&!/rupture/.test(L.out||''))||L.out==='atterrissage',L.out||'—'],['Train rentré à l\'amerrissage',d?!d.gear:null,d?(d.gear?'SORTI':'rentré'):'—']]; };
-[['b777',250000,215,2818],['lj60',9000,200,2818],['c172',1000,85,2000]].forEach(([ac,m,kt,ft])=>{ if(SCNS.find(s=>s.id==='BIRDS@'+ac)) return;
+[['b777',250000,215,2818],['a350',230000,210,2818],['lj60',9000,200,2818],['c172',1000,85,2000]].forEach(([ac,m,kt,ft])=>{ if(SCNS.find(s=>s.id==='BIRDS@'+ac)) return;
   SCNS.push({id:'BIRDS@'+ac,cat:'A',ac,name:'Impact d\'oiseaux au départ de LaGuardia — '+(ac==='c172'?'panne moteur':'double perte de poussée')+' (fictif, d\'après US 1549) · '+NM[ac],
     context:'Variante fictive du vol US 1549 transposée sur '+NM[ac]+' : mêmes lieu et altitude, l\'avion et ses performances changent. La reconstitution historique fidèle reste sur A320.',
     wx:'Jour, vent 290°/8 kt [ESTIMÉ].',phase:'Montée initiale au nord-ouest de LaGuardia, '+ft+' ft.',triggers:'t = 0 : ingestion d\'oiseaux.',fails:ac==='c172'?'Panne moteur.':'Perte de poussée des deux moteurs.',
@@ -9272,13 +9435,13 @@ clone('F-R44','h125',{name:'H125 — panne de génératrice de nuit',fails:'Voya
 clone('F-R44','s76',{name:'S-76 — perte d\'une génératrice de nuit',init(){ SCN.trig=[{t:60,f:()=>failSet('genGA0',true)}]; },fails:'Une génératrice sur deux : charge à surveiller.',expected:'Constater, délester si besoin, poursuivre sur la génératrice restante.'});
 
 /* --- menu : cartes de scénarios avec un bouton par appareil compatible --- */
-const CARD={'sc-1549':{acs:['a320','b777','lj60','c172'],id:{a320:'US1549',b777:'BIRDS@b777',lj60:'BIRDS@lj60',c172:'BIRDS@c172'},d:'Amerrissage sur l\'Hudson (2009) : reconstitution guidée sur A320 ; variante fictive (mêmes lieu et altitude) sur les autres avions.'},
-  'sc-9525':{acs:['a320','b777'],id:{a320:'GW-ROUTE',b777:'GW-ROUTE@b777'}},
-  'sc-dep':{acs:['a320','b777','lj60'],id:{a320:'F-DEPRESS',b777:'F-DEPRESS@b777',lj60:'LJ-DEP'},n:'Scénario fictif · dépressurisation en croisière',d:'Perte de pressurisation en altitude : masques, descente d\'urgence, MAYDAY.'},
-  'sc-fict':{acs:['a320','b777','lj60','c172'],id:{a320:'F-FUEL',b777:'F-FUEL@b777',lj60:'F-FUEL@lj60',c172:'C-FUEL'},n:'Scénario fictif · fuite carburant'},
-  'sc-eng':{acs:['lj60','c172','h125','r44','s76','b777','a320'],id:{a320:'F-FIRE',b777:'F-FIRE@b777',lj60:'LJ-FIRE',c172:'C-EFATO',h125:'F-H125',r44:'F-H125@r44',s76:'F-S76'},n:'Scénario fictif · panne moteur au décollage',d:'Feu ou panne moteur juste après le décollage, sur chaque appareil : procédure propre au type (feu moteur sur avion de ligne, panne au décollage sur monomoteur, autorotation sur hélicoptère).'},
-  'sc-elec':{acs:['a320','b777','lj60','c172','h125','r44','s76'],id:{a320:'F-ELEC',b777:'F-ELEC@b777',lj60:'F-LJGEN',c172:'C-ALT',h125:'F-R44@h125',r44:'F-R44',s76:'F-R44@s76'},n:'Scénario fictif · panne électrique',d:'Perte de génératrice(s) ou d\'alternateur : reconnaître, délester, rejoindre un terrain.'},
-  'sc-ice':{acs:['a320','b777','lj60','c172'],id:{a320:'F-ICE',b777:'F-ICE@b777',lj60:'LJ-ICE',c172:'C-ICE'},n:'Scénario fictif · givrage',d:'Sonde Pitot non réchauffée sur avion de ligne ; givrage du carburateur sur le Cessna 172.'}};
+const CARD={'sc-1549':{acs:['a320','b777','a350','lj60','c172'],id:{a320:'US1549',b777:'BIRDS@b777',a350:'BIRDS@a350',lj60:'BIRDS@lj60',c172:'BIRDS@c172'},d:'Amerrissage sur l\'Hudson (2009) : reconstitution guidée sur A320 ; variante fictive (mêmes lieu et altitude) sur les autres avions.'},
+  'sc-9525':{acs:['a320','b777','a350'],id:{a320:'GW-ROUTE',b777:'GW-ROUTE@b777',a350:'GW-ROUTE@a350'}},
+  'sc-dep':{acs:['a320','b777','a350','lj60'],id:{a320:'F-DEPRESS',b777:'F-DEPRESS@b777',a350:'F-DEPRESS@a350',lj60:'LJ-DEP'},n:'Scénario fictif · dépressurisation en croisière',d:'Perte de pressurisation en altitude : masques, descente d\'urgence, MAYDAY.'},
+  'sc-fict':{acs:['a320','b777','a350','lj60','c172'],id:{a320:'F-FUEL',b777:'F-FUEL@b777',a350:'F-FUEL@a350',lj60:'F-FUEL@lj60',c172:'C-FUEL'},n:'Scénario fictif · fuite carburant'},
+  'sc-eng':{acs:['lj60','c172','h125','r44','s76','b777','a350','a320'],id:{a320:'F-FIRE',b777:'F-FIRE@b777',a350:'F-FIRE@a350',lj60:'LJ-FIRE',c172:'C-EFATO',h125:'F-H125',r44:'F-H125@r44',s76:'F-S76'},n:'Scénario fictif · panne moteur au décollage',d:'Feu ou panne moteur juste après le décollage, sur chaque appareil : procédure propre au type (feu moteur sur avion de ligne, panne au décollage sur monomoteur, autorotation sur hélicoptère).'},
+  'sc-elec':{acs:['a320','b777','a350','lj60','c172','h125','r44','s76'],id:{a320:'F-ELEC',b777:'F-ELEC@b777',a350:'F-ELEC@a350',lj60:'F-LJGEN',c172:'C-ALT',h125:'F-R44@h125',r44:'F-R44',s76:'F-R44@s76'},n:'Scénario fictif · panne électrique',d:'Perte de génératrice(s) ou d\'alternateur : reconnaître, délester, rejoindre un terrain.'},
+  'sc-ice':{acs:['a320','b777','a350','lj60','c172'],id:{a320:'F-ICE',b777:'F-ICE@b777',a350:'F-ICE@a350',lj60:'LJ-ICE',c172:'C-ICE'},n:'Scénario fictif · givrage',d:'Sonde Pitot non réchauffée sur avion de ligne ; givrage du carburateur sur le Cessna 172.'}};
 if(!SCNS.find(s=>s.id==='F-LJGEN')) SCNS.push(Object.assign({},SCNS.find(s=>s.id==='F-R44'),{id:'F-LJGEN',ac:'lj60',name:'Learjet 60 — perte des deux génératrices de nuit',base:'jfk-cdg',context:'Croisière de nuit, les deux génératrices lâchent.',triggers:'t = 60 s : génératrices 1 et 2.',fails:'Batteries seules.',init(){ SCN.trig=[{t:60,f:()=>{ failSet('genGA0',true); failSet('genGA1',true); }}]; },expected:'Délester, descendre et se poser avant l\'épuisement des batteries.'}));
 Object.keys(CARD).forEach(k=>{ const c=CARD[k]; if(!MISSIONS[k]) MISSIONS[k]={n:c.n||k,d:c.d||''}; const m=MISSIONS[k]; m.soon=false; m.acs=c.acs; if(c.n) m.n=c.n; if(c.d) m.d=c.d; if(typeof MI_AC!=='undefined') delete MI_AC[k]; });
 const goB=document.getElementById('go'); if(goB){ const _go=goB.onclick; goB.onclick=function(){ const c=CARD[selMI]; if(c){ const id=c.id[selAC]||c.id[c.acs[0]]; if(SCNS.find(s=>s.id===id)){ document.getElementById('menu').hidden=true; paused=false; scnStart(id); try{ SCN.view='run'; scnOpen(true,'run'); }catch(e){} return; } } return _go&&_go.apply(this,arguments); }; }
@@ -9494,8 +9657,8 @@ function box(par,w,h,d,mat,x,y,z,rx,ry,rz){ const b=new THREE.Mesh(new THREE.Box
 // montant oblique entre deux points (repère du poste)
 function post(par,a,b,t,mat){ const A=new THREE.Vector3(...a), B=new THREE.Vector3(...b), d=B.clone().sub(A), m=new THREE.Mesh(new THREE.BoxGeometry(t,d.length(),t*0.8),mat); m.position.copy(A).add(B).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); par.add(m); return m; }
 function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; const e=A.eye, cx=-e[0], g=new THREE.Group(); g.position.set(e[0],e[1],e[2]); G.add(g);
-  const air=k==='a320'||k==='b777', boe=k==='b777';
-  if(air||k==='lj60'||k==='s76'){ const W=k==='b777'?1.45:k==='a320'?1.3:k==='s76'?0.95:0.85, top=k==='lj60'?0.28:0.34, gz=k==='lj60'?-0.78:-0.95;
+  const air=k==='a320'||k==='b777'||k==='a350', boe=k==='b777';
+  if(air||k==='lj60'||k==='s76'){ const W=k==='b777'?1.45:k==='a350'?1.4:k==='a320'?1.3:k==='s76'?0.95:0.85, top=k==='lj60'?0.28:0.34, gz=k==='lj60'?-0.78:-0.95;
     const col=boe?0x4a443e:k==='lj60'?0x3b3e43:k==='s76'?0x3d4146:0x56616c, frame=M(boe?0x2e2a27:0x24282c), glare=M(col), sill=M(boe?0x5a534c:0x66707a);
     box(g,2*W,0.10,0.45,glare,cx,-0.30,gz);                                                           // casquette
     if(k!=='lj60'||true){ const p=box(g,Math.min(1.4,2*W-0.2),0.09,0.02,M(0xffffff,mcpTex(boe?'#3e3934':'#4a545e',boe?'#ffb347':'#ffd27a'),true),cx,-0.30,gz-0.235); }   // MCP / FCU rétroéclairé
@@ -9522,7 +9685,7 @@ function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; co
 /* V10.38 (F4) : poste plus détaillé, sur ce qui est réellement visible au-dessus de la planche 2D : siège et commandes du copilote,
    pare-soleil, rails de fenêtre, console latérale, cloison arrière avec porte du poste, panneaux de disjoncteurs, boîte à masque à oxygène.
    Formes simplifiées et originales, cotes [ESTIMÉ]. */
-function detail(g,k,cx){ const air=k==='a320'||k==='b777', boe=k==='b777', heli=k==='h125'||k==='r44'||k==='s76', small=k==='c172'||k==='r44'||k==='h125';
+function detail(g,k,cx){ const air=k==='a320'||k==='b777'||k==='a350', boe=k==='b777', heli=k==='h125'||k==='r44'||k==='s76', small=k==='c172'||k==='r44'||k==='h125';
   const seat=M(boe?0x3a3632:k==='c172'?0x6b5d4c:k==='r44'?0x5a4a3a:0x2f3640), seatL=M(boe?0x4a453f:0x3c4552), dk=M(0x1a1c1f), mid=M(boe?0x4a443e:0x56616c), pale=M(0xc9ced3);
   const half=air?(boe?0.62:0.55):k==='lj60'?0.42:k==='s76'?0.48:k==='c172'?0.3:0.36, xo=2*cx;                // x du copilote (symétrique du pilote)
   const back=heli||k==='c172'?0.35:0.55, hz=0.32;
@@ -9574,7 +9737,7 @@ function spr(t,col){ const cv=document.createElement('canvas'), g=cv.getContext(
 // éléments de l'appareil (repère modèle : x à droite, y vers le haut depuis l'axe du fuselage, z vers l'arrière)
 function parts(k){ const e=(AC[k]&&AC[k].ext)||{len:30,span:30}, L=e.len, W=e.span/2, y0=-(AC[k]?AC[k].yOff:2), rw=AC[k]&&AC[k].kind==='rw';
   if(rw){ const top=k==='r44'?1.4:k==='s76'?1.9:1.6; return {rotor:[0,top+0.4,0],tail:[0,0.6,L*0.47],trotor:[0.3,0.8,L*0.5],skid:[0,y0+0.2,0],eng:[0,top-0.2,0.9],cock:[0,0.3,-L*0.3],gear:[0,y0+0.3,-0.5]}; }
-  const nose=-L/2, tail=L/2, jetW=k==='b777'?W*0.31:k==='a320'?W*0.34:0; return {
+  const nose=-L/2, tail=L/2, jetW=k==='b777'?W*0.31:k==='a350'?W*0.29:k==='a320'?W*0.34:0; return {
     nose:[0,0.2,nose+0.4], cock:[0,0.8,nose+L*0.08], wingL:[-W*0.8,0.2,-L*0.02], wingR:[W*0.8,0.2,-L*0.02], flapL:[-W*0.5,0.0,L*0.04], flapR:[W*0.5,0.0,L*0.04],
     ailL:[-W*0.9,0.1,L*0.05], spoil:[-W*0.42,0.35,L*0.02], engL:k==='lj60'?[-1.1,0.4,L*0.28]:k==='c172'?[0,0,nose+0.3]:[-jetW,-1.4,-L*0.1], engR:k==='lj60'?[1.1,0.4,L*0.28]:null,
     gearN:[0,y0+0.6,nose+L*0.12], gearM:[k==='c172'?1.25:W*0.12,y0+0.7,L*0.02], elev:[W*0.18,L*0.04,tail-L*0.04], rud:[0,L*0.16,tail-L*0.03], land:[-W*0.25,-0.5,-L*0.06], bcn:[0,1.1,-L*0.05], apu:[0,0.6,tail]}; }
@@ -9849,7 +10012,7 @@ function home(){ const d=el(); d.hidden=false; d.scrollTop=0; d.innerHTML=`<div 
  <h1>✈ PLANE TRAJECTORIES · Introduction</h1><small>À lire avant d'aborder le simulateur et les cours (≈ 5 min). Vous pourrez la rouvrir à tout moment avec le bouton « 📘 Introduction ».</small>
  <h2>Pourquoi ce projet ?</h2><p>Comprendre comment vole réellement un avion, du dossier de vol préparé au sol jusqu'au parking d'arrivée, sans avoir besoin d'un simulateur coûteux ni d'un cockpit. Le projet est <b>pédagogique</b> : faire découvrir le métier de pilote, donner les bases théoriques, et pourquoi pas faire naître des vocations. Il suit les procédures, les textes et les ordres de grandeur réels (EASA, DGAC, OACI, manuels publics), en signalant toujours ce qui est simplifié ou estimé.</p>
  <div class="card"><b>Ce que le projet n'est pas</b> : un simulateur certifié, un cours agréé ou un manuel de vol. Il ne remplace ni une école de pilotage, ni un instructeur, ni les documents officiels de l'avion. Les valeurs chiffrées sont des ordres de grandeur.</div>
- <h2>Ce qu'il contient</h2><ul><li><b>Sept appareils</b> : Airbus A320, Boeing 777, Learjet 60, Cessna 172 (avion école), hélicoptères H125, R44 et S-76.</li>
+ <h2>Ce qu'il contient</h2><ul><li><b>Huit appareils</b> : Airbus A320, Airbus A350-900, Boeing 777, Learjet 60, Cessna 172 (avion école), hélicoptères H125, R44 et S-76.</li>
  <li><b>Des parcours guidés</b> : chaque vol est découpé en étapes numérotées (préparation, visite de l'avion, mise en route, roulage, décollage, croisière, approche, atterrissage), avec des actions qui se cochent quand vous les faites, et un mode automatique pour regarder le vol entier.</li>
  <li><b>Les documents de vol</b> (dossier, devis de masse, carburant, log de navigation, manifeste), modifiables et téléchargeables en PDF ou Word.</li>
  <li><b>L'Académie</b> : 8 parties de cours, du débutant à la théorie du brevet de pilote (PPL), aux calculs et à la sécurité des vols (ce que les accidents nous ont appris), avec des QCM.</li>
@@ -10312,6 +10475,7 @@ const KEY='pt-rt-save-v1', MAXAGE=72*3600e3;
 /* Durées de référence des vols réels (temps bloc, porte à porte) [RÉFÉRENCÉ] — vérifiées le 18/11/2026 */
 const REF={
   'full-777-af':{min:660,txt:'Air France AF652 Paris-CDG → La Réunion, Boeing 777-300ER : départ 18 h 00, arrivée 08 h 00 (heure locale) = 11 h 00',src:'FlightStats, vol AF652, horaires de novembre 2026'},
+  'full-350':{min:660,txt:'Même route Paris-CDG → La Réunion : Air France AF652 (Boeing 777-300ER) 18 h 00 → 08 h 00 locale = 11 h 00 ; sur A350-900, durée du même ordre [ESTIMÉ]',src:'FlightStats, vol AF652, horaires de novembre 2026'},
   'full-fw':{min:435,txt:'Vols réguliers New York JFK → Paris-CDG : 7 h 15 à 7 h 25 (Air France AF1)',src:'FlightMapper, vol Air France AF 1 JFK → CDG'},
   'full-rw':{min:7.5,range:[5,10],kind:'flight',txt:'Hélicoptère Manhattan → JFK : environ 5 à 10 min de vol selon l\'itinéraire',src:'Blade, « How do you get from Manhattan to JFK by helicopter? »'},
   'full-c172':{min:7,range:[6,8],kind:'flight',txt:'Tour de piste à Toussus en Cessna 172 : environ 6 à 8 min [ESTIMÉ], ordre de grandeur courant en école',src:'[ESTIMÉ] — pas de source officielle'}};
@@ -10716,6 +10880,7 @@ if(typeof scene==='undefined'||typeof THREE==='undefined'||typeof placeCamera!==
 const G=new THREE.Group(); G.visible=false; scene.add(G); let built=null, mats=[], CAM=null;
 const D={ // largeur et hauteur intérieures (m), pas des rangs par classe (m), largeur de siège par classe (m), sièges des pilotes dans la cabine
  a320:{w:3.70,h:2.22,lead:2.6,pitch:{Y:0.76},sw:{Y:0.46},bins:true,col:0x2f4b6e},
+ a350:{w:5.61,h:2.42,lead:2.8,pitch:{J:1.9,W:0.97,Y:0.79},sw:{J:0.62,W:0.48,Y:0.45},bins:true,col:0x2d3f57},   // largeur de cabine A350 5,61 m [RÉFÉRENCÉ Airbus], le reste [ESTIMÉ]
  b777:{w:5.86,h:2.45,lead:3.0,pitch:{J:1.55,W:0.97,Y:0.79},sw:{J:0.62,W:0.5,Y:0.45},bins:true,col:0x34465a},
  lj60:{w:1.80,h:1.74,lead:1.6,pitch:{C:1.25},sw:{C:0.56},col:0xb9a88c},
  s76:{w:1.90,h:1.35,lead:1.3,pitch:{P:0.95},sw:{P:0.48},col:0x4b5560},
@@ -10767,7 +10932,7 @@ function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; co
   const wm=M(0xffffff,winTex(),true); wm.userData.win=true; const step=d.small?0.8:0.53;
   for(let zz=z0;zz<zEnd;zz+=step) [-1,1].forEach(s=>{ const h=new THREE.Mesh(new THREE.PlaneGeometry(d.small?0.5:0.26,d.small?0.42:0.36),wm); h.position.set(s*(W/2-0.03),floor+(d.small?0.95:1.05),zz); h.rotation.y=-s*Math.PI/2; g.add(h); });
   if(d.bins){ [-1,1].forEach(s=>{ box(g,0.62,0.42,len-0.8,M(0xf4f5f6),s*(W/2-0.31),floor+H-0.36,zc); box(g,0.02,0.02,len-0.8,M(0xbfe3ff,null,true),s*(W/2-0.64),floor+H-0.58,zc); });   // coffres à bagages, rampe lumineuse
-    if(k==='b777') box(g,1.6,0.38,len-6,M(0xf4f5f6),0,floor+H-0.3,zc+1);                            // coffres centraux (777)
+    if(k==='b777'||k==='a350') box(g,1.6,0.38,len-6,M(0xf4f5f6),0,floor+H-0.3,zc+1);                            // coffres centraux (777)
     box(g,W*0.5,1.9,0.9,M(0xb8c0c7),-W*0.22,floor+0.95,z0-0.85);                                       // office avant (galley)
     box(g,0.9,1.9,0.9,M(0xa7b0b8),W*0.3,floor+0.95,z0-0.85); box(g,0.06,0.9,0.04,dark,W*0.3-0.3,floor+1.0,z0-0.39);   // toilettes avant
     box(g,W*0.6,1.9,0.8,M(0xb8c0c7),0,floor+0.95,zEnd+0.7); }
@@ -10807,6 +10972,7 @@ function navUI(on){ let n=document.getElementById('cabnav'); if(!on){ if(n) n.hi
 function addBtn(){ const ext=document.querySelector('[data-v="ext"]'); if(!ext||document.querySelector('[data-v="cab"]')) return;
   const b=document.createElement('button'); b.type='button'; b.dataset.v='cab'; b.textContent='Cabine'; b.title='Cabine passagers (Page préc. / Page suiv. ou ▲ ▼ pour se déplacer dans l\'allée)';
   b.onclick=()=>{ setView('cab'); }; ext.after(b); }
+const _sv=setView; setView=function(v){ const r=_sv.apply(this,arguments); try{ navUI(v==='cab'&&!!CAM&&built===ACK); }catch(e){} return r; };   // V10.39 : boutons d'allée masqués dès qu'on quitte la cabine, même en pause
 addBtn(); setTimeout(addBtn,1500);
 window.CABIN={G,build,cam:()=>CAM,pos:()=>pos};
 })();

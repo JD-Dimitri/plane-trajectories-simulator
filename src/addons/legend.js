@@ -15,7 +15,7 @@ function spr(t,col){ const cv=document.createElement('canvas'), g=cv.getContext(
 // éléments de l'appareil (repère modèle : x à droite, y vers le haut depuis l'axe du fuselage, z vers l'arrière)
 function parts(k){ const e=(AC[k]&&AC[k].ext)||{len:30,span:30}, L=e.len, W=e.span/2, y0=-(AC[k]?AC[k].yOff:2), rw=AC[k]&&AC[k].kind==='rw';
   if(rw){ const top=k==='r44'?1.4:k==='s76'?1.9:1.6; return {rotor:[0,top+0.4,0],tail:[0,0.6,L*0.47],trotor:[0.3,0.8,L*0.5],skid:[0,y0+0.2,0],eng:[0,top-0.2,0.9],cock:[0,0.3,-L*0.3],gear:[0,y0+0.3,-0.5]}; }
-  const nose=-L/2, tail=L/2, jetW=k==='b777'?W*0.31:k==='a320'?W*0.34:0; return {
+  const nose=-L/2, tail=L/2, jetW=k==='b777'?W*0.31:k==='a350'?W*0.29:k==='a320'?W*0.34:0; return {
     nose:[0,0.2,nose+0.4], cock:[0,0.8,nose+L*0.08], wingL:[-W*0.8,0.2,-L*0.02], wingR:[W*0.8,0.2,-L*0.02], flapL:[-W*0.5,0.0,L*0.04], flapR:[W*0.5,0.0,L*0.04],
     ailL:[-W*0.9,0.1,L*0.05], spoil:[-W*0.42,0.35,L*0.02], engL:k==='lj60'?[-1.1,0.4,L*0.28]:k==='c172'?[0,0,nose+0.3]:[-jetW,-1.4,-L*0.1], engR:k==='lj60'?[1.1,0.4,L*0.28]:null,
     gearN:[0,y0+0.6,nose+L*0.12], gearM:[k==='c172'?1.25:W*0.12,y0+0.7,L*0.02], elev:[W*0.18,L*0.04,tail-L*0.04], rud:[0,L*0.16,tail-L*0.03], land:[-W*0.25,-0.5,-L*0.06], bcn:[0,1.1,-L*0.05], apu:[0,0.6,tail]}; }

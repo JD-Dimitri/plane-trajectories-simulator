@@ -10,6 +10,7 @@ if(typeof scene==='undefined'||typeof THREE==='undefined'||typeof placeCamera!==
 const G=new THREE.Group(); G.visible=false; scene.add(G); let built=null, mats=[], CAM=null;
 const D={ // largeur et hauteur intérieures (m), pas des rangs par classe (m), largeur de siège par classe (m), sièges des pilotes dans la cabine
  a320:{w:3.70,h:2.22,lead:2.6,pitch:{Y:0.76},sw:{Y:0.46},bins:true,col:0x2f4b6e},
+ a350:{w:5.61,h:2.42,lead:2.8,pitch:{J:1.9,W:0.97,Y:0.79},sw:{J:0.62,W:0.48,Y:0.45},bins:true,col:0x2d3f57},   // largeur de cabine A350 5,61 m [RÉFÉRENCÉ Airbus], le reste [ESTIMÉ]
  b777:{w:5.86,h:2.45,lead:3.0,pitch:{J:1.55,W:0.97,Y:0.79},sw:{J:0.62,W:0.5,Y:0.45},bins:true,col:0x34465a},
  lj60:{w:1.80,h:1.74,lead:1.6,pitch:{C:1.25},sw:{C:0.56},col:0xb9a88c},
  s76:{w:1.90,h:1.35,lead:1.3,pitch:{P:0.95},sw:{P:0.48},col:0x4b5560},
@@ -61,7 +62,7 @@ function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; co
   const wm=M(0xffffff,winTex(),true); wm.userData.win=true; const step=d.small?0.8:0.53;
   for(let zz=z0;zz<zEnd;zz+=step) [-1,1].forEach(s=>{ const h=new THREE.Mesh(new THREE.PlaneGeometry(d.small?0.5:0.26,d.small?0.42:0.36),wm); h.position.set(s*(W/2-0.03),floor+(d.small?0.95:1.05),zz); h.rotation.y=-s*Math.PI/2; g.add(h); });
   if(d.bins){ [-1,1].forEach(s=>{ box(g,0.62,0.42,len-0.8,M(0xf4f5f6),s*(W/2-0.31),floor+H-0.36,zc); box(g,0.02,0.02,len-0.8,M(0xbfe3ff,null,true),s*(W/2-0.64),floor+H-0.58,zc); });   // coffres à bagages, rampe lumineuse
-    if(k==='b777') box(g,1.6,0.38,len-6,M(0xf4f5f6),0,floor+H-0.3,zc+1);                            // coffres centraux (777)
+    if(k==='b777'||k==='a350') box(g,1.6,0.38,len-6,M(0xf4f5f6),0,floor+H-0.3,zc+1);                            // coffres centraux (777)
     box(g,W*0.5,1.9,0.9,M(0xb8c0c7),-W*0.22,floor+0.95,z0-0.85);                                       // office avant (galley)
     box(g,0.9,1.9,0.9,M(0xa7b0b8),W*0.3,floor+0.95,z0-0.85); box(g,0.06,0.9,0.04,dark,W*0.3-0.3,floor+1.0,z0-0.39);   // toilettes avant
     box(g,W*0.6,1.9,0.8,M(0xb8c0c7),0,floor+0.95,zEnd+0.7); }
@@ -101,6 +102,7 @@ function navUI(on){ let n=document.getElementById('cabnav'); if(!on){ if(n) n.hi
 function addBtn(){ const ext=document.querySelector('[data-v="ext"]'); if(!ext||document.querySelector('[data-v="cab"]')) return;
   const b=document.createElement('button'); b.type='button'; b.dataset.v='cab'; b.textContent='Cabine'; b.title='Cabine passagers (Page préc. / Page suiv. ou ▲ ▼ pour se déplacer dans l\'allée)';
   b.onclick=()=>{ setView('cab'); }; ext.after(b); }
+const _sv=setView; setView=function(v){ const r=_sv.apply(this,arguments); try{ navUI(v==='cab'&&!!CAM&&built===ACK); }catch(e){} return r; };   // V10.39 : boutons d'allée masqués dès qu'on quitte la cabine, même en pause
 addBtn(); setTimeout(addBtn,1500);
 window.CABIN={G,build,cam:()=>CAM,pos:()=>pos};
 })();
