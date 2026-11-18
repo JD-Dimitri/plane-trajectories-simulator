@@ -6932,7 +6932,7 @@ function act(id,v){ if(!M) return; let c=findC(id); AU.click();
  LAST=id; LASTV=c.t==='pb'?S[id]:v; if(c.pg){ PAGE=c.pg; pgPrev=''; }
  touch(c.pt||[]); D=M.ev(S); explain(true); paint(true); tourCheck(id,v); }
 function defaultOn(id,prev,v){ const s=S; /* A320 */
- if(AC!=='a320') return;
+ if(AC!=='a320'&&AC!=='a350') return;   // V10.42 : l'A350 reprend le schéma Airbus de l'A320 (APU, démarrage…)
  if(id==='apuStart'){ if(s.apuMaster&&s.apuSt===0&&(s.bat1||s.bat2||s.ext)) s.apuSt=1; }
  if((id==='m1'||id==='m2')){ const i=+id[1]-1; if(s[id]&&!prev&&s.eMode==='IGN'&&s.es[i]===0&&s.n2[i]<10){ s.es[i]=1; s.sf[i]=0; } }
  if(id==='gear'&&s.ground&&v==='UP'){ s.gear='DOWN'; }
@@ -7058,7 +7058,7 @@ function matches(st,id,v){ if(isSeq(st)||st.c!==id) return false; const c=findC(
 function stepLabel(st){ if(isSeq(st)) return st.t||'Séquence'; const c=findC(st.c); if(st.c==='ground') return 'Situation : '+(st.v?'poser l\'appareil':'décollage'); if(c&&c.t==='sw') return c.l+' → '+(st.v?'ON':'OFF');
  return (c?c.l:st.c)+(c&&c.t!=='pb'&&c.t!=='mom'?' → '+(c.ol?c.ol[c.o.findIndex(x=>String(x)===String(st.v))]:((c.o||[]).find(x=>String(x[0])===String(st.v))||[0,st.v])[1]):(c&&c.t==='pb'?' → '+(st.v?'ON':'OFF'):'')); }
 function stepEnter(){ const st=TOUR&&TOUR.st[TI]; if(!st) return; AUTO.t=performance.now(); st.t0=performance.now();
- if(isSeq(st)){ clearFrames(); if(!st.ran){ st.ran=true; if(st.ph) S.fl.ph=st.ph; if(st.fl) Object.assign(S.fl,st.fl); if('fx' in st){ S.fl.fx=st.fx; S.fl.fxt=st.fxt; if(st.fy) S.fl.fy=st.fy; } if(st.mv) st.mv.forEach(m=>moveActor(m[0],m[1],m[2])); if(st.run) st.run(S,{move:moveActor}); if(st.pt) touch(st.pt); if(st.pg){ PAGE=st.pg; pgPrev=''; } if(st.snd==='chime') AU.chime(); if(st.say) say(st.say); } return; }
+ if(isSeq(st)){ clearFrames(); if(!st.ran){ st.ran=true; if(st.ph) S.fl.ph=st.ph; if(st.fl) Object.assign(S.fl,st.fl); if('fx' in st){ S.fl.fx=st.fx; S.fl.fxt=st.fxt; if(st.fy) S.fl.fy=st.fy; } if(st.mv) st.mv.forEach(m=>moveActor(m[0],m[1],m[2])); if(st.run) st.run(S,{move:moveActor}); if(st.fl&&/^(taxi|rwy|air)$/.test(st.fl.env||'')&&S.act) Object.keys(S.act).forEach(k=>{ if(['meca','tug','gpuv','bus','pbus'].includes(k)) moveActor(k,null,{hide:1}); });   /* V10.42 (F34) : personnel et véhicules au sol retirés dès que l'avion roule (tous les appareils) */ if(st.pt) touch(st.pt); if(st.pg){ PAGE=st.pg; pgPrev=''; } if(st.snd==='chime') AU.chime(); if(st.say) say(st.say); } return; }
  if(st.ph) S.fl.ph=st.ph; if(st.say&&!st.ran){ st.ran=true; say(st.say); }
  if(satisfied(st)){ st.done=true; st.tDone=performance.now()-2000; }
  if(MODE==='auto'){ frame(st.c,'fneed'); scrollTo(st.c); } else if(MODE==='peda'){ frame(st.c,st.done?'fok':'fneed'); scrollTo(st.c); } else clearFrames(); }
