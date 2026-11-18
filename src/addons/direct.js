@@ -15,7 +15,7 @@ function runActions(k){ const done=window.__DIRDONE||(window.__DIRDONE=new Set()
     if(st.walk){ try{ if(GD.markers) GD.markers.forEach(m=>{ m.seen=true; }); GD.walkDone=true; if(GD.seen&&GD.pts) GD.pts.forEach((p,n)=>GD.seen.add(n)); }catch(e){} } } }
 function startedBefore(k){ return GD.steps.slice(0,k).some(s=>/Mise en route|Démarrage|Start/i.test(s.ph+' '+s.t)); }
 function enginesOn(){ try{ const n=A.twin||AL()||ACK==='lj60'?2:1; S.eng=[true,n>1]; S.n2=[1,n>1?1:0]; if(A.kind==='rw'){ S.nr=1; S.eng=[true,!!A.twin]; }
-  if(AL()){ SYS.master1=SYS.master2='ON'; SYS.engMode='NORM'; } if(ACK==='c172'){ SYS.mix='RICHE'; SYS.mags='BOTH'; } }catch(e){} }
+  if(AL()){ SYS.master1=SYS.master2='ON'; SYS.engMode='NORM'; } if(ACK==='c172'){ Object.assign(SYS,{bat1:true,alt1:true,avion:true,mix:'RICH',mags:'BOTH',fuelSel:'BOTH'}); GD.primed=true; }   /* valeurs exactes attendues par c172.js (« RICH ») */ }catch(e){} }
 const ll=(r,x,y)=>{ const h=r.hdg*D2R; return offsetLL(r.lat,r.lon,x*Math.cos(h)-y*Math.sin(h),x*Math.sin(h)+y*Math.cos(h)); };   // x le long de l'axe, y à droite
 function air(lat,lon,altM,casKt,hdgDeg,o){ o=o||{}; const V=o.tas||tasFromCas(kt(casKt),altM);
   Object.assign(S,{lat,lon,alt:altM,V,onGround:false,gam:(o.gam||0)*D2R,th:(o.th!=null?o.th:2)*D2R,ph:0,psi:hdgDeg*D2R,gear:!!o.gear,flap:o.flap||0,thr:o.thr!=null?o.thr:0.6,pbrake:false,brake:false,pushed:true});
@@ -33,10 +33,10 @@ function place(k){ const st=GD.steps[k]||{}, fly=st.fly||'', idxLand=GD.steps.fi
   AP.appr=false; GD.landed=false; GD.taxiInStarted=false;
   // hélicoptères
   if(A.kind==='rw'){ const D=APTS[MI.dest], s0=MI.start(), dD=gcKm(s0.lat,s0.lon,D.lat,D.lon)*1000, h=brg(s0.lat,s0.lon,D.lat,D.lon);
-    if(fly==='hTakeoff'){ ground(s0.lat,s0.lon,s0.hdg!=null?s0.hdg:h); return 'au sol, prêt au décollage'; }
+    if(fly==='hTakeoff'){ ground(s0.lat,s0.lon,s0.hdg!=null?s0.hdg:h,s0.elev); return 'au sol, prêt au décollage'; }   /* altitude de l'hélistation, pas celle du relief */
     if(fly==='hCruise'){ const p=offsetLL(s0.lat,s0.lon,dD*0.4*Math.cos(h*D2R),dD*0.4*Math.sin(h*D2R)); air(p[0],p[1],elevAt(p[0],p[1])+300,A===AC.r44?90:110,h); return 'en transit à 300 m'; }
     if(fly==='hLand'){ const b=before(D.lat,D.lon,1.7,s0.lat,s0.lon); air(b.p[0],b.p[1],elevAt(b.p[0],b.p[1])+200,70,b.hdg); return 'en approche à 1,7 km'; }
-    if(idxLand>=0&&k>idxLand){ ground(D.lat,D.lon,h); GD.landed=true; return 'posé à destination'; }
+    if(idxLand>=0&&k>idxLand){ ground(D.lat,D.lon,h,D.elev); GD.landed=true; return 'posé à destination'; }
     return null; }
   // Cessna 172 : tour de piste de Toussus (main gauche, 1 000 ft)
   if(ACK==='c172'&&MI.dest==='LFPN'){ const r=rwStart('LFPN','25R'), el=APTS.LFPN.elev, T=/traversier/i.test(st.t), Dw=/arrière/i.test(st.t), B=/base/i.test(st.t), Fi=/Finale/i.test(st.t);

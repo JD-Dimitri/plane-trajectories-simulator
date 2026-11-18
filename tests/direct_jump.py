@@ -49,6 +49,8 @@ def expect(ac, fly, k, idx_land, st):
         if fly == 'land' and not st['gear']: bad.append('train rentré en finale')
     elif idx_land >= 0 and k > idx_land:
         if not st['gnd'] or st['dDest'] > 6: bad.append(f"devrait être posé à destination ({st['dDest']} km, sol={st['gnd']})")
+    if fly in FLIGHT and fly not in ('takeoff', 'hTakeoff') and '1' not in st['eng']:
+        bad.append('moteur(s) arrêté(s) en vol')
     return bad
 
 
