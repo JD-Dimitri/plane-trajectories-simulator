@@ -19,9 +19,9 @@ function enginesOn(){ try{ const n=A.twin||AL()||ACK==='lj60'?2:1; S.eng=[true,n
 const ll=(r,x,y)=>{ const h=r.hdg*D2R; return offsetLL(r.lat,r.lon,x*Math.cos(h)-y*Math.sin(h),x*Math.sin(h)+y*Math.cos(h)); };   // x le long de l'axe, y à droite
 function air(lat,lon,altM,casKt,hdgDeg,o){ o=o||{}; const V=o.tas||tasFromCas(kt(casKt),altM);
   Object.assign(S,{lat,lon,alt:altM,V,onGround:false,gam:(o.gam||0)*D2R,th:(o.th!=null?o.th:2)*D2R,ph:0,psi:hdgDeg*D2R,gear:!!o.gear,flap:o.flap||0,thr:o.thr!=null?o.thr:0.6,pbrake:false,brake:false,pushed:true});
-  if(A.kind==='rw'){ S.ve=V*Math.sin(S.psi); S.vn=V*Math.cos(S.psi); S.vu=0; S.coll=0.6; }
+  if(A.kind==='rw'){ S.ve=V*Math.sin(S.psi); S.vn=V*Math.cos(S.psi); S.vu=0; S.coll=0.6; try{ DIR.iv=0; }catch(e){} }   /* mémoire (terme intégral) du pilotage automatique remise à zéro après le saut */
   TX.auto=false; try{ showRoute(null); }catch(e){} }
-function ground(lat,lon,hdgDeg,elev){ Object.assign(S,{lat,lon,alt:(elev!=null?elev:elevAt(lat,lon)),V:0,onGround:true,gam:0,th:0,ph:0,psi:hdgDeg*D2R,thr:0,pbrake:true,pushed:true}); if(A.kind==='rw'){ S.ve=S.vn=S.vu=0; S.coll=0; } TX.auto=false; }
+function ground(lat,lon,hdgDeg,elev){ Object.assign(S,{lat,lon,alt:(elev!=null?elev:elevAt(lat,lon)),V:0,onGround:true,gam:0,th:0,ph:0,psi:hdgDeg*D2R,thr:0,pbrake:true,pushed:true}); if(A.kind==='rw'){ S.ve=S.vn=S.vu=0; S.coll=0; try{ DIR.iv=0; }catch(e){} } TX.auto=false; }
 function routePoint(frac){ const F=window.FPLN; if(!F||!F.pts||F.pts.length<2) return null; const P=F.pts; let tot=0; const seg=[]; for(let i=1;i<P.length;i++){ const d=gcKm(P[i-1][0],P[i-1][1],P[i][0],P[i][1]); seg.push(d); tot+=d; }
   let want=tot*frac; for(let i=1;i<P.length;i++){ if(want<=seg[i-1]){ const f=want/Math.max(1e-6,seg[i-1]), la=P[i-1][0]+(P[i][0]-P[i-1][0])*f, lo=P[i-1][1]+(P[i][1]-P[i-1][1])*f; F.i=i; return {lat:la,lon:lo,hdg:brg(P[i-1][0],P[i-1][1],P[i][0],P[i][1])}; } want-=seg[i-1]; }
   return null; }
