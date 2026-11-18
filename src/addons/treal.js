@@ -56,7 +56,8 @@ const css=document.createElement('style'); css.textContent=`#b-treal.on{border-c
 #rtdlg .w{background:#2a2110;border:1px solid #ffd166;border-radius:8px;padding:8px;margin:8px 0;color:#ffe3a3} #rtdlg .s{color:#7d93a8;font-size:12px}
 #rtdlg .bt{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px} #rtdlg button{background:#132232;color:#fff;border:1px solid #2b3d50;border-radius:8px;padding:9px 13px;font:700 14px 'Barlow Condensed',sans-serif;cursor:pointer}
 #rtdlg button.ok{background:#1f6b3a;border-color:#3ddc84} #rtprop{position:fixed;left:50%;bottom:74px;transform:translateX(-50%);z-index:100;background:#0a131ce6;border:1px solid #3ddc84;border-radius:10px;color:#e8eef2;font:13px Inter,sans-serif;padding:8px 10px;display:flex;gap:8px;align-items:center;max-width:calc(100vw - 20px)}
-#rtprop button{background:#1f6b3a;color:#fff;border:1px solid #3ddc84;border-radius:7px;padding:6px 10px;font:700 13px 'Barlow Condensed',sans-serif;cursor:pointer} #rtprop .x{background:none;border:none;color:#9fb3c4;font-size:16px;padding:2px 6px}`;
+#rtprop button{background:#1f6b3a;color:#fff;border:1px solid #3ddc84;border-radius:7px;padding:6px 10px;font:700 13px 'Barlow Condensed',sans-serif;cursor:pointer} #rtprop .x{background:none;border:none;color:#9fb3c4;font-size:16px;padding:2px 6px}
+@media (max-width:560px){ #rtprop{bottom:auto;top:150px;flex-wrap:wrap;justify-content:center;width:calc(100vw - 24px);box-sizing:border-box;padding:8px 30px 8px 10px;text-align:center} #rtprop .x{position:absolute;top:2px;right:2px} }`;
 document.head.appendChild(css);
 let b=document.getElementById('b-treal');
 if(!b&&sel){ b=document.createElement('button'); b.type='button'; b.id='b-treal'; b.title='Confirmation trajet temps réel'; sel.insertAdjacentElement('afterend',b); }
@@ -81,7 +82,9 @@ function close(){ const w=document.getElementById('rtdlg'); if(w) w.remove(); }
 RT.open=open; RT.close=close;
 
 /* proposition discrète au lancement d'un parcours complet (non bloquante) */
-function propose(){ const old=document.getElementById('rtprop'); if(old) old.remove(); if(RT.on||!MI||!MI.full||(window.EXAM&&EXAM.on)) return;
+function propose(n){ const old=document.getElementById('rtprop'); if(old) old.remove(); if(RT.on||!MI||!MI.full||(window.EXAM&&EXAM.on)) return;
+  // V10.38 : pas de proposition par-dessus l'introduction ou un panneau plein écran (téléphone) : elle attend leur fermeture (2 min au plus)
+  const ov=['intro','acad','docv','sysat'].map(id=>document.getElementById(id)).find(e=>e&&!e.hidden&&e.offsetParent!==null); if(ov){ if((n||0)<120) setTimeout(()=>propose((n||0)+1),1000); return; }
   let I; try{ I=info(); }catch(e){ return; } const d=document.createElement('div'); d.id='rtprop';
   d.innerHTML=`<span>Trajet réel : <b>${hm(I.p.block)}</b>${I.r?` (référence ${hm(I.r.min)})`:''}</span><button type="button">⏱ Confirmation trajet temps réel</button><button type="button" class="x" aria-label="Fermer">✕</button>`;
   document.body.appendChild(d); d.querySelector('button').onclick=()=>{ d.remove(); open(); }; d.querySelector('.x').onclick=()=>d.remove(); setTimeout(()=>d.remove(),15000); }

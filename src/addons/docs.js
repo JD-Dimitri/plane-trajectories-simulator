@@ -253,7 +253,7 @@ DERNIÈRE VISITE : check journalier (daily) effectué le ${c.date} 1500Z — mé
 
 ENTRÉES OUVERTES
 ${c.fw?`  1. Liseuse siège 12C inopérante — MEL 33-25-01 CAT C — valable 10 jours — placard posé.
-  2. Essuie-glace gauche bruyant — contrôlé, conforme — clôturé.`:`  1. Feu anticollision bas fonctionnant par intermittence — réparé, testé — clôturé.`}
+  2. Essuie-glace gauche bruyant — contrôlé, conforme — clôturé.`:`  1. Feu anticollision bas fonctionnant par intermittence — réparé, testé — clôturé.`}${(window.ANO_LOG||[]).map((e,n)=>`\n  ${n+(c.fw?3:2)}. Tour avion, ${e.pt} : ${e.txt} — ${e.act} — retard ≈ ${e.delay} min [SIMULÉ]`).join('')}
 
 CARBURANT : avitaillé ${F0(c.L.block||0)} ${c.W.unit||'kg'} (bon d'avitaillement n° 48211)
 HUILE : moteurs complétés, niveaux OK  ·  HYDRAULIQUE : niveaux OK  ·  PNEUS : pressions OK

@@ -66,6 +66,7 @@ function LAY(small){ const k=small==null?CKEY:KEYOF(small);
     s76:{n:'S-76 · 12 passagers (3 rangs, 2-2)',rows:R('P',1,3,[['A','B'],['C','D']])}, r44:{n:'R44 · 3 passagers (avant gauche, arrière 2)',rows:[{r:1,c:'P',g:[['A'],[]]},{r:2,c:'P',g:[['A'],['B']]}]},
     c172:{n:'Cessna 172 · 3 passagers (avant droit, banquette arrière 2)',rows:[{r:1,c:'P',g:[[],['B']]},{r:2,c:'P',g:[['A'],['B']]}]} };
   const o=L[k]; o.k=k; o.all=[]; o.rows.forEach(r=>r.g.flat().forEach(l=>o.all.push(r.r+l))); return o; }
+window.CABLAY=k=>LAY(k);   // V10.38 (F4) : dispositions de cabine partagées avec la vue « Cabine » 3D
 function paxParse(m){ return (m.querySelector('[name=paxl]').value||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{ const p=l.split(/\s*[·|;]\s*/); return {n:p[0],s:(p[1]||'').toUpperCase().replace(/\s/g,'')}; }); }
 function paxWrite(m,L){ m.querySelector('[name=paxl]').value=L.map(p=>p.n+(p.s?' · '+p.s:'')).join('\n'); }
 function freeSeats(lay,L){ const used=new Set(L.map(p=>p.s)); return lay.all.filter(s=>!used.has(s)); }
