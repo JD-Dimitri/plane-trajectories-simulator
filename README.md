@@ -15,7 +15,7 @@ Il faut une connexion internet pour three.js et les polices (CDN).
 ## Ce que contient le simulateur
 
 - **Monde** : globe 3D réel, aéroports et pistes réels (JFK, CDG, héliports de Manhattan), jour, crépuscule ou nuit, météo réelle (METAR / ATIS).
-- **Appareils** : Airbus A320-200, Learjet 60, H125, Robinson R44, Sikorsky S-76.
+- **Appareils** : Airbus A320-200, Boeing 777-300ER, Learjet 60, Cessna 172P (avion école), H125, Robinson R44, Sikorsky S-76.
 - **Cockpit A320** : panneau plafond, pédestal, FCU, écrans PFD, ND, E/WD et SD dessinés en direct.
 - **Parcours pilote complet** en étapes numérotées 0 → N : préparation, tour avion, mise sous tension, démarrage, roulage, décollage, croisière, approche, atterrissage, parking.
 - **Modes** (exclusifs) : pédagogique guidé, automatique (observation), sans guide, vol libre, scénarios et pannes, QCM, radio ATC.
@@ -43,6 +43,9 @@ Les valeurs marquées [ESTIMÉ] sont des approximations pédagogiques et les sys
 | `src/addons/*.js` | Modules : `audio`, `brief` (dossier pas à pas, boutons Lancer), `bubble` (bulle du mode automatique et fiabilité des étapes), `drag`, `close`, `view` (affichage mobile), `frames` (cadres numérotés, hiérarchie, pushback), `scn` (scénarios guidés), `exam` (examen blanc), `acad` (Académie), `models` (modèles 3D), `decor` (tours et villes), `zoom` (écrans agrandis), `guard` (actions incohérentes) |
 | `tools/build.py` | Assemble `src/` en `index.html` |
 | `tests/auto_flight.py` | Vol complet automatique accéléré, détecte les blocages d'étape |
+| `tests/direct_jump.py` | Saut direct vers chaque étape, 7 appareils : position et état attendus, 60 s sans crash, atterrissage complet depuis l'étape « Atterrissage » |
+| `tests/temps_reel.py` | Trajet en temps réel confirmé : durées prévues et de référence, ×1 en croisière, sauvegarde et reprise d'un vol long |
+| `tests/gpu_atelier.py` | Atelier : groupe de parc (GPU) visible au parking, masqué en roulage et en vol |
 | `tests/exam_blanc.py` | Examen blanc piloté par un élève simulé (`perfect` : réussite et décollage ; `wrong` : épreuve éliminatoire) |
 
 Après une modification dans `src/` :
@@ -57,10 +60,13 @@ python3 tools/build.py
 cd tests && npm i three@0.128.0 && pip install playwright && python3 -m playwright install chromium && cd ..
 python3 tools/build.py --test
 cd tests && python3 -m http.server 8765 &
-python3 auto_flight.py a320     # puis lj60, h125, r44, s76
+python3 auto_flight.py a320     # puis b777, lj60, c172, h125, r44, s76
+python3 direct_jump.py          # les 7 appareils
+cp final.html final_rt.html && python3 temps_reel.py final_rt.html
+python3 gpu_atelier.py
 ```
 
-Dernière vérification (V8.0) : examen blanc A320 complet réussi (25/25, décollage puis atterrissage et parking) et cas éliminatoire vérifié ; vol automatique complet sans blocage sur les 5 appareils (V7.3).
+Dernière vérification (V10.37) : saut direct 66/66 sur les 7 appareils, temps réel 22/22, GPU 10/10. Vérification antérieure (V8.0) : examen blanc A320 complet réussi (25/25, décollage puis atterrissage et parking) et cas éliminatoire vérifié ; vol automatique complet sans blocage sur les 5 appareils (V7.3).
 
 ## Historique récent
 
@@ -109,6 +115,7 @@ Dernière vérification (V8.0) : examen blanc A320 complet réussi (25/25, déco
 | V10.34 | Bande d'étapes cliquable (0, 1, 2… N) dans le panneau du bas pour tous les appareils : dans le panneau du guide (mode guidé, même réduit) et toujours visible dans la bulle du mode automatique (elle disparaissait quand le plafonnier ou le pédestal était ouvert) |
 | V10.35 | Vues nommées selon l'appareil : pour les hélicoptères (H125, R44, S-76), « Tour avion » devient « Tour hélicoptère » dans l'atelier (phase et en-tête de la vue, étape « Tour de l'hélicoptère » avec rotor principal, anticouple et patins), dans les étapes du parcours, l'examen et les messages ; « L'avion » devient « L'hélicoptère » dans les résultats d'étape |
 | V10.36 | Jour et nuit selon la vraie position du soleil : la carte affiche les zones d'ombre réelles (ligne jour/nuit et crépuscules civil, nautique et astronomique, calculés pour l'heure UTC simulée), le point subsolaire et la hauteur du soleil à la position de l'appareil ; vues cockpit et extérieure : prise en compte de l'abaissement de l'horizon en altitude (le soleil reste visible plus longtemps en vol) |
+| V10.37 | Saut direct : choisir une étape place l'appareil directement dans l'état de cette étape (au point d'arrêt pour le roulage, en croisière, en finale…), pour les 7 appareils. Bouton « ⏱ Confirmation trajet temps réel » : durée prévue calculée (temps bloc), durée de référence des vols réels (Paris → La Réunion ≈ 11 h, New York → Paris ≈ 7 h 15), heure d'arrivée UTC et locale, plus d'accélération automatique, sauvegarde et reprise d'un vol long à la bonne position. Atelier : groupe de parc (GPU) et câble masqués hors parking. Hélicoptères : départ de Downtown Manhattan dans l'axe de l'aire, aucun immeuble généré près d'une hélistation (corrige un heurt d'immeuble au décollage automatique) |
 | V8.12 | Un seul appareil à la fois (une mission propre à un appareil le sélectionne) ; même méthode pour tous : cours du simulateur par appareil (A320, Learjet 60, H125, R44, S-76) et questions d'examen hélicoptère |
 | V8.11 | Hélicoptères : chaque instrument s'agrandit au clic avec sa légende ; horizon artificiel alimenté (plus de drapeau OFF permanent) |
 | V8.10 | Menu de départ défilable (haut et bas) sur mobile et PC ; plus d'annonce « Flaps one » ni de bruit de volets au démarrage |
