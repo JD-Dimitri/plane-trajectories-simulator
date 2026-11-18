@@ -1704,7 +1704,7 @@ function flyFW(dt){ const L=LS, st=GD.steps[GD.i]||{}, agl=(S.alt-elevAt(S.lat,S
   // Learjet 60 : pas d'automanette — le « pilote » du mode automatique gère la poussée à la main pour tenir la vitesse visée
   if(ACK==='lj60'&&agl>400&&!(AP.appr&&agl<15)){ const vt=Math.min(tasFromCas(AP.spd*KT,S.alt),0.78*sos(S.alt)); S.thr=clamp(S.thr+clamp((vt-S.V)*0.06,-0.4,0.4)*dt,0.03,1); }
   // accélération du temps en croisière
-  const want=atcSlow()?1:(AP.on&&!AP.appr&&S.alt/FT>9000&&dF>tod+80)?64:(AP.on&&!AP.appr&&dT>40?4:1); if(rate!==want){ rate=want; rateUI(); }
+  const want=atcSlow()?1:(AP.on&&!AP.appr&&S.alt/FT>9000&&dF>tod+80)?64:(AP.on&&!AP.appr&&dT>40?4:1); if(rate!==want&&!window.RT_LOCK){ rate=want; rateUI(); }   // V10.38 : pas d'accélération automatique en temps réel confirmé
 }
 /* ---- pilotage automatique hélicoptère ---- */
 function flyRW(dt){ const st=GD.steps[GD.i]||{}, dest=APTS[MI.dest], elev=elevAt(S.lat,S.lon), agl=S.alt-elev, d=gcKm(S.lat,S.lon,dest.lat,dest.lon)*1000;
@@ -1723,7 +1723,7 @@ function flyRW(dt){ const st=GD.steps[GD.i]||{}, dest=APTS[MI.dest], elev=elevAt
   const ev=vA-vfwd; DIR.iv=clamp((DIR.iv||0)+ev*dt*(vh<15?1:0.2),-40,40);   // terme intégral : annule l'erreur statique (vent)
   DIR.pitch=clamp(-(ev*0.045+DIR.iv*0.012),-0.5,0.5); const e=wrapPi(hdgA-S.psi); DIR.roll=vh>12?clamp(e*1.6,-0.7,0.7):0; DIR.yaw=vh<=12?clamp(e*2,-1,1):0;
   if(agl<3&&vT===0&&gs<1){ DIR.pitch=0; }
-  const want=atcSlow()?1:(d>4000&&agl>150)?16:1; if(rate!==want&&AUTO.on){ rate=want; rateUI(); }
+  const want=atcSlow()?1:(d>4000&&agl>150)?16:1; if(rate!==want&&AUTO.on&&!window.RT_LOCK){ rate=want; rateUI(); }   // V10.38 : idem hélicoptères
 }
 function dirApply(){ if(!DIR.active||!GD.on) return; if(DIR.pitch!=null) IN.pitch=DIR.pitch; if(DIR.roll!=null) IN.roll=DIR.roll; if(DIR.yaw!=null) IN.yaw=DIR.yaw; if(DIR.coll!=null){ IN.collD=0; IN.thrD=0; } }
 function dirStep(dt){ if(!DIR.active||!GD.on) return; if(A.kind==='fw') flyFW(dt); else flyRW(dt);
@@ -5530,7 +5530,8 @@ document.head.appendChild(css);
 const ov=document.createElement('div'); ov.id='jmpo'; ov.hidden=true; ov.innerHTML='<div><span></span><i style="width:0"></i></div><button type="button">Annuler</button>'; document.body.appendChild(ov);
 ov.querySelector('button').onclick=()=>{ window.FF=null; ov.hidden=true; try{ setRate(1); }catch(e){} };
 let mode='auto';
-function jump(k,then){ if(!GD.on||!GD.steps.length) return; then=then||(AUTO.on?'auto':'guide'); if(window.EXAM&&EXAM.on){ flash('Examen blanc : pas de saut d\'étape','am'); return; }
+function jump(k,then){ if(window.DIRECT) return window.DIRECT(k,then);   /* V10.37 : saut direct (direct.js) */
+  if(!GD.on||!GD.steps.length) return; then=then||(AUTO.on?'auto':'guide'); if(window.EXAM&&EXAM.on){ flash('Examen blanc : pas de saut d\'étape','am'); return; }
   if(k===GD.i){ return; }
   if(k<GD.i){ window.FF={to:k,then,t0:GD.i}; const want=window.FF; if(window.BR&&BR.launchMode){ BR.launchMode('auto'); window.FF=want; } return; }
   window.FF={to:k,then,from:GD.i}; if(!AUTO.on) autoStart(true); }
@@ -5554,7 +5555,7 @@ setInterval(()=>{ const F=window.FF; if(!F||!GD.on){ ov.hidden=true; return; } i
 function picker(){ let m=$('jmp'); if(m) m.remove(); if(!GD.on||!GD.steps.length){ flash('Démarrez d\'abord un parcours','am'); return; }
   m=document.createElement('div'); m.id='jmp'; const groups=[]; GD.steps.forEach((s,i)=>{ let g=groups[groups.length-1]; if(!g||g.ph!==s.ph){ g={ph:s.ph,l:[]}; groups.push(g); } g.l.push([i,s]); });
   m.innerHTML=`<div class="w"><div class="hd"><b>🧭 Aller directement à une étape</b><button type="button" data-x>✕</button></div><div class="bd">
-   <p style="color:#9fb3c4;margin:4px 0">Les étapes précédentes sont exécutées en avance rapide, puis vous arrivez à l'étape choisie. Arrivé, vous voulez :</p>
+   <p style="color:#9fb3c4;margin:4px 0">Vous arrivez directement à l'étape choisie (les actions précédentes sont faites et l'appareil est placé au bon endroit). Arrivé, vous voulez :</p>
    <div class="md"><button type="button" data-m="auto" class="${mode==='auto'?'on':''}">▶ Observer (automatique)</button><button type="button" data-m="guide" class="${mode==='guide'?'on':''}">🎓 La faire moi-même (guidé)</button></div>
    ${groups.map(g=>`<h4>${g.ph}</h4>${g.l.map(([i,s])=>`<button type="button" class="st ${i===GD.i?'cur':i<GD.i?'done':''}" data-k="${i}"><span class="n">${i}</span><span>${s.t}</span></button>`).join('')}`).join('')}</div></div>`;
   document.body.appendChild(m);
@@ -6843,7 +6844,9 @@ function paintWorld(){ if(!M||!S.fl) return; const svg=$s('svg.ac'), f=S.fl, vb=
  else if(f.fx==='smoke') fh=[...Array(14).keys()].map(i=>{ const ph=((t*0.4+i/14)%1); return `<circle cx="${(W/2+Math.sin(i*2.3)*30*ph).toFixed(1)}" cy="${(H*0.35+i*14-ph*60).toFixed(1)}" r="${(6+ph*22).toFixed(1)}" fill="#9aa4ae" opacity="${(0.45*(1-ph)).toFixed(2)}"/>`; }).join('')+(f.fxt?`<text x="${W/2}" y="${H*0.12}" text-anchor="middle" fill="#e8eef2" font-size="18" font-weight="800" stroke="#000" stroke-width="1">${f.fxt}</text>`:'');
  else if(f.fx==='warn') fh=`<rect width="${W}" height="${H}" fill="none" stroke="#ff3b30" stroke-width="${(6+4*Math.sin(t*10)).toFixed(1)}"/><text x="${W/2}" y="${H*0.12}" text-anchor="middle" fill="#ff3b30" font-size="20" font-weight="800" stroke="#000" stroke-width="1">${f.fxt||''}</text>`;
  fx.innerHTML=fh;
- const hud=svg.querySelector('.hud'), ht=(f.ph?f.ph.toUpperCase()+' · ':'')+(f.alt>5||f.ias>1?`ALT ${Math.round(f.alt/10)*10} ft · ${Math.round(f.ias)} kt${f.vs?' · V/S '+(f.vs>0?'+':'')+f.vs:''}`:''); if(hud.textContent!==ht) hud.textContent=ht; }
+ const hud=svg.querySelector('.hud'), ht=(f.ph?f.ph.toUpperCase()+' · ':'')+(f.alt>5||f.ias>1?`ALT ${Math.round(f.alt/10)*10} ft · ${Math.round(f.ias)} kt${f.vs?' · V/S '+(f.vs>0?'+':'')+f.vs:''}`:''); if(hud.textContent!==ht) hud.textContent=ht;
+ /* V10.37 : le groupe de parc (GPU), son câble et son étiquette n'existent qu'au sol, à l'arrêt : masqués en vol et dès que l'appareil roule (A320 : f_ext ; Learjet : f_gpu) */
+ const air=f.alt>5||f.ias>3||(f.env&&f.env!=='park'&&f.env!=='pad'); svg.querySelectorAll('[data-p="gpu"],[data-p="f_ext"],[data-p="f_gpu"]').forEach(e=>{ e.style.display=air?'none':''; }); svg.querySelectorAll('text.lbl').forEach(e=>{ if(e.textContent==='GPU') e.style.display=air?'none':''; }); }
 /* ===== modes : libre, automatique, pédagogique, examen ===== */
 let MODE='libre', SELF=false; const AUTO={t:0,pause:false}, EXM={err:0,steps:{},hints:0,log:[],t0:0,wc:{}};
 const MLAB={auto:'Mode automatique',peda:'Mode pédagogique',exam:'Examen'};
@@ -8080,7 +8083,7 @@ const _g=goStep; goStep=function(i){ if(typeof GD!=='undefined'&&GD.on&&i===GD.i
   if(m.length){ PEND=()=>goStep(i); render(`⚠ Avant de passer à l'étape ${i}, ${m.length} sous-étape(s) ne sont pas faites (en rouge). Faites-les, ou passez quand même.`); return; } }
  return _g.apply(this,arguments); };
 const _sm=startMission; startMission=function(){ DONE.clear(); return _sm.apply(this,arguments); };
-window.CKL={done:(i,j)=>{ rec(); const it=GD.steps[i]&&GD.steps[i].items[j]; return DONE.has(key(i,j))||(it?chk(it):false); },go:(i,j)=>gotoItem({i,j,st:GD.steps[i],it:GD.steps[i].items[j]}),open:()=>render(),missing:()=>{ rec(); return missing(0,GD.i).map(m=>m.it[0]); }};
+window.CKL={mark:(i,j)=>{ DONE.add(key(i,j)); },done:(i,j)=>{ rec(); const it=GD.steps[i]&&GD.steps[i].items[j]; return DONE.has(key(i,j))||(it?chk(it):false); },go:(i,j)=>gotoItem({i,j,st:GD.steps[i],it:GD.steps[i].items[j]}),open:()=>render(),missing:()=>{ rec(); return missing(0,GD.i).map(m=>m.it[0]); }};
 })();
 /* ---- bouton « Guide » dans une mission sans parcours : bascule vers le parcours guidé équivalent (même appareil, même trajet si possible) ---- */
 (function(){ const gb=document.getElementById('b-guide'); if(!gb) return; const old=gb.onclick;
@@ -10082,6 +10085,219 @@ if(window.SIGLES) Object.assign(SIGLES,{
  BEA:['Bureau d\'enquêtes et d\'analyses pour la sécurité de l\'aviation civile (France).',null,''],
  NTSB:['National Transportation Safety Board — bureau d\'enquête américain.',null,''],
  'ADS-B':['Automatic Dependent Surveillance–Broadcast — l\'avion diffuse en permanence sa position GPS, son altitude et sa vitesse ; contrôleurs et autres avions le voient. Rendu plus large après la collision de Washington (2025).','nd','ADS-B|transpondeur']});
+})();
+
+</script>
+<script>
+/* ===== V10.37 — ALLER DIRECTEMENT À UNE ÉTAPE (saut direct, tous les appareils) =====
+   Choisir une étape (🧭 Étapes, bande d'étapes, « Poursuivre » d'un sigle) mène IMMÉDIATEMENT la simulation à cette étape :
+   1. les actions des étapes précédentes sont exécutées d'un coup (systèmes, moteurs, FMS…) et cochées dans la check-list ;
+   2. l'appareil est placé là où se déroule l'étape : parking, aligné sur la piste, en montée, en croisière sur la route,
+      au début de la descente, en approche, en finale ILS, posé à destination ; hélicoptères : stationnaire, transit, approche ;
+      Cessna 172 : la branche du tour de piste (vent traversier, vent arrière, base, finale) ;
+   3. on rend la main en mode guidé ou automatique. Revenir à une étape antérieure relance le parcours puis saute de la même façon.
+   Positions et vitesses types [SIMULÉ] : elles reproduisent un vol normal, pas un vol réel enregistré. */
+(function(){
+'use strict';
+const ft=x=>x*FT, kt=x=>x*KT;
+function ffOff(){ window.FF=null; const o=document.getElementById('jmpo'); if(o) o.hidden=true; }
+function runActions(k){ const done=window.__DIRDONE||(window.__DIRDONE=new Set());
+  for(let i=0;i<k&&i<GD.steps.length;i++){ const st=GD.steps[i]; (st.items||[]).forEach((it,j)=>{ try{ if(!it[1]()&&typeof it[2]==='function') it[2](); }catch(e){} done.add(i+':'+j); try{ if(window.CKL&&CKL.mark) CKL.mark(i,j); }catch(e){} });
+    if(st.walk){ try{ if(GD.markers) GD.markers.forEach(m=>{ m.seen=true; }); GD.walkDone=true; if(GD.seen&&GD.pts) GD.pts.forEach((p,n)=>GD.seen.add(n)); }catch(e){} } } }
+function startedBefore(k){ return GD.steps.slice(0,k).some(s=>/Mise en route|Démarrage|Start/i.test(s.ph+' '+s.t)); }
+function enginesOn(){ try{ const n=A.twin||AL()||ACK==='lj60'?2:1; S.eng=[true,n>1]; S.n2=[1,n>1?1:0]; if(A.kind==='rw'){ S.nr=1; S.eng=[true,!!A.twin]; }
+  if(AL()){ SYS.master1=SYS.master2='ON'; SYS.engMode='NORM'; } if(ACK==='c172'){ SYS.mix='RICHE'; SYS.mags='BOTH'; } }catch(e){} }
+const ll=(r,x,y)=>{ const h=r.hdg*D2R; return offsetLL(r.lat,r.lon,x*Math.cos(h)-y*Math.sin(h),x*Math.sin(h)+y*Math.cos(h)); };   // x le long de l'axe, y à droite
+function air(lat,lon,altM,casKt,hdgDeg,o){ o=o||{}; const V=o.tas||tasFromCas(kt(casKt),altM);
+  Object.assign(S,{lat,lon,alt:altM,V,onGround:false,gam:(o.gam||0)*D2R,th:(o.th!=null?o.th:2)*D2R,ph:0,psi:hdgDeg*D2R,gear:!!o.gear,flap:o.flap||0,thr:o.thr!=null?o.thr:0.6,pbrake:false,brake:false,pushed:true});
+  if(A.kind==='rw'){ S.ve=V*Math.sin(S.psi); S.vn=V*Math.cos(S.psi); S.vu=0; S.coll=0.6; }
+  TX.auto=false; try{ showRoute(null); }catch(e){} }
+function ground(lat,lon,hdgDeg,elev){ Object.assign(S,{lat,lon,alt:(elev!=null?elev:elevAt(lat,lon)),V:0,onGround:true,gam:0,th:0,ph:0,psi:hdgDeg*D2R,thr:0,pbrake:true,pushed:true}); if(A.kind==='rw'){ S.ve=S.vn=S.vu=0; S.coll=0; } TX.auto=false; }
+function routePoint(frac){ const F=window.FPLN; if(!F||!F.pts||F.pts.length<2) return null; const P=F.pts; let tot=0; const seg=[]; for(let i=1;i<P.length;i++){ const d=gcKm(P[i-1][0],P[i-1][1],P[i][0],P[i][1]); seg.push(d); tot+=d; }
+  let want=tot*frac; for(let i=1;i<P.length;i++){ if(want<=seg[i-1]){ const f=want/Math.max(1e-6,seg[i-1]), la=P[i-1][0]+(P[i][0]-P[i-1][0])*f, lo=P[i-1][1]+(P[i][1]-P[i-1][1])*f; F.i=i; return {lat:la,lon:lo,hdg:brg(P[i-1][0],P[i-1][1],P[i][0],P[i][1])}; } want-=seg[i-1]; }
+  return null; }
+function before(lat,lon,km,fromLat,fromLon){ const b=brg(lat,lon,fromLat,fromLon); return {p:offsetLL(lat,lon,km*1000*Math.cos(b*D2R),km*1000*Math.sin(b*D2R)),hdg:wrap360(b+180)}; }
+function prevRoutePt(){ const F=window.FPLN; if(F&&F.pts&&F.pts.length>2){ const p=F.pts[F.pts.length-2]; F.i=F.pts.length-1; return p; } const s=MI.start?MI.start():{lat:S.lat,lon:S.lon}; return [s.lat,s.lon]; }
+function apOn(alt,spd,vs){ AP.on=true; AP.lat='NAV'; AP.alt=alt; AP.vs=vs||0; AP.spd=spd; AP.ath=AL(); AP.appr=false; AP.althold=false; }
+/* placement de l'appareil selon l'étape visée */
+function place(k){ const st=GD.steps[k]||{}, fly=st.fly||'', idxLand=GD.steps.findIndex(s=>s.fly==='land'||s.fly==='hLand'), cruiseFt=AL()?35000:(ACK==='lj60'?41000:6500);
+  AP.appr=false; GD.landed=false; GD.taxiInStarted=false;
+  // hélicoptères
+  if(A.kind==='rw'){ const D=APTS[MI.dest], s0=MI.start(), dD=gcKm(s0.lat,s0.lon,D.lat,D.lon)*1000, h=brg(s0.lat,s0.lon,D.lat,D.lon);
+    if(fly==='hTakeoff'){ ground(s0.lat,s0.lon,s0.hdg!=null?s0.hdg:h); return 'au sol, prêt au décollage'; }
+    if(fly==='hCruise'){ const p=offsetLL(s0.lat,s0.lon,dD*0.4*Math.cos(h*D2R),dD*0.4*Math.sin(h*D2R)); air(p[0],p[1],elevAt(p[0],p[1])+300,A===AC.r44?90:110,h); return 'en transit à 300 m'; }
+    if(fly==='hLand'){ const b=before(D.lat,D.lon,1.7,s0.lat,s0.lon); air(b.p[0],b.p[1],elevAt(b.p[0],b.p[1])+200,70,b.hdg); return 'en approche à 1,7 km'; }
+    if(idxLand>=0&&k>idxLand){ ground(D.lat,D.lon,h); GD.landed=true; return 'posé à destination'; }
+    return null; }
+  // Cessna 172 : tour de piste de Toussus (main gauche, 1 000 ft)
+  if(ACK==='c172'&&MI.dest==='LFPN'){ const r=rwStart('LFPN','25R'), el=APTS.LFPN.elev, T=/traversier/i.test(st.t), Dw=/arrière/i.test(st.t), B=/base/i.test(st.t), Fi=/Finale/i.test(st.t);
+    GD.cAir=true;
+    if(fly==='takeoff'){ lineUp('LFPN','25R'); S.pbrake=true; return 'aligné piste 25R'; }
+    if(fly==='pattern'&&T){ const p=ll(r,1700,-200); air(p[0],p[1],el+ft(700),75,wrap360(r.hdg-90),{flap:0,thr:0.85}); GD.cLeg='cross'; return 'vent traversier'; }
+    if(fly==='pattern'&&Dw){ const p=ll(r,600,-1300); air(p[0],p[1],el+ft(1000),90,wrap360(r.hdg-180),{flap:0,thr:0.6}); GD.cLeg='down'; return 'vent arrière, 1 000 ft'; }
+    if(fly==='pattern'&&B){ const p=ll(r,-2450,-1100); air(p[0],p[1],el+ft(750),70,wrap360(r.hdg+90),{flap:2,thr:0.45}); GD.cLeg='base'; return 'étape de base'; }
+    if(fly==='pattern'&&Fi){ const p=ll(r,-2000,0); air(p[0],p[1],el+ft(450),65,r.hdg,{flap:3,thr:0.35}); GD.cLeg='final'; AP.appr=true; return 'en finale 25R'; }
+    if(fly==='land'){ const p=ll(r,-500,0); air(p[0],p[1],el+ft(110),62,r.hdg,{flap:3,thr:0.2}); GD.cLeg='final'; AP.appr=true; return 'courte finale 25R'; }
+    if(idxLand>=0&&k>idxLand){ const p=ll(r,700,0); ground(p[0],p[1],r.hdg,el); GD.cLanded=true; GD.cLeg='landed'; GD.landed=true; return 'posé, piste à dégager'; }
+    return null; }
+  // avions de ligne et d'affaires
+  if(!MI.dest||!APTS[MI.dest]) return null;
+  const dep=MI.dep||ATC.dep, D=APTS[MI.dest], rw=MI.destRw, thr=rw?rwStart(MI.dest,rw):{lat:D.lat,lon:D.lon,hdg:0}, el=D.elev||0;
+  if(fly==='taxiOut'){ try{ const R=taxiOutRoute(); if(R&&R.path&&R.path.length>1){ const n=GN[R.code].n, a=n[R.path[R.path.length-2]], z=n[R.path[R.path.length-1]];   // point d'arrêt = fin du trajet de roulage
+      ground(z[0],z[1],brg(a[0],a[1],z[0],z[1]),APTS[R.code].elev); GD.taxiDone=true; return 'au point d\'arrêt piste '+DRW(); } }catch(e){ console.warn('saut direct : point d\'arrêt',e); } return null; }
+  if(fly==='takeoff'){ try{ if(MI.depRw&&dep) lineUp(dep,MI.depRw); }catch(e){} S.pbrake=true; S.flap=Math.min(1,A.flaps.length-1); try{ pedSync(); }catch(e){} return 'aligné sur la piste'+(MI.depRw?' '+MI.depRw:''); }
+  if(fly==='climb'){ const first=GD.steps.findIndex(s=>s.fly==='climb')===k; let r=null; try{ r=rwStart(dep,MI.depRw); }catch(e){} const base=r||{lat:S.lat,lon:S.lon,hdg:S.psi*R2D}, de=(APTS[dep]&&APTS[dep].elev)||0;
+    const p=ll(base,first?5000:30000,0), a=first?de+ft(1500):ft(10000); air(p[0],p[1],a,first?180:250,base.hdg,{flap:first?1:0,thr:0.9,gam:4,th:9}); apOn(cruiseFt,250,2500); return first?'après le décollage, 1 500 ft':'en montée, FL100'; }
+  if(fly==='cruise'){ const q=routePoint(0.5)||{lat:(S.lat+D.lat)/2,lon:(S.lon+D.lon)/2,hdg:brg(S.lat,S.lon,D.lat,D.lon)}; const a=ft(cruiseFt), V=Math.min(tasFromCas(kt(280),a),(AL()?0.82:0.78)*sos(a)); air(q.lat,q.lon,a,0,q.hdg,{tas:V,thr:0.75}); apOn(cruiseFt,280,0); return 'en croisière, mi-parcours'; }
+  if(fly==='descent'&&rw){ const faf=fafOf(MI.dest,rw,22), pr=prevRoutePt(), tod=(cruiseFt-3000)/1000*3*1.852+20, b=before(faf.lat,faf.lon,tod,pr[0],pr[1]), a=ft(cruiseFt); air(b.p[0],b.p[1],a,0,b.hdg,{tas:Math.min(tasFromCas(kt(280),a),0.8*sos(a)),thr:0.5}); apOn(cruiseFt,280,0); return 'au début de la descente'; }
+  if(fly==='approach'&&rw){ const faf=fafOf(MI.dest,rw,22), pr=prevRoutePt(), b=before(faf.lat,faf.lon,40,pr[0],pr[1]); air(b.p[0],b.p[1],el+ft(6000),250,b.hdg,{thr:0.45}); apOn(3000,250,1500); AP.lat='HDG'; AP.hdg=b.hdg; return 'en approche, 40 km avant le FAF'; }
+  if(fly==='land'&&rw){ const p=ll(thr,-14800,0); air(p[0],p[1],el+14800*Math.tan(3*D2R),0,thr.hdg,{tas:tasFromCas(kt(vlsNow(S.mass)+5),el+700),gear:true,flap:A.flaps.length-1,thr:0.45,gam:-3,th:2}); apOn(3000,vlsNow(S.mass)+5,0); AP.appr=true; AP.lat='HDG'; AP.hdg=thr.hdg; try{ if(AL()){ SYS.spdbrk='ARMED'; SYS.landL='ON'; } pedSync(); }catch(e){} return 'en finale ILS '+rw+', 8 NM'; }
+  if(idxLand>=0&&k>idxLand){ let p=[D.lat,D.lon], h=thr.hdg; try{ const a=APTS[MI.dest].rw.find(x=>x[0]===rw||x[1]===rw); if(a){ const e=a[0]===rw?[a[4],a[5]]:[a[2],a[3]]; const b=before(e[0],e[1],0.35,thr.lat,thr.lon); p=b.p; } }catch(e){} ground(p[0],p[1],h,el); S.gear=true; GD.landed=true; return 'posé à destination'; }
+  return null; }
+function direct(k,then){ if(!GD.on||!GD.steps.length) return; then=then||(AUTO.on?'auto':'guide'); k=Math.max(0,Math.min(GD.steps.length-1,k)); ffOff();
+  if(window.EXAM&&EXAM.on){ flash('Examen blanc : pas de saut d\'étape','am'); return; }
+  if(k===GD.i) return;
+  if(k<GD.i){ const want={k,then}; try{ if(window.BR&&BR.launchMode){ BR.launchMode(then==='auto'?'auto':'guide'); } }catch(e){} setTimeout(()=>{ ffOff(); direct(want.k,want.then); },900); return; }
+  runActions(k); if(startedBefore(k)) enginesOn();
+  let where=null; try{ where=place(k); }catch(e){ console.warn('saut direct',e); }
+  try{ setRate(1); }catch(e){ rate=1; } try{ rateUI(true); }catch(e){}
+  try{ if(typeof patchUpdate==='function') patchUpdate(S.lat,S.lon); }catch(e){}
+  goStep(k);
+  if(then==='auto'){ if(!AUTO.on) autoStart(true); AUTO.stage='read'; AUTO.t0=performance.now(); flash(`Étape ${k}${where?' · '+where:''} : observez (mode automatique)`,'am'); }
+  else { if(AUTO.on) autoStart(false); GD.peda=true; try{ renderGuide(); }catch(e){} flash(`Étape ${k}${where?' · '+where:''} : à vous (mode guidé)`,'am'); }
+  try{ if(typeof pedSync==='function') pedSync(); if(typeof ovhSync==='function') ovhSync(); }catch(e){} }
+window.DIRECT=direct; window.JUMP=direct;
+})();
+
+</script>
+<script>
+/* ===== V10.38 — TRAJET EN TEMPS RÉEL CONFIRMÉ (tous les appareils) =====
+   Bouton « ⏱ Temps réel » (barre, à côté de TEMPS) et proposition au lancement d'un parcours complet :
+   1. la confirmation affiche la durée PRÉVUE du trajet [CALCULÉ] (route FPLN ÷ vitesse de croisière simulée, plus montée,
+      descente et roulage [ESTIMÉ]), la durée de RÉFÉRENCE des vols réels quand elle existe [RÉFÉRENCÉ], l'écart (signalé
+      au-delà de 10 %) et l'heure d'arrivée estimée (UTC et heure locale de destination) ;
+   2. une fois confirmé : ×1 en permanence, plus aucune accélération automatique (croisière ×64, hélicoptère ×16, attentes
+      au sol ×16, repoussage ×4) ; « Revenir au temps accéléré » rend la main ;
+   3. le vol est sauvegardé sur l'appareil toutes les 30 s ; au retour, « Reprendre le vol » replace l'appareil en tenant
+      compte du temps réellement écoulé (en croisière sous pilote automatique : avance le long de la route et carburant
+      consommé ; ailleurs : état exact au moment de la sauvegarde) ;
+   4. un saut d'étape reste possible mais demande « Quitter le temps réel ? ». */
+(function(){
+'use strict';
+const KEY='pt-rt-save-v1', MAXAGE=72*3600e3;
+/* Durées de référence des vols réels (temps bloc, porte à porte) [RÉFÉRENCÉ] — vérifiées le 18/11/2026 */
+const REF={
+  'full-777-af':{min:660,txt:'Air France AF652 Paris-CDG → La Réunion, Boeing 777-300ER : départ 18 h 00, arrivée 08 h 00 (heure locale) = 11 h 00',src:'FlightStats, vol AF652, horaires de novembre 2026'},
+  'full-fw':{min:435,txt:'Vols réguliers New York JFK → Paris-CDG : 7 h 15 à 7 h 25 (Air France AF1)',src:'FlightMapper, vol Air France AF 1 JFK → CDG'},
+  'full-rw':{min:7.5,range:[5,10],kind:'flight',txt:'Hélicoptère Manhattan → JFK : environ 5 à 10 min de vol selon l\'itinéraire',src:'Blade, « How do you get from Manhattan to JFK by helicopter? »'},
+  'full-c172':{min:7,range:[6,8],kind:'flight',txt:'Tour de piste à Toussus en Cessna 172 : environ 6 à 8 min [ESTIMÉ], ordre de grandeur courant en école',src:'[ESTIMÉ] — pas de source officielle'}};
+/* Learjet 60 sur JFK → CDG : aucun vol régulier comparable → pas de durée de référence, seule la durée calculée est affichée.
+   kind:'flight' = la référence est un temps de vol (hélicoptères, tour de piste) : on la compare au temps de vol calculé, pas au temps bloc */
+const TZ={KJFK:'America/New_York',JFKH:'America/New_York',KLGA:'America/New_York',KTEB:'America/New_York',LFPG:'Europe/Paris',LFPO:'Europe/Paris',LFPN:'Europe/Paris',FMEE:'Indian/Reunion'};
+const RT=window.RT={on:false};
+const miKey=()=>{ try{ if(typeof selMI!=='undefined'&&selMI) return selMI; }catch(e){} return ''; };
+const routeKm=()=>{ const F=window.FPLN; let d=0; if(F&&F.pts&&F.pts.length>1){ for(let i=1;i<F.pts.length;i++) d+=gcKm(F.pts[i-1][0],F.pts[i-1][1],F.pts[i][0],F.pts[i][1]); return d; }
+  try{ const s=MI.start(), D=APTS[MI.dest]; return gcKm(s.lat,s.lon,D.lat,D.lon); }catch(e){ return 0; } };
+/* durée prévue [CALCULÉ] avec les vitesses que la simulation utilise réellement (mêmes formules que le saut direct) */
+function plan(){ const k=miKey(), heli=A.kind==='rw', c172=ACK==='c172';
+  if(c172){ const km=10.6, v=80*1.852; const fl=km/v*60+1.5, blk=fl+5; return {k,km,cruise:'≈ 80 kt (tour de piste)',flight:fl,block:blk}; }   // tour de piste de la mission (≈ 10,6 km)
+  const km=routeKm();
+  if(heli){ const kt=A===AC.r44?90:110, fl=km/(kt*1.852)*60+3, blk=fl+2; return {k,km,cruise:kt+' kt',flight:fl,block:blk}; }
+  const cruiseFt=AL()?35000:(ACK==='lj60'?41000:6500), a=cruiseFt*FT, mach=AL()?0.82:0.78, tas=Math.min(tasFromCas(280*KT,a),mach*sos(a)), tkt=tas/KT;
+  const fl=km/(tkt*1.852)*60+20, blk=fl+22;   // +20 min montée/descente, +22 min roulage départ (15) et arrivée (7) [ESTIMÉ]
+  return {k,km,cruise:`FL${Math.round(cruiseFt/100)} · ${Math.round(tkt)} kt vrais (Mach ${(tas/sos(a)).toFixed(2)})`,flight:fl,block:blk}; }
+const hm=m=>{ m=Math.round(m); const h=Math.floor(m/60), x=m%60; return h?`${h} h ${String(x).padStart(2,'0')}`:`${x} min`; };
+function fmt(ms,tz){ try{ return new Intl.DateTimeFormat('fr-FR',{timeZone:tz,weekday:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(ms)); }catch(e){ return new Date(ms).toISOString().slice(11,16); } }
+function info(){ const p=plan(), r=ACK==='lj60'?null:REF[p.k], remain=remainMin(p); const now=(typeof simMs!=='undefined'?simMs:Date.now()), eta=now+remain*60e3, dest=MI&&MI.dest;
+  const refMin=r?r.min:null, cmp=r&&r.kind==='flight'?p.flight:p.block, gap=refMin?Math.round((cmp-refMin)/refMin*100):null, inRange=r&&r.range?(cmp>=r.range[0]&&cmp<=r.range[1]):false;
+  return {p,r,cmp,remain,eta,etaUTC:fmt(eta,'UTC'),etaLoc:dest&&TZ[dest]?fmt(eta,TZ[dest]):null,dest,refMin,gap,warn:gap!=null&&Math.abs(gap)>10&&!inRange}; }
+/* temps restant : bloc complet au départ, ou proportion de route restante en vol */
+function remainMin(p){ try{ if(!GD.on||!S||S.onGround!==false) return p.block; const D=APTS[MI.dest], left=gcKm(S.lat,S.lon,D.lat,D.lon), tot=Math.max(1,p.km); return Math.max(5,p.flight*Math.min(1,left/tot)+7); }catch(e){ return p.block; } }
+
+/* ---------- verrouillage ---------- */
+function lock(){ RT.on=window.RT_LOCK=true; window.DUR_ON=true; window.TREAL=true; window.RSEL=1; window.FF=null; try{ setRate(1); }catch(e){ rate=1; } try{ rateUI(true); }catch(e){}
+  const sel=document.getElementById('b-rate'); if(sel) sel.value='real'; btn(); save(); }
+function unlock(msg){ RT.on=window.RT_LOCK=false; btn(); if(msg) flash(msg,'am'); }
+RT.lock=lock; RT.unlock=unlock; RT.info=info; RT.plan=plan;
+const sel=document.getElementById('b-rate'); if(sel) sel.addEventListener('change',()=>{ if(RT.on&&sel.value!=='real') unlock('Temps réel quitté : temps accéléré'); });
+
+/* ---------- interface ---------- */
+const css=document.createElement('style'); css.textContent=`#b-treal.on{border-color:#3ddc84;color:#3ddc84}
+#rtdlg{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:130;width:min(500px,calc(100vw - 20px));max-height:calc(100vh - 30px);overflow:auto;background:#0a131c;border:2px solid #3ddc84;border-radius:12px;color:#e8eef2;font:14px/1.45 Inter,sans-serif;padding:14px;box-shadow:0 10px 40px #000c}
+#rtdlg h3{font:700 22px 'Barlow Condensed',sans-serif;margin:2px 0 8px} #rtdlg .k{font:700 12px 'Barlow Condensed',sans-serif;letter-spacing:.12em;color:#3ddc84;text-transform:uppercase}
+#rtdlg table{width:100%;border-collapse:collapse;margin:6px 0} #rtdlg td{padding:4px 6px;border-bottom:1px solid #1e2c3a;vertical-align:top} #rtdlg td:first-child{color:#9fb3c4;width:42%}
+#rtdlg .w{background:#2a2110;border:1px solid #ffd166;border-radius:8px;padding:8px;margin:8px 0;color:#ffe3a3} #rtdlg .s{color:#7d93a8;font-size:12px}
+#rtdlg .bt{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px} #rtdlg button{background:#132232;color:#fff;border:1px solid #2b3d50;border-radius:8px;padding:9px 13px;font:700 14px 'Barlow Condensed',sans-serif;cursor:pointer}
+#rtdlg button.ok{background:#1f6b3a;border-color:#3ddc84} #rtprop{position:fixed;left:50%;bottom:74px;transform:translateX(-50%);z-index:100;background:#0a131ce6;border:1px solid #3ddc84;border-radius:10px;color:#e8eef2;font:13px Inter,sans-serif;padding:8px 10px;display:flex;gap:8px;align-items:center;max-width:calc(100vw - 20px)}
+#rtprop button{background:#1f6b3a;color:#fff;border:1px solid #3ddc84;border-radius:7px;padding:6px 10px;font:700 13px 'Barlow Condensed',sans-serif;cursor:pointer} #rtprop .x{background:none;border:none;color:#9fb3c4;font-size:16px;padding:2px 6px}`;
+document.head.appendChild(css);
+let b=document.getElementById('b-treal');
+if(!b&&sel){ b=document.createElement('button'); b.type='button'; b.id='b-treal'; b.title='Confirmation trajet temps réel'; sel.insertAdjacentElement('afterend',b); }
+function btn(){ if(!b) return; b.textContent=RT.on?'⏱ Temps réel ✓':'⏱ Temps réel'; b.classList.toggle('on',RT.on); }
+if(b){ b.onclick=()=>open(); btn(); }
+function esc(t){ return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function open(){ if(typeof MI==='undefined'||!MI||!GD||!GD.on){ flash('Lancez d\'abord un parcours','am'); return; }
+  close(); const I=info(), p=I.p, w=document.createElement('div'); w.id='rtdlg';
+  const ref=I.r?`${esc(I.r.txt)}<div class="s">Source : ${esc(I.r.src)}</div>`:'Aucun vol régulier comparable : pas de durée de référence. Seule la durée calculée est affichée.';
+  const gap=I.gap==null?'—':`${I.gap>0?'+':''}${I.gap} %${I.warn?' ⚠ écart supérieur à 10 %':' (écart acceptable)'}`;
+  w.innerHTML=`<div class="k">⏱ Confirmation trajet temps réel</div><h3>${esc(MI.n||'Parcours')}</h3>
+   <table><tr><td>Durée prévue (temps bloc) [CALCULÉ]</td><td><b>${hm(p.block)}</b> dont vol ${hm(p.flight)}<div class="s">Route ${Math.round(p.km).toLocaleString('fr-FR')} km · croisière ${esc(p.cruise)} · montée, descente et roulage [ESTIMÉ]</div></td></tr>
+   <tr><td>Durée de référence [RÉFÉRENCÉ]</td><td>${ref}</td></tr><tr><td>Écart${I.r&&I.r.kind==='flight'?' (temps de vol)':' (temps bloc)'}</td><td>${gap}</td></tr>
+   <tr><td>Temps restant</td><td>${hm(I.remain)}</td></tr>
+   <tr><td>Arrivée estimée</td><td>${esc(I.etaUTC)} UTC${I.etaLoc?` · <b>${esc(I.etaLoc)}</b> heure locale (${esc(I.dest)})`:''}</td></tr></table>
+   <div class="w">Le vol durera réellement environ <b>${hm(I.remain)}</b>, sans accélération automatique. Vous pouvez fermer l'onglet et reprendre plus tard : le vol est sauvegardé sur cet appareil toutes les 30 s.</div>
+   <div class="bt">${RT.on?'<button type="button" data-u>Revenir au temps accéléré</button>':''}<button type="button" data-x>${RT.on?'Fermer':'Annuler'}</button>${RT.on?'':'<button type="button" class="ok" data-c>Confirmer le temps réel</button>'}</div>`;
+  document.body.appendChild(w);
+  w.querySelector('[data-x]').onclick=close; const c=w.querySelector('[data-c]'); if(c) c.onclick=()=>{ close(); lock(); flash('Temps réel confirmé : ×1 pendant tout le trajet','am'); };
+  const u=w.querySelector('[data-u]'); if(u) u.onclick=()=>{ close(); unlock('Retour au temps accéléré'); try{ const s2=document.getElementById('b-rate'); if(s2){ s2.value='fast'; window.DUR_ON=false; window.TREAL=false; rateUI(true); } }catch(e){} }; }
+function close(){ const w=document.getElementById('rtdlg'); if(w) w.remove(); }
+RT.open=open; RT.close=close;
+
+/* proposition discrète au lancement d'un parcours complet (non bloquante) */
+function propose(){ const old=document.getElementById('rtprop'); if(old) old.remove(); if(RT.on||!MI||!MI.full||(window.EXAM&&EXAM.on)) return;
+  let I; try{ I=info(); }catch(e){ return; } const d=document.createElement('div'); d.id='rtprop';
+  d.innerHTML=`<span>Trajet réel : <b>${hm(I.p.block)}</b>${I.r?` (référence ${hm(I.r.min)})`:''}</span><button type="button">⏱ Confirmation trajet temps réel</button><button type="button" class="x" aria-label="Fermer">✕</button>`;
+  document.body.appendChild(d); d.querySelector('button').onclick=()=>{ d.remove(); open(); }; d.querySelector('.x').onclick=()=>d.remove(); setTimeout(()=>d.remove(),15000); }
+const _sm=startMission; startMission=function(){ const r=_sm.apply(this,arguments); if(RT.on&&!RESUMING) unlock(); setTimeout(propose,1500); return r; };
+
+/* ---------- saut d'étape en temps réel : confirmation ---------- */
+const _dir=window.DIRECT;
+if(_dir){ const j=function(k,then){ if(RT.on&&!RT.jumpOK){ ask(k,then); return; } RT.jumpOK=false; return _dir(k,then); }; window.DIRECT=window.JUMP=j; }
+function ask(k,then){ close(); const w=document.createElement('div'); w.id='rtdlg';
+  w.innerHTML=`<div class="k">⏱ Temps réel en cours</div><h3>Quitter le temps réel ?</h3><p>Aller à l'étape ${k} déplace l'appareil et interrompt le trajet en temps réel.</p><div class="bt"><button type="button" data-x>Rester en temps réel</button><button type="button" class="ok" data-c>Quitter et aller à l'étape ${k}</button></div>`;
+  document.body.appendChild(w); w.querySelector('[data-x]').onclick=close;
+  w.querySelector('[data-c]').onclick=()=>{ close(); unlock('Temps réel quitté'); RT.jumpOK=true; window.DIRECT(k,then); }; }
+
+/* ---------- sauvegarde et reprise d'un vol long ---------- */
+const ls2={get(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } },set(v){ try{ localStorage.setItem(KEY,JSON.stringify(v)); }catch(e){} },del(){ try{ localStorage.removeItem(KEY); }catch(e){} }};
+const SK=['lat','lon','alt','V','psi','gam','th','ph','gear','flap','thr','fuel','mass','ff','eng','n2','onGround','pushed','pbrake','nr','coll','ve','vn','vu'];
+const AK=['on','lat','alt','vs','spd','hdg','ath','appr','althold'];
+function save(){ try{ if(!RT.on||!GD.on||!MI||crashed) return; const s={}, a={}; SK.forEach(k=>{ if(S[k]!==undefined) s[k]=S[k]; }); AK.forEach(k=>{ if(AP[k]!==undefined) a[k]=AP[k]; });
+  ls2.set({v:1,ac:ACK,mi:miKey(),name:MI.n,i:GD.i,auto:!!(AUTO&&AUTO.on),wall:Date.now(),simMs,S:s,AP:a,fpi:window.FPLN?FPLN.i:null}); }catch(e){} }
+RT.save=save; setInterval(save,30000); window.addEventListener('pagehide',save); document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
+let RESUMING=false;
+/* avance le long de la route (croisière sous pilote automatique) sans dépasser la fin de croisière */
+function advance(sv,sec){ const F=window.FPLN; if(!F||!F.pts||!sv.S||sv.S.onGround!==false||!sv.AP.on||sv.AP.appr) return 0;
+  const D=APTS[MI.dest], stopKm=250; let left=sv.S.V*sec/1000, moved=0, lat=S.lat, lon=S.lon, i=Math.max(1,F.i||1);
+  while(left>0&&i<F.pts.length){ const q=F.pts[i], seg=gcKm(lat,lon,q[0],q[1]), toDest=gcKm(lat,lon,D.lat,D.lon); if(toDest-Math.min(left,seg)<stopKm){ const room=Math.max(0,toDest-stopKm); if(room<=0) break; const f=Math.min(1,room/Math.max(1e-6,seg)); lat+=(q[0]-lat)*f; lon+=(q[1]-lon)*f; moved+=room; break; }
+    if(left>=seg){ lat=q[0]; lon=q[1]; left-=seg; moved+=seg; i++; } else { const f=left/seg; lat+=(q[0]-lat)*f; lon+=(q[1]-lon)*f; moved+=left; left=0; } }
+  S.lat=lat; S.lon=lon; F.i=Math.min(i,F.pts.length-1); try{ const q=F.pts[F.i]; S.psi=brg(S.lat,S.lon,q[0],q[1])*D2R; }catch(e){}
+  return moved; }
+function resume(sv){ RESUMING=true; try{ selAC=sv.ac; selMI=sv.mi; renderMenu(); }catch(e){}
+  try{ const a=$('m-auto'), p=$('m-peda'); if(a) a.checked=!!sv.auto; if(p) p.checked=!sv.auto; }catch(e){} try{ $('go').click(); }catch(e){} try{ const sk=document.getElementById('br-skip'); if(sk) sk.click(); }catch(e){}
+  setTimeout(()=>{ try{ if(sv.i>GD.i&&_dir) _dir(sv.i,sv.auto?'auto':'guide');
+      Object.assign(S,sv.S); Object.assign(AP,sv.AP); if(window.FPLN&&sv.fpi!=null) FPLN.i=sv.fpi;
+      const sec=Math.max(0,(Date.now()-sv.wall)/1000), km=advance(sv,sec);
+      if(km>0&&S.ff) S.fuel=Math.max(0,(S.fuel||0)-S.ff*(km*1000/Math.max(1,sv.S.V))/3600);
+      simMs=sv.simMs+sec*1000; try{ patchUpdate(S.lat,S.lon); }catch(e){} lock();
+      flash(`Vol repris : ${hm(sec/60)} écoulées${km>0?` · ${Math.round(km)} km parcourus en croisière`:''}`,'am'); }catch(e){ console.warn('reprise du vol',e); }
+    RESUMING=false; },1800); }
+RT.resume=()=>{ const sv=ls2.get(); if(sv) resume(sv); };
+/* proposition de reprise au chargement */
+setTimeout(()=>{ const sv=ls2.get(); if(!sv||Date.now()-sv.wall>MAXAGE){ if(sv) ls2.del(); return; }
+  const d=document.createElement('div'); d.id='rtprop'; const ago=hm((Date.now()-sv.wall)/60000);
+  d.innerHTML=`<span>Vol en temps réel sauvegardé il y a ${ago} : <b>${esc(sv.name||'parcours')}</b>, étape ${sv.i}</span><button type="button">▶ Reprendre le vol</button><button type="button" class="x" aria-label="Oublier ce vol">✕</button>`;
+  document.body.appendChild(d); d.querySelector('button').onclick=()=>{ d.remove(); resume(sv); }; d.querySelector('.x').onclick=()=>{ d.remove(); ls2.del(); }; },2500);
 })();
 
 </script>

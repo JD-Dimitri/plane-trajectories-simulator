@@ -781,7 +781,9 @@ function paintWorld(){ if(!M||!S.fl) return; const svg=$s('svg.ac'), f=S.fl, vb=
  else if(f.fx==='smoke') fh=[...Array(14).keys()].map(i=>{ const ph=((t*0.4+i/14)%1); return `<circle cx="${(W/2+Math.sin(i*2.3)*30*ph).toFixed(1)}" cy="${(H*0.35+i*14-ph*60).toFixed(1)}" r="${(6+ph*22).toFixed(1)}" fill="#9aa4ae" opacity="${(0.45*(1-ph)).toFixed(2)}"/>`; }).join('')+(f.fxt?`<text x="${W/2}" y="${H*0.12}" text-anchor="middle" fill="#e8eef2" font-size="18" font-weight="800" stroke="#000" stroke-width="1">${f.fxt}</text>`:'');
  else if(f.fx==='warn') fh=`<rect width="${W}" height="${H}" fill="none" stroke="#ff3b30" stroke-width="${(6+4*Math.sin(t*10)).toFixed(1)}"/><text x="${W/2}" y="${H*0.12}" text-anchor="middle" fill="#ff3b30" font-size="20" font-weight="800" stroke="#000" stroke-width="1">${f.fxt||''}</text>`;
  fx.innerHTML=fh;
- const hud=svg.querySelector('.hud'), ht=(f.ph?f.ph.toUpperCase()+' · ':'')+(f.alt>5||f.ias>1?`ALT ${Math.round(f.alt/10)*10} ft · ${Math.round(f.ias)} kt${f.vs?' · V/S '+(f.vs>0?'+':'')+f.vs:''}`:''); if(hud.textContent!==ht) hud.textContent=ht; }
+ const hud=svg.querySelector('.hud'), ht=(f.ph?f.ph.toUpperCase()+' · ':'')+(f.alt>5||f.ias>1?`ALT ${Math.round(f.alt/10)*10} ft · ${Math.round(f.ias)} kt${f.vs?' · V/S '+(f.vs>0?'+':'')+f.vs:''}`:''); if(hud.textContent!==ht) hud.textContent=ht;
+ /* V10.37 : le groupe de parc (GPU), son câble et son étiquette n'existent qu'au sol, à l'arrêt : masqués en vol et dès que l'appareil roule (A320 : f_ext ; Learjet : f_gpu) */
+ const air=f.alt>5||f.ias>3||(f.env&&f.env!=='park'&&f.env!=='pad'); svg.querySelectorAll('[data-p="gpu"],[data-p="f_ext"],[data-p="f_gpu"]').forEach(e=>{ e.style.display=air?'none':''; }); svg.querySelectorAll('text.lbl').forEach(e=>{ if(e.textContent==='GPU') e.style.display=air?'none':''; }); }
 /* ===== modes : libre, automatique, pédagogique, examen ===== */
 let MODE='libre', SELF=false; const AUTO={t:0,pause:false}, EXM={err:0,steps:{},hints:0,log:[],t0:0,wc:{}};
 const MLAB={auto:'Mode automatique',peda:'Mode pédagogique',exam:'Examen'};

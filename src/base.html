@@ -1704,7 +1704,7 @@ function flyFW(dt){ const L=LS, st=GD.steps[GD.i]||{}, agl=(S.alt-elevAt(S.lat,S
   // Learjet 60 : pas d'automanette — le « pilote » du mode automatique gère la poussée à la main pour tenir la vitesse visée
   if(ACK==='lj60'&&agl>400&&!(AP.appr&&agl<15)){ const vt=Math.min(tasFromCas(AP.spd*KT,S.alt),0.78*sos(S.alt)); S.thr=clamp(S.thr+clamp((vt-S.V)*0.06,-0.4,0.4)*dt,0.03,1); }
   // accélération du temps en croisière
-  const want=atcSlow()?1:(AP.on&&!AP.appr&&S.alt/FT>9000&&dF>tod+80)?64:(AP.on&&!AP.appr&&dT>40?4:1); if(rate!==want){ rate=want; rateUI(); }
+  const want=atcSlow()?1:(AP.on&&!AP.appr&&S.alt/FT>9000&&dF>tod+80)?64:(AP.on&&!AP.appr&&dT>40?4:1); if(rate!==want&&!window.RT_LOCK){ rate=want; rateUI(); }   // V10.38 : pas d'accélération automatique en temps réel confirmé
 }
 /* ---- pilotage automatique hélicoptère ---- */
 function flyRW(dt){ const st=GD.steps[GD.i]||{}, dest=APTS[MI.dest], elev=elevAt(S.lat,S.lon), agl=S.alt-elev, d=gcKm(S.lat,S.lon,dest.lat,dest.lon)*1000;
@@ -1723,7 +1723,7 @@ function flyRW(dt){ const st=GD.steps[GD.i]||{}, dest=APTS[MI.dest], elev=elevAt
   const ev=vA-vfwd; DIR.iv=clamp((DIR.iv||0)+ev*dt*(vh<15?1:0.2),-40,40);   // terme intégral : annule l'erreur statique (vent)
   DIR.pitch=clamp(-(ev*0.045+DIR.iv*0.012),-0.5,0.5); const e=wrapPi(hdgA-S.psi); DIR.roll=vh>12?clamp(e*1.6,-0.7,0.7):0; DIR.yaw=vh<=12?clamp(e*2,-1,1):0;
   if(agl<3&&vT===0&&gs<1){ DIR.pitch=0; }
-  const want=atcSlow()?1:(d>4000&&agl>150)?16:1; if(rate!==want&&AUTO.on){ rate=want; rateUI(); }
+  const want=atcSlow()?1:(d>4000&&agl>150)?16:1; if(rate!==want&&AUTO.on&&!window.RT_LOCK){ rate=want; rateUI(); }   // V10.38 : idem hélicoptères
 }
 function dirApply(){ if(!DIR.active||!GD.on) return; if(DIR.pitch!=null) IN.pitch=DIR.pitch; if(DIR.roll!=null) IN.roll=DIR.roll; if(DIR.yaw!=null) IN.yaw=DIR.yaw; if(DIR.coll!=null){ IN.collD=0; IN.thrD=0; } }
 function dirStep(dt){ if(!DIR.active||!GD.on) return; if(A.kind==='fw') flyFW(dt); else flyRW(dt);

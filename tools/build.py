@@ -8,7 +8,7 @@ Usage :
 import pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-ORDER = ["audio", "brief", "bubble", "drag", "close", "view", "frames", "scn", "exam", "acad", "models", "decor", "zoom", "guard", "vis", "jump", "fms", "b777", "c172", "menu2", "systems", "systems2", "systems4", "sysc172", "systems3", "back", "check", "manual", "duree", "docs", "physics", "fog", "crash", "map", "brand", "parity", "ppl", "cockpit3d", "legend", "calc", "intro", "sigles", "copy", "secu"]   # l'ordre compte : chaque module s'appuie sur les précédents
+ORDER = ["audio", "brief", "bubble", "drag", "close", "view", "frames", "scn", "exam", "acad", "models", "decor", "zoom", "guard", "vis", "jump", "fms", "b777", "c172", "menu2", "systems", "systems2", "systems4", "sysc172", "systems3", "back", "check", "manual", "duree", "docs", "physics", "fog", "crash", "map", "brand", "parity", "ppl", "cockpit3d", "legend", "calc", "intro", "sigles", "copy", "secu", "direct", "treal"]   # l'ordre compte : chaque module s'appuie sur les précédents
 ANCHOR = "/*FIN-BASE*/\n\n</script>"
 CDN = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
 

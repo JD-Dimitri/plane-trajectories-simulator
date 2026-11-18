@@ -77,7 +77,7 @@ const _g=goStep; goStep=function(i){ if(typeof GD!=='undefined'&&GD.on&&i===GD.i
   if(m.length){ PEND=()=>goStep(i); render(`⚠ Avant de passer à l'étape ${i}, ${m.length} sous-étape(s) ne sont pas faites (en rouge). Faites-les, ou passez quand même.`); return; } }
  return _g.apply(this,arguments); };
 const _sm=startMission; startMission=function(){ DONE.clear(); return _sm.apply(this,arguments); };
-window.CKL={done:(i,j)=>{ rec(); const it=GD.steps[i]&&GD.steps[i].items[j]; return DONE.has(key(i,j))||(it?chk(it):false); },go:(i,j)=>gotoItem({i,j,st:GD.steps[i],it:GD.steps[i].items[j]}),open:()=>render(),missing:()=>{ rec(); return missing(0,GD.i).map(m=>m.it[0]); }};
+window.CKL={mark:(i,j)=>{ DONE.add(key(i,j)); },done:(i,j)=>{ rec(); const it=GD.steps[i]&&GD.steps[i].items[j]; return DONE.has(key(i,j))||(it?chk(it):false); },go:(i,j)=>gotoItem({i,j,st:GD.steps[i],it:GD.steps[i].items[j]}),open:()=>render(),missing:()=>{ rec(); return missing(0,GD.i).map(m=>m.it[0]); }};
 })();
 /* ---- bouton « Guide » dans une mission sans parcours : bascule vers le parcours guidé équivalent (même appareil, même trajet si possible) ---- */
 (function(){ const gb=document.getElementById('b-guide'); if(!gb) return; const old=gb.onclick;

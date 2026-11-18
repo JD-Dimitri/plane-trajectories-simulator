@@ -21,7 +21,8 @@ document.head.appendChild(css);
 const ov=document.createElement('div'); ov.id='jmpo'; ov.hidden=true; ov.innerHTML='<div><span></span><i style="width:0"></i></div><button type="button">Annuler</button>'; document.body.appendChild(ov);
 ov.querySelector('button').onclick=()=>{ window.FF=null; ov.hidden=true; try{ setRate(1); }catch(e){} };
 let mode='auto';
-function jump(k,then){ if(!GD.on||!GD.steps.length) return; then=then||(AUTO.on?'auto':'guide'); if(window.EXAM&&EXAM.on){ flash('Examen blanc : pas de saut d\'étape','am'); return; }
+function jump(k,then){ if(window.DIRECT) return window.DIRECT(k,then);   /* V10.37 : saut direct (direct.js) */
+  if(!GD.on||!GD.steps.length) return; then=then||(AUTO.on?'auto':'guide'); if(window.EXAM&&EXAM.on){ flash('Examen blanc : pas de saut d\'étape','am'); return; }
   if(k===GD.i){ return; }
   if(k<GD.i){ window.FF={to:k,then,t0:GD.i}; const want=window.FF; if(window.BR&&BR.launchMode){ BR.launchMode('auto'); window.FF=want; } return; }
   window.FF={to:k,then,from:GD.i}; if(!AUTO.on) autoStart(true); }
@@ -45,7 +46,7 @@ setInterval(()=>{ const F=window.FF; if(!F||!GD.on){ ov.hidden=true; return; } i
 function picker(){ let m=$('jmp'); if(m) m.remove(); if(!GD.on||!GD.steps.length){ flash('Démarrez d\'abord un parcours','am'); return; }
   m=document.createElement('div'); m.id='jmp'; const groups=[]; GD.steps.forEach((s,i)=>{ let g=groups[groups.length-1]; if(!g||g.ph!==s.ph){ g={ph:s.ph,l:[]}; groups.push(g); } g.l.push([i,s]); });
   m.innerHTML=`<div class="w"><div class="hd"><b>🧭 Aller directement à une étape</b><button type="button" data-x>✕</button></div><div class="bd">
-   <p style="color:#9fb3c4;margin:4px 0">Les étapes précédentes sont exécutées en avance rapide, puis vous arrivez à l'étape choisie. Arrivé, vous voulez :</p>
+   <p style="color:#9fb3c4;margin:4px 0">Vous arrivez directement à l'étape choisie (les actions précédentes sont faites et l'appareil est placé au bon endroit). Arrivé, vous voulez :</p>
    <div class="md"><button type="button" data-m="auto" class="${mode==='auto'?'on':''}">▶ Observer (automatique)</button><button type="button" data-m="guide" class="${mode==='guide'?'on':''}">🎓 La faire moi-même (guidé)</button></div>
    ${groups.map(g=>`<h4>${g.ph}</h4>${g.l.map(([i,s])=>`<button type="button" class="st ${i===GD.i?'cur':i<GD.i?'done':''}" data-k="${i}"><span class="n">${i}</span><span>${s.t}</span></button>`).join('')}`).join('')}</div></div>`;
   document.body.appendChild(m);
