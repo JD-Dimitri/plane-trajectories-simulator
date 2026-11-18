@@ -29,6 +29,20 @@ function rowX(groups,sw,w){ const n=groups.reduce((s,g)=>s+Math.max(g.length,0),
   const usable=w-0.24, aisle=Math.max(0.42,(usable-groups.reduce((s,g)=>s+Math.max(1,g.length),0)*sw)/nA), xs=[], aisles=[]; let x=-usable/2;
   groups.forEach((g,gi)=>{ const k=Math.max(1,g.length); for(let i=0;i<k;i++){ if(i<g.length) xs.push({x:x+sw*(i+0.5),l:g[i]}); } x+=k*sw; if(gi<groups.length-1){ aisles.push(x+aisle/2); x+=aisle; } }); return {xs,aisles}; }
 
+
+/* V10.42 (F30) : cabine plus réaliste — ombrage par face (dessus clair, côtés plus sombres), textures de tissu, de coffres, de plafond et de moquette */
+const SHADE=[0.8,0.8,1.0,0.55,0.9,0.9];   // +x, −x, +y, −y, +z, −z
+function SH(col,map){ const c=new THREE.Color(col); return SHADE.map(f=>{ const m=new THREE.MeshBasicMaterial({color:c.clone().multiplyScalar(f),map:map||null}); m.userData.base=c.clone().multiplyScalar(f); mats.push(m); return m; }); }
+const fabric=(col)=>tex(128,128,(g,w,h)=>{ g.fillStyle=col; g.fillRect(0,0,w,h); for(let y=0;y<h;y+=4){ g.fillStyle=y%8?'#ffffff0a':'#00000014'; g.fillRect(0,y,w,2); } for(let i=0;i<500;i++){ g.fillStyle=Math.random()<0.5?'#ffffff10':'#0000001c'; g.fillRect(Math.random()*w,Math.random()*h,2,1); } g.strokeStyle='#00000040'; g.lineWidth=3; g.strokeRect(4,4,w-8,h-8); });
+const binTex=()=>tex(512,128,(g,w,h)=>{ g.fillStyle='#f3f4f5'; g.fillRect(0,0,w,h); for(let x=0;x<w;x+=128){ g.fillStyle='#d5d9dd'; g.fillRect(x,0,3,h); g.fillStyle='#9aa3ab'; g.fillRect(x+54,h-26,20,8); }
+  const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#ffffff00'); gr.addColorStop(1,'#00000022'); g.fillStyle=gr; g.fillRect(0,0,w,h); });
+const psuTex=()=>tex(256,64,(g,w,h)=>{ g.fillStyle='#e3e6e9'; g.fillRect(0,0,w,h); for(let i=0;i<3;i++){ g.fillStyle='#fff6d0'; g.beginPath(); g.arc(30+i*30,22,8,0,7); g.fill(); g.strokeStyle='#9aa3ab'; g.stroke(); }
+  g.fillStyle='#5b6670'; g.fillRect(130,14,26,16); g.fillStyle='#2f6fb0'; g.fillRect(170,12,22,20); g.fillStyle='#fff'; g.font='bold 14px sans-serif'; g.fillText('🚭',172,28); g.fillStyle='#9aa3ab'; g.fillRect(205,14,40,16); g.fillStyle='#333'; g.font='bold 12px sans-serif'; g.fillText('12 A-C',206,27); });
+const ceilTex=()=>tex(256,256,(g,w,h)=>{ g.fillStyle='#eef0f2'; g.fillRect(0,0,w,h); g.fillStyle='#d6dade'; g.fillRect(0,0,w,3); g.fillRect(0,h/2,w,3); g.fillStyle='#fffbe8'; g.fillRect(16,h/2-26,w-32,10); g.fillRect(16,h-26,w-32,10); });
+const wallTex=()=>tex(256,256,(g,w,h)=>{ g.fillStyle='#e7eaed'; g.fillRect(0,0,w,h); g.fillStyle='#d8dde1'; g.fillRect(0,h*0.72,w,h*0.28); g.fillStyle='#c9cfd4'; g.fillRect(0,h*0.72,w,3); for(let x=0;x<w;x+=64){ g.fillStyle='#d3d8dc'; g.fillRect(x,0,2,h); } });
+const carpetTex=(col)=>tex(256,256,(g,w,h)=>{ g.fillStyle=col; g.fillRect(0,0,w,h); for(let i=0;i<4000;i++){ g.fillStyle=Math.random()<0.5?'#ffffff0c':'#00000018'; g.fillRect(Math.random()*w,Math.random()*h,2,2); } for(let x=0;x<w;x+=32){ g.fillStyle='#00000010'; g.fillRect(x,0,1,h); } });
+const galleyTex=()=>tex(256,256,(g,w,h)=>{ g.fillStyle='#c4cbd1'; g.fillRect(0,0,w,h); for(let i=0;i<4;i++) for(let j=0;j<3;j++){ g.fillStyle='#aab3ba'; g.fillRect(8+i*62,10+j*80,54,72); g.fillStyle='#7b858d'; g.fillRect(26+i*62,40+j*80,18,6); } });
+function rep(t,u,v){ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(u,v); return t; }
 function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; const d=D[k]; if(!d) return; const L=(window.CABLAY?CABLAY(k):null), e=A.eye;
   const floor=e[1]-(d.small?0.95:1.15), z0=e[2]+(d.small?0.15:d.lead), g=new THREE.Group(); G.add(g);
   // sièges (instances) : assise, dossier, appui-tête
@@ -41,31 +55,38 @@ function build(k){ while(G.children.length) G.remove(G.children[0]); mats=[]; co
     else lay.xs.forEach(s=>{ if(s.l) seats.push({x:s.x,z,sw,cls}); });
     if(lay.aisles.length) aisleX=lay.aisles[0]; if(firstZ==null) firstZ=z; rowsZ.push({r:r.r,z,cls}); if(r.ex) exits.push(z); z+=p; });
   const zEnd=z+(d.small?0.2:1.6), len=zEnd-z0+(d.small?0.3:0.6);
-  const cush=new THREE.InstancedMesh(new THREE.BoxGeometry(1,0.12,1),M(d.col),Math.max(1,seats.length)),
-        back=new THREE.InstancedMesh(new THREE.BoxGeometry(1,0.72,0.12),M(new THREE.Color(d.col).multiplyScalar(1.15).getHex()),Math.max(1,seats.length)),
-        head=new THREE.InstancedMesh(new THREE.BoxGeometry(1,0.16,0.13),M(0xe9eaec),Math.max(1,seats.length)), mx=new THREE.Matrix4();
+  const N=Math.max(1,seats.length), fab='#'+new THREE.Color(d.col).getHexString(), ft=fabric(fab);
+  const cush=new THREE.InstancedMesh(new THREE.BoxGeometry(1,0.12,1),SH(0xffffff,ft),N),
+        back=new THREE.InstancedMesh(new THREE.BoxGeometry(1,0.72,0.12),SH(0xf2f2f2,ft),N),
+        head=new THREE.InstancedMesh(new THREE.BoxGeometry(1,0.16,0.13),SH(0xeceef0),N),
+        arm=new THREE.InstancedMesh(new THREE.BoxGeometry(0.05,0.05,0.42),SH(0x3b4148),N*2), leg=new THREE.InstancedMesh(new THREE.BoxGeometry(0.04,0.4,0.04),SH(0x8d949b),N*2),
+        mx=new THREE.Matrix4(), rq=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),0.12), V=(x,y,z)=>new THREE.Vector3(x,y,z);
   // l'avant de l'appareil est vers −z : le passager regarde vers −z, le dossier est derrière lui (+z)
   seats.forEach((s,i)=>{ const dep=s.cls==='J'?0.75:s.cls==='CREW'?0.5:0.5, w=s.sw*0.92;
     mx.makeScale(w,1,dep); mx.setPosition(s.x,floor+0.45,s.z); cush.setMatrixAt(i,mx);
-    mx.makeScale(w,1,1); mx.setPosition(s.x,floor+0.45+0.42,s.z+dep/2); back.setMatrixAt(i,mx);
-    mx.makeScale(w*0.9,1,1); mx.setPosition(s.x,floor+0.45+0.86,s.z+dep/2); head.setMatrixAt(i,mx); });
-  [cush,back,head].forEach(m=>{ m.count=seats.length; m.instanceMatrix.needsUpdate=true; g.add(m); });
+    mx.compose(V(s.x,floor+0.45+0.42,s.z+dep/2+0.04),rq,V(w,1,1)); back.setMatrixAt(i,mx);                      // dossier légèrement incliné vers l'arrière
+    mx.compose(V(s.x,floor+0.45+0.86,s.z+dep/2+0.095),rq,V(w*0.9,1,1)); head.setMatrixAt(i,mx);
+    [-1,1].forEach((u,j)=>{ mx.makeTranslation(s.x+u*(w/2+0.02),floor+0.66,s.z); arm.setMatrixAt(i*2+j,mx); mx.makeTranslation(s.x+u*w*0.35,floor+0.2,s.z); leg.setMatrixAt(i*2+j,mx); }); });
+  [cush,back,head].forEach(m=>{ m.count=seats.length; m.instanceMatrix.needsUpdate=true; g.add(m); }); [arm,leg].forEach(m=>{ m.count=seats.length*2; m.instanceMatrix.needsUpdate=true; g.add(m); });
   const zA=z0-(d.small?0.55:1.45), zB=zEnd+(d.small?0.35:1.2), len2=zB-zA, zc=(zA+zB)/2, W=d.w, H=d.h, wall=M(0xdfe3e6), dark=M(0x2b2f33);   // l'enveloppe englobe les offices avant et arrière
-  box(g,W,0.05,len2,M(d.small?0x2a2a2a:0x4a5560),0,floor-0.025,zc);                                   // plancher
+  box(g,W,0.05,len2,M(0xffffff,rep(carpetTex(d.small?'#2a2a2a':'#4a5560'),W,len2/1.2)),0,floor-0.025,zc);                                   // plancher
   if(!d.small) box(g,0.5,0.006,len-0.4,M(0x6c2f3a),aisleX,floor+0.003,zc);                            // moquette d'allée
-  box(g,W,0.05,len2,M(d.small?0xcfc6b0:0xf0f1f2),0,floor+H,zc);                                                         // plafond
-  [-1,1].forEach(s=>{ box(g,0.05,H,len2,wall,s*W/2,floor+H/2,zc); });                                    // parois
+  box(g,W,0.05,len2,d.small?M(0xcfc6b0):M(0xffffff,rep(ceilTex(),1,len2/1.1)),0,floor+H,zc);                                                         // plafond
+  { const wt=rep(wallTex(),len2/2.1,1); [-1,1].forEach(s=>{ box(g,0.05,H,len2,d.small?wall:M(0xffffff,wt),s*W/2,floor+H/2,zc); }); }                                    // parois
   if(d.small){ box(g,W,0.62,0.12,M(0x17181a),0,floor+0.62,zA); box(g,W*0.9,0.3,0.02,M(0xffffff,panelTex(),true),0,floor+0.72,zA+0.065); }   // petit appareil : tableau de bord en bas, pare-brise ouvert au-dessus (on voit dehors)
   else box(g,W,H,0.05,M(0xcfd4d8),0,floor+H/2,zA);                                                   // cloison avant (poste)
   box(g,W,H,0.05,M(0xcfd4d8),0,floor+H/2,zB);                                                         // cloison arrière
   // hublots (texture de jour) le long des parois, à hauteur d'œil assis
   const wm=M(0xffffff,winTex(),true); wm.userData.win=true; const step=d.small?0.8:0.53;
   for(let zz=z0;zz<zEnd;zz+=step) [-1,1].forEach(s=>{ const h=new THREE.Mesh(new THREE.PlaneGeometry(d.small?0.5:0.26,d.small?0.42:0.36),wm); h.position.set(s*(W/2-0.03),floor+(d.small?0.95:1.05),zz); h.rotation.y=-s*Math.PI/2; g.add(h); });
-  if(d.bins){ [-1,1].forEach(s=>{ box(g,0.62,0.42,len-0.8,M(0xf4f5f6),s*(W/2-0.31),floor+H-0.36,zc); box(g,0.02,0.02,len-0.8,M(0xbfe3ff,null,true),s*(W/2-0.64),floor+H-0.58,zc); });   // coffres à bagages, rampe lumineuse
+  if(d.bins){ const bt=rep(binTex(),1,1), pt=rep(psuTex(),1,1); bt.repeat.set((len-0.8)/2,1); pt.repeat.set((len-0.8)/0.8,1);
+    [-1,1].forEach(s=>{ const bm=SH(0xf4f5f6); bm[s>0?1:0]=M(0xffffff,bt); box(g,0.62,0.42,len-0.8,bm,s*(W/2-0.31),floor+H-0.36,zc);   // coffres à bagages : trappes et loquets côté allée
+      const pm=SH(0xe3e6e9); pm[3]=M(0xffffff,pt); box(g,0.5,0.04,len-0.8,pm,s*(W/2-0.3),floor+H-0.59,zc);                                   // rampe passagers (liseuses, appel, consignes)
+      box(g,0.02,0.02,len-0.8,M(0xbfe3ff,null,true),s*(W/2-0.64),floor+H-0.58,zc); });   // coffres à bagages, rampe lumineuse
     if(k==='b777'||k==='a350') box(g,1.6,0.38,len-6,M(0xf4f5f6),0,floor+H-0.3,zc+1);                            // coffres centraux (777)
-    box(g,W*0.5,1.9,0.9,M(0xb8c0c7),-W*0.22,floor+0.95,z0-0.85);                                       // office avant (galley)
+    box(g,W*0.5,1.9,0.9,M(0xffffff,galleyTex()),-W*0.22,floor+0.95,z0-0.85);                                       // office avant (galley)
     box(g,0.9,1.9,0.9,M(0xa7b0b8),W*0.3,floor+0.95,z0-0.85); box(g,0.06,0.9,0.04,dark,W*0.3-0.3,floor+1.0,z0-0.39);   // toilettes avant
-    box(g,W*0.6,1.9,0.8,M(0xb8c0c7),0,floor+0.95,zEnd+0.7); }
+    box(g,W*0.6,1.9,0.8,M(0xffffff,galleyTex()),0,floor+0.95,zEnd+0.7); }
   if(!d.small){
   for(let zz=z0;zz<zEnd;zz+=0.9) box(g,0.03,0.01,0.12,M(0xffe08a,null,true),aisleX+0.27,floor+0.006,zz);   // éclairage de cheminement au sol
   const ex=M(0xffffff,signTex('EXIT','#0f8a3a'),true);                                                // signalisation des issues

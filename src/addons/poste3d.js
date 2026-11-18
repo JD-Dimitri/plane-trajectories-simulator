@@ -96,6 +96,44 @@ function faceTex(D,k){ const [fw,yt,yb]=D.face, fh=yt-yb, px=720/fh; return tex(
     g.fillStyle='#d9dde2aa'; g.fillText('LDG GEAR',X(D.gear)-34,Y(-0.53)); }
   g.fillStyle='#ffffff30'; g.font='500 12px Inter,sans-serif'; g.textAlign='left'; g.fillText('Poste simplifié · '+(DATA[k].st.match(/^\[[^\]]+\]/)||[''])[0],12,h-12); }); }
 
+/* ---------- F30 : poste FERMÉ (plus de « vide » vers le sol) et vrai panneau plafond ---------- */
+const ENC={a320:{W:1.3,rz:1.25,fy:-1.12,top:0.34},a350:{W:1.4,rz:1.25,fy:-1.12,top:0.34},b777:{W:1.45,rz:1.25,fy:-1.12,top:0.34},lj60:{W:0.85,rz:0.95,fy:-0.98,top:0.28},
+  s76:{W:0.95,rz:0.95,fy:-1.0,top:0.34},c172:{W:0.58,rz:0.62,fy:-0.92,top:0.34},h125:{W:0.72,rz:0.6,fy:-1.0,top:0.42,heli:1},r44:{W:0.62,rz:0.55,fy:-0.95,top:0.42,heli:1}};
+function ovhTex(fam){ const boe=fam==='boeing'; return tex(1024,768,(q,w,h)=>{ const bg=boe?'#3e3934':fam==='ga'?'#2a2c2f':'#4c5660'; q.fillStyle=bg; q.fillRect(0,0,w,h);
+  const MOD=fam==='airbus'?['ADIRS','FLT CTL','ELEC','HYD','FUEL','AIR COND','ANTI ICE','APU','CABIN PRESS','EXT LT','INT LT','ENG','FIRE','CALLS','SIGNS','WIPER']:boe?['IRS','ELEC','HYD','FUEL','BLEED AIR','PRESS','ANTI-ICE','APU','ENG START','LIGHTS','FIRE','WIPERS','EEC','CARGO','PASS SIGNS','CVR']
+    :['BATT','AVIONICS','LIGHTS','PITOT HEAT','FUEL','START','DEFOG','RADIO','CABIN','BEACON','NAV','STROBE','LDG','TAXI','INST','MAP'];
+  let r=7; const R=()=>(r=(r*9301+49297)%233280)/233280; const cols=4, rows=4, cw=w/cols, rh=h/rows;
+  MOD.forEach((m,i)=>{ const x0=(i%cols)*cw+8, y0=Math.floor(i/cols)*rh+8, ww=cw-16, hh=rh-16; q.fillStyle='#00000030'; q.fillRect(x0,y0,ww,hh); q.strokeStyle='#ffffff40'; q.lineWidth=2; q.strokeRect(x0,y0,ww,hh);
+    q.fillStyle='#e6e9ec'; q.font='700 17px Inter,sans-serif'; q.textAlign='center'; q.fillText(m,x0+ww/2,y0+22);
+    for(let j=0;j<6;j++){ const bx=x0+16+(j%3)*(ww-32)/3, by=y0+40+Math.floor(j/3)*((hh-50)/2), k=R();
+      if(fam==='airbus'||(boe&&k<0.6)){ q.fillStyle='#16181b'; q.fillRect(bx,by,46,40); q.fillStyle=k<0.25?'#f2b632':k<0.45?'#d9dde2':'#2c3036'; q.fillRect(bx+6,by+6,34,11); q.fillStyle=k<0.5?'#3a3e44':'#e6e9ec'; q.fillRect(bx+6,by+22,34,11); }
+      else { q.fillStyle='#1b1d20'; q.beginPath(); q.arc(bx+22,by+20,15,0,7); q.fill(); q.fillStyle='#d9dde2'; q.fillRect(bx+20,by+4,5,17); }
+      q.fillStyle='#ffffffb0'; q.font='600 11px Inter,sans-serif'; q.fillText(['ON','OFF','AUTO','NORM','ALTN','FAULT','PUMP','FAN','TEST'][Math.floor(R()*9)],bx+23,by+56); } });
+  q.strokeStyle='#ffffff22'; q.lineWidth=3; for(let i=1;i<cols;i++){ q.beginPath(); q.moveTo(i*cw,0); q.lineTo(i*cw,h); q.stroke(); } }); }
+function carpet(col){ return tex(256,256,(q,w,h)=>{ q.fillStyle=col; q.fillRect(0,0,w,h); for(let i=0;i<1800;i++){ q.fillStyle=Math.random()<0.5?'#ffffff08':'#00000014'; q.fillRect(Math.random()*w,Math.random()*h,2,2); } }); }
+function enclose(g,k,cx,D){ const E=ENC[k]; if(!E) return; const W=E.W, fy=E.fy, rz=E.rz, z0=D.z-0.06, boe=D.fam==='boeing';
+  const wall=M(boe?0x4a453f:D.fam==='ga'||D.fam==='heli'?0x2d2f33:0x59636d), dark=M(0x1d2024), low=M(boe?0x3a3632:0x3f474f);
+  const ct=carpet(boe?'#3b3631':D.fam==='ga'?'#3a3530':'#33393f'); ct.t.wrapS=ct.t.wrapT=THREE.RepeatWrapping; ct.t.repeat.set(4,4);
+  // plancher (moquette) de la planche à la cloison arrière
+  const fl=E.heli?Math.max(z0+0.55,-0.45):z0; box(g,2*W,0.04,rz-fl,M(0xffffff,ct.t),cx,fy,(rz+fl)/2);
+  if(E.heli){ const gl=new THREE.MeshBasicMaterial({color:0x7fa6c4,transparent:true,opacity:0.18}); mats.push(Object.assign(gl,{userData:{base:new THREE.Color(0x7fa6c4)}}));
+    const ch=new THREE.Mesh(new THREE.PlaneGeometry(2*W*0.9,fl-z0),gl); ch.rotation.x=-Math.PI/2; ch.position.set(cx,fy+0.01,(fl+z0)/2); g.add(ch); box(g,2*W*0.9,0.03,0.04,dark,cx,fy+0.01,fl); }   // bulle de nez vitrée (on voit le sol, comme en vrai), cadre
+  // bas de planche jusqu'au plancher (genoux, palonniers) et cloison avant
+  const yb=D.face?D.face[2]:(D.panel?D.panel[1]-D.panel[0]/(1200/420)-0.05:-0.7), fw=D.face?D.face[0]:(D.panel?D.panel[0]+0.1:1.0);
+  if(!E.heli){ box(g,fw,yb-fy,0.04,low,cx,(yb+fy)/2,z0-0.02); box(g,2*W,(yb-fy)+0.3,0.04,dark,cx,(yb+fy)/2,z0-0.35); }
+  else box(g,0.42,yb-fy,0.3,low,cx,(yb+fy)/2,z0+0.08);                                                                         // console centrale d'hélicoptère jusqu'au plancher
+  // parois latérales sur toute la longueur, sous les vitres
+  [-1,1].forEach(s=>{ box(g,0.05,(-0.25)-fy,rz-z0+0.3,wall,cx+s*(W+0.02),(-0.25+fy)/2,(rz+z0-0.3)/2); });
+  // palonniers (deux pédales par pilote) et repose-pieds
+  [0,2*cx].forEach(x=>{ [-0.11,0.11].forEach(d=>{ box(g,0.08,0.2,0.03,M(0x2a2d31),x+d,fy+0.16,z0+0.32,-0.35); }); box(g,0.36,0.02,0.18,dark,x,fy+0.02,z0+0.32); });
+  // pédestal jusqu'au plancher (avions de ligne, Learjet, S-76)
+  if(D.scr) box(g,k==='lj60'?0.34:0.46,(-0.67)-fy-0.22,0.7,M(boe?0x3a3530:0x46505a),cx,(fy+(-0.67)-0.22)/2,z0+0.61);
+  // plafond fermé et panneau plafond complet (incliné vers les pilotes)
+  if(!E.heli||true){ box(g,2*W,0.04,rz-z0+0.2,M(boe?0x4a453f:D.fam==='ga'?0xcfc6b0:0x5d6670),cx,E.top+0.17,(rz+z0)/2+0.1); }
+  if(D.fam!=='ga'){ const ot=ovhTex(D.fam), ow=Math.min(1.5,2*W-0.35), od=E.heli?0.55:1.05;
+    const op=plane(g,ow,od,M(0xffffff,ot.t,true),cx,E.top+0.075,(D.z+0.75)+od/2-0.2); op.rotation.x=Math.PI/2+0.22; }
+}
+
 function build(k){ while(P.children.length) P.remove(P.children[0]); mats=[]; HIT=[]; SCRS=[]; hov=null; const D=DATA[k]; built=k; if(!D) return;
   const e=A.eye, cx=-e[0], g=new THREE.Group(); g.position.set(e[0],e[1],e[2]); P.add(g); const z=D.z;
   if(D.scr){ const [fw,yt,yb]=D.face, fh=yt-yb, ft=faceTex(D,k);
@@ -118,7 +156,7 @@ function build(k){ while(P.children.length) P.remove(P.children[0]); mats=[]; HI
     const pt=tex(256,384,(q,w,h)=>{ q.fillStyle=D.fam==='boeing'?'#3e3934':'#4c5660'; q.fillRect(0,0,w,h); [[10,8],[136,8]].forEach(([x,y])=>{ q.fillStyle='#14171a'; q.fillRect(x,y,110,120); q.fillStyle='#0f2a12'; q.fillRect(x+8,y+8,94,60); q.fillStyle='#3ddc84'; q.font='10px monospace'; q.fillText(D.fam==='boeing'?'CDU':'MCDU',x+14,y+22); q.fillStyle='#2a2d31'; for(let i=0;i<4;i++) for(let j=0;j<6;j++) q.fillRect(x+10+j*16,y+74+i*11,12,8); });
       q.fillStyle='#1b1d20'; q.fillRect(60,150,136,110); q.fillStyle='#d9dde2'; q.fillRect(88,160,26,90); q.fillRect(142,160,26,90); q.fillStyle='#111'; q.fillRect(30,280,196,90); q.fillStyle='#ffa21a'; q.font='12px monospace'; q.fillText('118.700   121.500',44,312); q.fillStyle='#d9dde2'; q.fillText(D.fam==='boeing'?'RADIO':'RMP',44,340); });
     plane(g,k==='lj60'?0.34:0.46,0.7,M(0xffffff,pt.t),cx,-0.669,z+0.55,-Math.PI/2);
-    [-1,1].forEach(s=>box(g,0.035,0.12,0.05,M(0xd9dde2),cx+s*0.06,-0.62,z+0.55));                                                            // manettes de poussée
+    [-1,1].forEach(s=>{ box(g,0.022,0.11,0.03,M(0x4a4f56),cx+s*0.055,-0.625,z+0.55,0.25); box(g,0.06,0.03,0.045,M(0x2a2d31),cx+s*0.055,-0.565,z+0.565); });   // manettes de poussée : levier et poignée
     outline(hit(g,0.46,0.06,0.25,cx,-0.66,z+0.32,(D.fam==='boeing'?'CDU':'MCDU')+' (ordinateur de gestion du vol) — ouvre le pédestal','ped'));
     outline(hit(g,0.3,0.16,0.2,cx,-0.62,z+0.55,'Manettes de poussée — ouvre le pédestal (poussée, volets, aérofreins)','ped'));
     outline(hit(g,0.46,0.06,0.22,cx,-0.66,z+0.8,'Boîtier radio (RMP) — ouvre la radio et le contrôle aérien','atc'));
@@ -131,6 +169,7 @@ function build(k){ while(P.children.length) P.remove(P.children[0]); mats=[]; HI
     outline(hit(g,Math.min(0.9,pw),0.12,0.5,cx,0.36,-0.25,'Plafond — ouvre le panneau plafond','ovh'));
     if(D.fam==='heli') outline(hit(g,0.08,0.5,0.08,2*cx,-0.75,-0.3,'Cyclique — ouvre l\'aide des commandes','help'));
     else outline(hit(g,0.3,0.1,0.32,0,-0.42,-0.5,'Manche — ouvre l\'aide des commandes','help')); }
+  try{ enclose(g,k,cx,D); }catch(e){ console.warn('poste fermé',e); }
 }
 
 /* ---------- recopie des instruments sur les écrans 3D ---------- */
@@ -165,6 +204,7 @@ const _pc=placeCamera; placeCamera=function(){ const r=_pc.apply(this,arguments)
   if(a&&built!==ACK){ build(ACK); if(window.CK3D) CK3D.build(ACK); }
   // regard abaissé (≈ 13°) : on voit la planche sous la casquette, comme depuis le siège
   if(a){ camera.quaternion.multiply(QDN); camera.updateMatrixWorld(); }
+  { const cn=$('cabnav'); if(cn&&view!=='cab'&&!cn.hidden) cn.hidden=true; }   // F30 : flèches « allée » seulement en vue Cabine
   P.visible=a&&scrOn; if(P.visible){ P.quaternion.copy(qAtt); P.position.set(0,0,0); copy(performance.now());
     const n=SKY&&SKY.u&&SKY.u.night?SKY.u.night.value:0, day=1-0.72*n; mats.forEach(m=>{ const k=m.userData.emis?Math.max(day,0.85):day; m.color.copy(m.userData.base).multiplyScalar(k); }); } }catch(e){ P.visible=false; } return r; };
 
@@ -205,7 +245,7 @@ function act(h){ const a=h.p.act; tip.hidden=true; window.P3LAST=h.p.label;
   if(a==='atc'){ const p=$('atc'); if(p&&p.hidden) open('b-atc'); return; }
   if(a==='help'){ const p=$('help'); if(p&&p.hidden) open('b-help'); return; } }
 // une étape du guide qui montre un bouton du FCU l'affiche
-if(typeof highlight==='function'){ const _h=highlight; highlight=function(selc){ try{ if(active()&&selc&&/data-f=|#fcu|#f-/.test(selc)&&holder){ holder.classList.add('open'); } }catch(e){} return _h.apply(this,arguments); }; }
+if(typeof highlight==='function'){ const _h=highlight; highlight=function(selc){ try{ if(active()&&selc&&/data-f=|#fcu|#f-/.test(selc)&&holder&&!(typeof AUTO!=='undefined'&&AUTO.on)){ holder.classList.add('open'); } }catch(e){} return _h.apply(this,arguments); }; }
 function hint(){ if(!active()) return; let d=$('p3hint'); if(!d){ d=document.createElement('div'); d.id='p3hint'; document.body.appendChild(d); }
   d.textContent=innerWidth<760?'Touchez un instrument du poste pour l\'ouvrir':'Cliquez un instrument du poste pour l\'ouvrir (survol : son nom)'; d.style.opacity='1'; d.hidden=false;
   clearTimeout(hint.t); hint.t=setTimeout(()=>{ d.style.opacity='0'; setTimeout(()=>d.hidden=true,700); },4200); }
