@@ -65,8 +65,8 @@ async def run_target(b, ac, k):
     info = await pg.evaluate("({n:GD.steps.length, fly:GD.steps.map(s=>s.fly||''), t:GD.steps.map(s=>s.t)})")
     fly = info['fly'][k]; idx_land = next((i for i, f in enumerate(info['fly']) if f in ('land', 'hLand')), -1)
     t0 = time.time(); await pg.evaluate(f"JUMP({k},'auto')"); dt = time.time() - t0
+    st = await pg.evaluate(STATE)   # état exact après le saut (avant que le mode automatique n'agisse)
     await pg.evaluate("drive(2)")
-    st = await pg.evaluate(STATE)
     bad = expect(ac, fly, k, idx_land, st)
     if dt > 3: bad.append(f'saut trop long ({dt:.1f} s)')
     if st['i'] != k: bad.append(f"GD.i={st['i']} au lieu de {k}")

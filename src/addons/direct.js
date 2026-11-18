@@ -40,13 +40,13 @@ function place(k){ const st=GD.steps[k]||{}, fly=st.fly||'', idxLand=GD.steps.fi
     return null; }
   // Cessna 172 : tour de piste de Toussus (main gauche, 1 000 ft)
   if(ACK==='c172'&&MI.dest==='LFPN'){ const r=rwStart('LFPN','25R'), el=APTS.LFPN.elev, T=/traversier/i.test(st.t), Dw=/arrière/i.test(st.t), B=/base/i.test(st.t), Fi=/Finale/i.test(st.t);
-    GD.cAir=true;
+    GD.cAir=true; GD.cTi=null; const elFt=el/FT, kap=(h,above,appr)=>{ AP.on=true; AP.lat='HDG'; AP.hdg=wrap360(h); AP.alt=Math.round((elFt+above)/100)*100; AP.vs=500; AP.appr=!!appr; };   /* état du KAP 140 dans un tour de piste normal (c172.js) */
     if(fly==='takeoff'){ lineUp('LFPN','25R'); S.pbrake=true; return 'aligné piste 25R'; }
-    if(fly==='pattern'&&T){ const p=ll(r,1700,-200); air(p[0],p[1],el+ft(700),75,wrap360(r.hdg-90),{flap:0,thr:0.85}); GD.cLeg='cross'; return 'vent traversier'; }
-    if(fly==='pattern'&&Dw){ const p=ll(r,600,-1300); air(p[0],p[1],el+ft(1000),90,wrap360(r.hdg-180),{flap:0,thr:0.6}); GD.cLeg='down'; return 'vent arrière, 1 000 ft'; }
-    if(fly==='pattern'&&B){ const p=ll(r,-2450,-1100); air(p[0],p[1],el+ft(750),70,wrap360(r.hdg+90),{flap:2,thr:0.45}); GD.cLeg='base'; return 'étape de base'; }
-    if(fly==='pattern'&&Fi){ const p=ll(r,-2000,0); air(p[0],p[1],el+ft(450),65,r.hdg,{flap:3,thr:0.35}); GD.cLeg='final'; AP.appr=true; return 'en finale 25R'; }
-    if(fly==='land'){ const p=ll(r,-500,0); air(p[0],p[1],el+ft(110),62,r.hdg,{flap:3,thr:0.2}); GD.cLeg='final'; AP.appr=true; return 'courte finale 25R'; }
+    if(fly==='pattern'&&T){ const p=ll(r,1700,-200); air(p[0],p[1],el+ft(700),75,wrap360(r.hdg-90),{flap:0,thr:0.85}); kap(r.hdg-90,1000); GD.cLeg='cross'; return 'vent traversier'; }
+    if(fly==='pattern'&&Dw){ const p=ll(r,600,-1300); air(p[0],p[1],el+ft(1000),90,wrap360(r.hdg-180),{flap:0,thr:0.6}); kap(r.hdg-180,1000); GD.cLeg='down'; return 'vent arrière, 1 000 ft'; }
+    if(fly==='pattern'&&B){ const p=ll(r,-2450,-1100); air(p[0],p[1],el+ft(750),70,wrap360(r.hdg+90),{flap:2,thr:0.45}); kap(r.hdg+90,500); GD.cLeg='base'; return 'étape de base'; }
+    if(fly==='pattern'&&Fi){ const p=ll(r,-2000,0); air(p[0],p[1],el+ft(450),65,r.hdg,{flap:3,thr:0.35}); kap(r.hdg,500,true); GD.cLeg='final'; return 'en finale 25R'; }
+    if(fly==='land'){ const p=ll(r,-500,0); air(p[0],p[1],el+ft(110),62,r.hdg,{flap:3,thr:0.2,gam:-3}); kap(r.hdg,500,true); GD.cLeg='final'; return 'courte finale 25R'; }
     if(idxLand>=0&&k>idxLand){ const p=ll(r,700,0); ground(p[0],p[1],r.hdg,el); GD.cLanded=true; GD.cLeg='landed'; GD.landed=true; return 'posé, piste à dégager'; }
     return null; }
   // avions de ligne et d'affaires
