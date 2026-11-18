@@ -8573,7 +8573,7 @@ const pad2=n=>String(n).padStart(2,'0');
 function ctx(){ const k=(typeof ACK!=='undefined'&&ACK)||(typeof selAC!=='undefined'&&selAC)||'a320', a=AC[k]||{}, fw=a.kind==='fw';
  let mi=(typeof MI!=='undefined'&&MI&&MI.start)?MI:MISSIONS[fw?'jfk-cdg':'heli-ny'];
  if(fw&&mi.rw) mi=MISSIONS['jfk-cdg']; if(!fw&&mi.fw) mi=MISSIONS['heli-ny'];
- const dep=mi.dep||(fw&&mi.start&&!mi.full?(()=>{ try{ const s=mi.start(); let bk=null,bd=1e9; for(const q in APTS){ const a=APTS[q]; if(a.heli||!(a.rw||[]).length) continue; const x=gcKm(s.lat,s.lon,a.lat,a.lon); if(x<bd){ bd=x; bk=q; } } return bk; }catch(e){ return null; } })():null)||(fw?(mi===MISSIONS['cdg-jfk']?'LFPG':'KJFK'):(mi===MISSIONS['heli-cdg']?'LFPG':'KJRB')), dest=mi.dest||'LFPG';
+ const dep=(typeof MI!=='undefined'&&mi===MI&&window.TRAJET&&(TRAJET()||{}).dep)||mi.dep||(fw&&mi.start&&!mi.full?(()=>{ try{ const s=mi.start(); let bk=null,bd=1e9; for(const q in APTS){ const a=APTS[q]; if(a.heli||!(a.rw||[]).length) continue; const x=gcKm(s.lat,s.lon,a.lat,a.lon); if(x<bd){ bd=x; bk=q; } } return bk; }catch(e){ return null; } })():null)||(fw?(mi===MISSIONS['cdg-jfk']?'LFPG':'KJFK'):(mi===MISSIONS['heli-cdg']?'LFPG':'KJRB')), dest=mi.dest||'LFPG';
  let L={}; try{ if(typeof ACK!=='undefined'&&ACK===k&&LS&&LS.block) L=LS; else { const sv=[ACK,A,MI], keep=Object.assign({},LS); ACK=k; A=a; MI=mi; lsInit(); L=Object.assign({},LS); ACK=sv[0]; A=sv[1]; MI=sv[2]; Object.keys(LS).forEach(x=>delete LS[x]); Object.assign(LS,keep); } }catch(e){ L={}; }
  let crew={}; try{ crew=JSON.parse(localStorage.getItem('sa-crew')||'{}'); }catch(e){}
  const d=new Date(), date=`${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`, dof=`${String(d.getUTCFullYear()).slice(2)}${pad2(d.getUTCMonth()+1)}${pad2(d.getUTCDate())}`;
@@ -8586,7 +8586,8 @@ const RT={fw:[['KJFK',40.64,-73.78,'DÉP'],['BETTE',41.0,-69.5,'SID'],['YQX',48.
  rw:[['KJRB',40.701,-74.009,'DÉP'],['STATUE',40.69,-74.045,'VRP'],['VZ',40.607,-74.045,'Verrazano'],['CI',40.575,-73.98,'Coney Island'],['RCKY',40.6,-73.88,'VRP'],['KJFK',40.64,-73.78,'ARR']]};
 const gc=(a,b)=>{ const R=6371,r=Math.PI/180, dl=(b[2]-a[2])*r, p1=a[1]*r, p2=b[1]*r; return Math.acos(Math.min(1,Math.sin(p1)*Math.sin(p2)+Math.cos(p1)*Math.cos(p2)*Math.cos(dl)))*R; };
 const brg=(a,b)=>{ const r=Math.PI/180, y=Math.sin((b[2]-a[2])*r)*Math.cos(b[1]*r), x=Math.cos(a[1]*r)*Math.sin(b[1]*r)-Math.sin(a[1]*r)*Math.cos(b[1]*r)*Math.cos((b[2]-a[2])*r); return (Math.atan2(y,x)/r+360)%360; };
-function route(c){ try{ if(c.fw&&MI&&MI.route&&APTS[c.dep]&&APTS[c.dest]){ const a=APTS[c.dep], b=APTS[c.dest]; return [[c.dep,a.lat,a.lon,'DÉP']].concat(MI.route.map(p=>[p[2],p[0],p[1],'point péd.'])).concat([[c.dest,b.lat,b.lon,'ARR']]); } }catch(e){}
+function route(c){ try{ if(window.TRAJET&&typeof MI!=='undefined'&&c.mi===MI){ const t=TRAJET(); if(t&&t.pts.length>1) return t.pts; } }catch(e){}   // V10.41 (F28) : le trajet de la mission
+  try{ if(c.fw&&MI&&MI.route&&APTS[c.dep]&&APTS[c.dest]){ const a=APTS[c.dep], b=APTS[c.dest]; return [[c.dep,a.lat,a.lon,'DÉP']].concat(MI.route.map(p=>[p[2],p[0],p[1],'point péd.'])).concat([[c.dest,b.lat,b.lon,'ARR']]); } }catch(e){}
   let r=RT[c.fw?'fw':'rw']; if(c.fw&&c.dep==='LFPG') r=r.slice().reverse(); return r; }
 /* ---------- générateurs ---------- */
 const NOTE='EXEMPLE PÉDAGOGIQUE — ne pas utiliser pour la navigation réelle. Valeurs de masse, carburant et vitesses : calculées par le simulateur (formules simplifiées [ESTIMÉ]).';
@@ -8987,7 +8988,7 @@ setInterval(()=>{ if(typeof GD==='undefined'||!GD.on||!GD.steps) return; const s
 // 3) barre : dossier complet
 function barBtn(){ const m=document.getElementById('b-menu'); if(!m||document.getElementById('b-docs')) return; const b=document.createElement('button'); b.type='button'; b.id='b-docs'; b.textContent='📁 Documents'; b.onclick=()=>open('plan'); m.parentNode.insertBefore(b,m.nextSibling); }
 setInterval(barBtn,1000); barBtn();
-window.DOCS={open,close,reopen:()=>open(CUR,{go:GOTO,rel:REL}),cur:()=>CUR,list:()=>Object.keys(D),forStep};
+window.DOCS={ctx:()=>ctx(),route:()=>{ const c=ctx(); return {dep:c.dep,dest:c.dest,altn:c.altn,pts:route(c)}; },open,close,reopen:()=>open(CUR,{go:GOTO,rel:REL}),cur:()=>CUR,list:()=>Object.keys(D),forStep};
 })();
 
 </script>
@@ -9230,7 +9231,8 @@ function toggle(v){ build(); ST.on=v===undefined?!ST.on:!!v; W.hidden=!ST.on; co
 // trace parcourue
 setInterval(()=>{ try{ if(!MI||(typeof paused!=='undefined'&&paused)) return; const t=ST.track, p=[S.lat,S.lon]; const l=t[t.length-1]; if(!l||gcKm(l[0],l[1],p[0],p[1])>0.02){ t.push(p); if(t.length>4000) t.splice(0,t.length-4000); } }catch(e){} },1000);
 function dest(){ try{ return MI&&MI.dest&&APTS[MI.dest]?MI.dest:null; }catch(e){ return null; } }
-function routePts(){ try{ if(MI&&MI.wps&&MI.wps.length>1) return MI.wps.map(w=>[w[1],w[2],w[0]]); }catch(e){} try{ if(window.FPLN&&FPLN.pts&&FPLN.pts.length>1) return FPLN.pts; }catch(e){} const d=dest(); if(!d) return null; const s=MI.start?MI.start():null; return s?[[s.lat,s.lon,''],[APTS[d].lat,APTS[d].lon,d]]:null; }
+function routePts(){ try{ if(window.TRAJET){ const t=TRAJET(); if(t&&t.pts.length>1) return t.pts.map(p=>[p[1],p[2],p[0]]); } }catch(e){}   // V10.41 (F28)
+  try{ if(MI&&MI.wps&&MI.wps.length>1) return MI.wps.map(w=>[w[1],w[2],w[0]]); }catch(e){} try{ if(window.FPLN&&FPLN.pts&&FPLN.pts.length>1) return FPLN.pts; }catch(e){} const d=dest(); if(!d) return null; const s=MI.start?MI.start():null; return s?[[s.lat,s.lon,''],[APTS[d].lat,APTS[d].lon,d]]:null; }
 function draw(){ if(!ST.on||!W||W.hidden) return; const r=cv.getBoundingClientRect(), dpr=Math.min(2,devicePixelRatio||1), Wd=Math.round(r.width*dpr), Hd=Math.round(r.height*dpr); if(!Wd) return;
   if(cv.width!==Wd||cv.height!==Hd){ cv.width=Wd; cv.height=Hd; } g.setTransform(dpr,0,0,dpr,0,0); const w=r.width, h=r.height;
   W.querySelectorAll('[data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===ST.mode));
@@ -9297,7 +9299,7 @@ const _sm=startMission; startMission=function(){ ST.track=[]; const r=_sm.apply(
 function barBtn(){ const m=$$('b-menu'); if(!m||$$('b-map')) return; const b=document.createElement('button'); b.type='button'; b.id='b-map'; b.textContent='🗺 Carte'; b.title='Carte : position de l\'aéronef, route, trace, aéroports'; b.onclick=()=>toggle(); m.parentNode.insertBefore(b,m.nextSibling); if(ST.on){ build(); W.hidden=false; b.classList.add('on'); } }
 barBtn(); setTimeout(barBtn,1600);
 addEventListener('keydown',e=>{ if((e.key==='m'||e.key==='M')&&!/INPUT|TEXTAREA|SELECT/.test((e.target&&e.target.tagName)||'')) toggle(); });
-window.MAP={toggle,draw,ST};
+window.MAP={toggle,draw,ST,pts:()=>routePts()};
 })();
 
 </script>
@@ -10909,14 +10911,14 @@ try{ if(typeof QB!=='undefined'&&typeof QTH!=='undefined'&&typeof qPool==='funct
 if(typeof scene==='undefined'||typeof THREE==='undefined'||typeof placeCamera!=='function') return;
 const G=new THREE.Group(); G.visible=false; scene.add(G); let built=null, mats=[], CAM=null;
 const D={ // largeur et hauteur intérieures (m), pas des rangs par classe (m), largeur de siège par classe (m), sièges des pilotes dans la cabine
- a320:{w:3.70,h:2.22,lead:2.6,pitch:{Y:0.76},sw:{Y:0.46},bins:true,col:0x2f4b6e},
- a350:{w:5.61,h:2.42,lead:2.8,pitch:{J:1.9,W:0.97,Y:0.79},sw:{J:0.62,W:0.48,Y:0.45},bins:true,col:0x2d3f57},   // largeur de cabine A350 5,61 m [RÉFÉRENCÉ Airbus], le reste [ESTIMÉ]
- b777:{w:5.86,h:2.45,lead:3.0,pitch:{J:1.55,W:0.97,Y:0.79},sw:{J:0.62,W:0.5,Y:0.45},bins:true,col:0x34465a},
- lj60:{w:1.80,h:1.74,lead:1.6,pitch:{C:1.25},sw:{C:0.56},col:0xb9a88c},
- s76:{w:1.90,h:1.35,lead:1.3,pitch:{P:0.95},sw:{P:0.48},col:0x4b5560},
- h125:{w:1.60,h:1.30,lead:0,pitch:{P:0.95},sw:{P:0.48},col:0x3f4650,crew:'R',small:true},
- r44:{w:1.28,h:1.20,lead:0,pitch:{P:0.95},sw:{P:0.46},col:0x5a4a3a,crew:'R',small:true},
- c172:{w:1.00,h:1.20,lead:0,pitch:{P:0.95},sw:{P:0.44},col:0x6b5d4c,crew:'L',small:true}};
+ a320:{src:'largeur 3,70 m [RÉFÉRENCÉ Airbus, famille A320] ; hauteur et pas des sièges [ESTIMÉ]',w:3.70,h:2.22,lead:2.6,pitch:{Y:0.76},sw:{Y:0.46},bins:true,col:0x2f4b6e},
+ a350:{src:'largeur 5,61 m [RÉFÉRENCÉ Airbus] ; hauteur, pas et plan de cabine [ESTIMÉ]',w:5.61,h:2.42,lead:2.8,pitch:{J:1.9,W:0.97,Y:0.79},sw:{J:0.62,W:0.48,Y:0.45},bins:true,col:0x2d3f57},   // largeur de cabine A350 5,61 m [RÉFÉRENCÉ Airbus], le reste [ESTIMÉ]
+ b777:{src:'largeur 5,87 m (19 ft 3 in) [RÉFÉRENCÉ Economy Class & Beyond, 2014] ; hauteur et pas [ESTIMÉ]',w:5.87,h:2.45,lead:3.0,pitch:{J:1.55,W:0.97,Y:0.79},sw:{J:0.62,W:0.5,Y:0.45},bins:true,col:0x34465a},
+ lj60:{src:'largeur 1,80 m (5 ft 11 in), hauteur 1,75 m (5 ft 9 in), longueur 5,38 m [RÉFÉRENCÉ Magellan Jets]',w:1.80,h:1.75,lead:1.6,pitch:{C:1.25},sw:{C:0.56},col:0xb9a88c},
+ s76:{src:'dimensions [ESTIMÉ] (sources publiques contradictoires, non retenues)',w:1.90,h:1.35,lead:1.3,pitch:{P:0.95},sw:{P:0.48},col:0x4b5560},
+ h125:{src:'dimensions [ESTIMÉ] (pas de source constructeur consultable)',w:1.60,h:1.30,lead:0,pitch:{P:0.95},sw:{P:0.48},col:0x3f4650,crew:'R',small:true},
+ r44:{src:'largeur 1,22 m (4 ft), hauteur 1,20 m (3 ft 11 in) [RÉFÉRENCÉ AeroCorner]',w:1.22,h:1.20,lead:0,pitch:{P:0.95},sw:{P:0.46},col:0x5a4a3a,crew:'R',small:true},
+ c172:{src:'largeur 1,02 m (40 in) [RÉFÉRENCÉ AOPA, fiche Cessna 172] ; hauteur [ESTIMÉ]',w:1.02,h:1.20,lead:0,pitch:{P:0.95},sw:{P:0.44},col:0x6b5d4c,crew:'L',small:true}};
 function M(color,map,emis){ const m=new THREE.MeshBasicMaterial({color,map:map||null}); m.userData.base=new THREE.Color(color); m.userData.emis=!!emis; mats.push(m); return m; }
 function box(par,w,h,d,mat,x,y,z){ const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); b.position.set(x,y,z); par.add(b); return b; }
 function tex(w,h,draw){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); return new THREE.CanvasTexture(c); }
@@ -10998,6 +11000,8 @@ function navUI(on){ let n=document.getElementById('cabnav'); if(!on){ if(n) n.hi
   if(!n){ n=document.createElement('div'); n.id='cabnav'; n.innerHTML='<button type="button" data-d="-1" title="Avancer dans l\'allée">▲</button><span>allée</span><button type="button" data-d="1" title="Reculer dans l\'allée">▼</button>';
     n.querySelectorAll('button').forEach(b=>{ const dd=+b.dataset.d; const st=()=>window.CAB_MV=(CAM&&CAM.back?-dd:dd), sp=()=>window.CAB_MV=0;
       b.addEventListener('pointerdown',st); ['pointerup','pointerleave','pointercancel'].forEach(t=>b.addEventListener(t,sp)); }); document.body.appendChild(n); }
+  { let sp=n.querySelector('.csrc'); if(!sp){ sp=document.createElement('span'); sp.className='csrc'; sp.style.cssText='max-width:120px;text-align:center;cursor:help'; n.prepend(sp); }
+    const d=D[ACK]; if(d){ sp.textContent='ⓘ '+d.w.toFixed(2).replace('.',',')+' × '+d.h.toFixed(2).replace('.',',')+' m'; sp.title='Cabine : '+d.src; sp.setAttribute('aria-label',sp.title); } }   // V10.41 (F27) : dimensions et leur source
   n.hidden=false; }
 function addBtn(){ const ext=document.querySelector('[data-v="ext"]'); if(!ext||document.querySelector('[data-v="cab"]')) return;
   const b=document.createElement('button'); b.type='button'; b.dataset.v='cab'; b.textContent='Cabine'; b.title='Cabine passagers (Page préc. / Page suiv. ou ▲ ▼ pour se déplacer dans l\'allée)';
@@ -11035,8 +11039,8 @@ const css=document.createElement('style'); css.textContent=`
 document.head.appendChild(css);
 const SECT=[['atm','1 · Atmosphère au départ'],['cru','2 · Croisière : vitesse, vent, temps'],['fuel','3 · Bilan carburant'],['mass','4 · Masses et masse permise'],['cg','5 · Centrage'],['to','6 · Vent sur la piste et vitesses de décollage'],['desc','7 · Descente'],['pet','8 · Point équitemps et point de non-retour'],['time','9 · Heures UTC et locales']];
 const DOCOF={atm:[['metar','METAR / TAF'],['perf','Performances']],cru:[['ofp','OFP'],['wintem','Vents et températures']],fuel:[['fuel','Bilan carburant'],['ofp','OFP'],['fpl','Plan de vol OACI']],mass:[['loadsheet','Devis de masse'],['notoc','NOTOC']],cg:[['loadsheet','Devis de masse']],to:[['perf','Performances'],['metar','METAR']],desc:[['ofp','OFP'],['app','Carte d\'approche']],pet:[['ofp','OFP'],['route','Carte de route']],time:[['fpl','Plan de vol OACI'],['ofp','OFP']]};
-function defaults(){ const w=WB[ACK]||{}, AL_=typeof AL==='function'&&AL(), dep=(MI&&(MI.dep||(MI.start&&(()=>{ let b=null,bd=1e9; const s=MI.start(); for(const k in APTS){ const a=APTS[k]; const d=gcKm(s.lat,s.lon,a.lat,a.lon); if(d<bd){ bd=d; b=k; } } return b; })())))||'—', dest=(MI&&MI.dest)||'—';
-  let km=0; try{ const F=window.FPLN; if(F&&F.pts&&F.pts.length>1){ for(let i=1;i<F.pts.length;i++) km+=gcKm(F.pts[i-1][0],F.pts[i-1][1],F.pts[i][0],F.pts[i][1]); } else km=LS.dist||0; }catch(e){ km=LS.dist||0; }
+function defaults(){ const w=WB[ACK]||{}, AL_=typeof AL==='function'&&AL(), dep=(window.TRAJET&&(TRAJET()||{}).dep)||(MI&&(MI.dep||(MI.start&&(()=>{ let b=null,bd=1e9; const s=MI.start(); for(const k in APTS){ const a=APTS[k]; const d=gcKm(s.lat,s.lon,a.lat,a.lon); if(d<bd){ bd=d; b=k; } } return b; })())))||'—', dest=(MI&&MI.dest)||'—';
+  let km=0; const TJ=(()=>{ try{ return window.TRAJET&&TRAJET(); }catch(e){ return null; } })(); if(TJ&&TJ.km>0.5) km=TJ.km; else try{ const F=window.FPLN; if(F&&F.pts&&F.pts.length>1){ for(let i=1;i<F.pts.length;i++) km+=gcKm(F.pts[i-1][0],F.pts[i-1][1],F.pts[i][0],F.pts[i][1]); } else km=LS.dist||0; }catch(e){ km=LS.dist||0; }
   let q=1013, t=15, wd=0, ws=0; try{ const m=WXS.met[dep]; if(m){ q=m.q||m.qnh||1013; t=m.t!=null?m.t:(m.temp!=null?m.temp:15); wd=m.dir||0; ws=m.spd||0; } }catch(e){}
   let rwh=0; try{ rwh=Math.round(rwStart(dep,MI.depRw).hdg); }catch(e){}
   const elev=APTS[dep]?Math.round(APTS[dep].elev*3.281):0, mach={a320:0.78,b777:0.84,a350:0.85,lj60:0.78}[ACK]||0;
@@ -11313,6 +11317,31 @@ function hint(){ if(!active()) return; let d=$('p3hint'); if(!d){ d=document.cre
   clearTimeout(hint.t); hint.t=setTimeout(()=>{ d.style.opacity='0'; setTimeout(()=>d.hidden=true,700); },4200); }
 const _sv=typeof setView==='function'?setView:null; if(_sv){ setView=function(v){ const r=_sv.apply(this,arguments); try{ sync(); if(v==='ck') setTimeout(hint,600); }catch(e){} return r; }; }
 window.P3D=Object.assign(P3,{P,DATA,build,regions,pick,act,hits:()=>HIT,screens:()=>SCRS,active,sync});
+})();
+
+</script>
+<script>
+/* =====================================================================================================
+   V10.41 (F28) — UNE SEULE DÉFINITION DU TRAJET PAR MISSION
+   La carte, les documents de vol (OFP / log de navigation, plan de vol OACI…) et l'écran « Calculs du vol » lisaient le
+   trajet à des endroits différents : les documents retombaient sur une route fixe (New York → Paris pour les avions,
+   Manhattan → JFK pour les hélicoptères) dès qu'une mission n'avait pas de route pédagogique, et le calcul prenait la
+   distance du FMS (nulle pour un tour de piste qui revient au terrain). TRAJET() donne le même trajet à tous :
+   départ (aéroport de la mission ou le plus proche du point de départ), points de la mission (points VFR du parcours,
+   sinon route pédagogique), destination ; et la distance totale le long de ces points.
+   ===================================================================================================== */
+(function(){
+'use strict';
+function near(la,lo){ let b=null,bd=1e9; for(const k in APTS){ const a=APTS[k]; const d=gcKm(la,lo,a.lat,a.lon); if(d<bd){ bd=d; b=k; } } return bd<15?b:null; }
+function TRAJET(mi){ mi=mi||(typeof MI!=='undefined'?MI:null); if(!mi||!mi.start) return null; let st=null; try{ st=mi.start(); }catch(e){}
+  const dep=mi.dep||(st&&near(st.lat,st.lon))||null, dest=mi.dest||dep, A=k=>APTS[k]?[k,APTS[k].lat,APTS[k].lon]:null, P=[];
+  const mid=mi.wps&&mi.wps.length>1?mi.wps.map(w=>[String(w[0]),+w[1],+w[2],'VRP']):mi.route&&mi.route.length?mi.route.map(p=>[String(p[2]||''),+p[0],+p[1],'point']):[];
+  if(dep&&A(dep)) P.push([...A(dep),'DÉP']); else if(st) P.push(['DÉP',st.lat,st.lon,'DÉP']);
+  mid.forEach(p=>{ const l=P[P.length-1]; if(l&&l[0]===p[0]&&Math.abs(l[1]-p[1])<0.02) return; P.push(p); });
+  if(dest&&A(dest)){ const l=P[P.length-1]; if(P.length>1&&l[0]===dest) l[3]='ARR'; else P.push([...A(dest),'ARR']); }
+  let km=0; for(let i=1;i<P.length;i++) km+=gcKm(P[i-1][1],P[i-1][2],P[i][1],P[i][2]);
+  return {dep,dest,pts:P,km}; }
+window.TRAJET=TRAJET;
 })();
 
 </script>
