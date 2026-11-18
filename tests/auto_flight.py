@@ -25,7 +25,7 @@ async def main():
       else: stuck+=1
       if stuck in (150,): print('STUCK?',st)
       if stuck>300 and abs(float(st['V']))<0.3: print('ABORT stuck'); break
-      if stuck>2500: print('ABORT long'); break
+      if stuck>6000: print('ABORT long'); break   # roulage au poste (≈ 2 km à 9 kt) : délai large
       if st['i']>=len(await pg.evaluate('GD.steps'))-1 or not st['on']: print('END',st); break
     print('\n'.join(errs[:20]) or 'no errors'); await b.close()
 asyncio.run(main())
