@@ -240,7 +240,7 @@ kbd{display:inline-block;min-width:20px;padding:1px 5px;margin:0 2px 2px 0;borde
  <select id="b-rate" aria-label="Accélération du temps"><option value="real">Durées réelles (×1)</option><optgroup label="Temps accéléré (durées réelles)"><option value="2">×2</option><option value="5">×5</option><option value="10">×10</option><option value="20">×20</option><option value="30">×30</option><option value="50">×50</option></optgroup><option value="fast" selected>Étapes courtes (sans durée réelle)</option></select>
  <button type="button" id="b-dn">☀ Jour</button>
  <button type="button" id="b-help">? Aide</button>
- <a id="b-n7" hidden target="_blank" rel="noopener" style="margin-left:auto;color:var(--cy);font:600 12px 'Barlow Condensed';letter-spacing:.08em;text-transform:uppercase;text-decoration:none">Étude N722BD ↗</a>
+ <a id="b-n7" hidden rel="noopener" style="margin-left:auto;color:var(--cy);font:600 12px 'Barlow Condensed';letter-spacing:.08em;text-transform:uppercase;text-decoration:none">Étude N722BD ↗</a>
 </footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>/* Textures du globe : Natural Earth 1:50 M (domaine public) ; lumières nocturnes illustratives */
@@ -323,7 +323,7 @@ const MISSIONS={
  'cdg-jfk':{n:'Vol libre Paris-CDG → JFK',d:'Décollage piste 27L de CDG, destination KJFK.',fw:true,start:()=>rwStart('LFPG','27L'),dest:'KJFK'},
  'heli-ny':{n:'Vol libre New York',d:'Départ de l\'héliport de Downtown Manhattan, vol local libre (JFK à 21 km).',rw:true,start:()=>({lat:40.7012,lon:-74.0090,hdg:200,elev:2}),dest:'KJFK'},
  'heli-cdg':{n:'Vol libre Paris-CDG',d:'Départ sur l\'aérodrome de CDG, vol local libre.',rw:true,start:()=>({lat:49.0130,lon:2.5400,hdg:265,elev:110}),dest:'LFPG'},
- 'sc-n722':{n:'N722BD · Learjet 60',d:'Reconstitution complète dans l\'étude N722BD (lien).'},
+ 'sc-n722':{n:'N722BD · Learjet 60',d:'Étude N722BD : document séparé, publié à part (adresse à renseigner).',soon:true},
  'sc-1549':{n:'US Airways 1549 · A320',d:'Amerrissage sur l\'Hudson (2009). Prochaine étape.',soon:true},
  'sc-9525':{n:'Germanwings 9525 · A320',d:'Alpes (2015), rapport BEA. Prochaine étape.',soon:true},
  'sc-fict':{n:'Scénario fictif · A320',d:'Panne hypothétique sur NY–Paris. Prochaine étape.',soon:true},
@@ -2056,7 +2056,7 @@ function atcStart(){ schedReset(); RNG.seed(hashStr((selMI||'')+ACK+(window.SCN_
 let AUD=null;
 function squelch(){ if(!ATC.snd) return; try{ AUD=AUD||new (window.AudioContext||window.webkitAudioContext)(); const n=AUD.createBufferSource(), b=AUD.createBuffer(1,AUD.sampleRate*0.11,AUD.sampleRate), d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
   const gn=AUD.createGain(); gn.gain.value=0.05*((AL()?SYS.acpVhf1:6)||0)/10; const f=AUD.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800; n.buffer=b; n.connect(f); f.connect(gn); gn.connect(AUD.destination); n.start(); }catch(e){} }
-let TTSX=null;
+let TTSX=null;   // synthèse vocale : celle du navigateur (speechSynthesis)
 function speak(en,rateV){ if(!ATC.voice) return; if(TTSX){ TTSX.speak(en.replace(/\bFL(\d+)/g,'flight level $1').slice(0,1900),{language:'en',rate:rateV||1.05,voice:'glassy'}).catch(()=>{}); return; } if(!window.speechSynthesis) return; try{ const u=new SpeechSynthesisUtterance(en.replace(/\bFL(\d+)/g,'flight level $1').replace(/(\d)\.(\d)/g,'$1 decimal $2')); u.lang='en-US'; u.rate=rateV||1.08; u.volume=Math.min(1,((AL()?Math.max(SYS.acpVhf1||0,SYS.loudL==null?0:+SYS.loudL):6)||6)/8); speechSynthesis.speak(u); }catch(e){} }
 function atcLog(who,st,en,fr){ ATC.log.push({who,st:st?STN[st].n:'',en,fr:fr||'',t:simMs}); if(ATC.log.length>150) ATC.log.shift(); ATC.ver++;
   if(who==='ATC'||who==='CPDLC'||who==='PIL') subtitle((who==='PIL'?'▲ ':'▼ ')+(st?STN[st].n+' — ':'')+en,ATC.fr&&fr?fr:''); }
@@ -2331,7 +2331,7 @@ function atcRender(force){ const p=$('atc'); if(!p||p.hidden) return; if(!force&
   p.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{ const a=b.dataset.a; if(a==='x') atcOpen(false); else if(a==='tune'&&st){ atcTune(st); atcLog('SYS',null,`Fréquence ${fq(st)} affichée et activée.`); } else if(a==='call') atcCall(); else if(a==='rb') atcReadback(); else if(a==='rbsend'){ const v=(p.querySelector('#atc-rb')||{}).value; atcReadback(v); } else if(a==='dict'){ atcDictate(); return; } else if(a==='skip'){ const c=curX(); if(c&&c.type==='atis') xDone(c,true); } else if(a==='sq'){ SYS.xpdrCode=ATC.sq; ATC.ver++; if(!$('ovh').hidden) a320Sync(); } atcRender(true); });
   p.querySelectorAll('[data-o]').forEach(c=>c.onchange=()=>{ ATC[c.dataset.o]=c.checked; if(c.dataset.o==='voice'&&!c.checked&&window.speechSynthesis) speechSynthesis.cancel(); ATC.ver++; atcRender(true); }); }
 /* dictée : capacité « dictation » de la page publiée, sinon reconnaissance vocale du navigateur ; jamais obligatoire (saisie clavier) */
-let DICT=null;
+let DICT=null;   // dictée : reconnaissance vocale du navigateur si disponible
 function atcDictate(){ const i=$('atc-rb'); if(!i) return; if(DICT){ DICT.start().catch(e=>flash('Dictée indisponible : '+(e&&e.code||'refusée'),'am')); flash('Parlez… (dictée)','am'); return; }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){ flash('Dictée non disponible dans ce navigateur : tapez le collationnement','am'); return; }
   try{ const r=new SR(); r.lang='en-US'; r.interimResults=false; r.onresult=e=>{ i.value=(i.value+' '+e.results[0][0].transcript).trim(); }; r.onerror=()=>flash('Dictée interrompue','am'); r.start(); flash('Parlez… (dictée)','am'); }catch(e){ flash('Dictée indisponible','am'); } }
@@ -2721,7 +2721,7 @@ function scnUI(){ const p=$('scn'); if(!p||p.hidden) return; const sc=SCN.cur, v
   p.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{ const a=b.dataset.s; if(a==='x') scnOpen(false); else if(a==='list'){ SCN.view='list'; scnUI(); } else if(a==='pause') togglePause(); else if(a==='reset'&&sc){ scnStart(sc.id); scnOpen(false); } else if(a==='debrief'){ SCN.view='debrief'; scnUI(); }
     else if(a==='csv'&&SCN.log){ const csv='t_s,alt_ft,cas_kt,vs_fpm,pitch_deg,bank_deg,thr,flap\n'+SCN.log.trace.map(r=>r.join(',')).join('\n'); scnSave(sc.id+'.csv',csv); } scnUI(); }); }
 /* export : capacité « downloads » de la page publiée (le lien de téléchargement direct y est inopérant), sinon lien classique en local */
-async function scnSave(name,csv){ try{ const d=null; if(d){ await d.save({filename:name,data:csv}); return; } }catch(e){ if(e&&e.code&&e.code!=='unavailable'){ flash('Export annulé','am'); return; } }
+async function scnSave(name,csv){
   const bl=new Blob([csv],{type:'text/csv'}), u=URL.createObjectURL(bl), a=document.createElement('a'); a.href=u; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(u),2000); }
 function scnPlot(tr){ if(!tr||tr.length<3) return ''; const W=560,H=150, t0=tr[0][0], t1=tr[tr.length-1][0]||1, aMax=Math.max(...tr.map(r=>r[1]),1000), cMax=Math.max(...tr.map(r=>r[2]),100);
   const X=t=>(t-t0)/(t1-t0||1)*(W-40)+30, Ya=a=>H-15-a/aMax*(H-30), Yc=c=>H-15-c/cMax*(H-30);
@@ -8940,8 +8940,7 @@ let EDIT=false; const EDITS={};
 function keepEdit(){ const p=document.querySelector('#docv .paper'); if(p&&p.isContentEditable) EDITS[CUR]=p.innerHTML; }
 const esc=s=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 /* ---------- export ---------- */
-async function save(name,blob){ try{ const dlc=null;
-  if(dlc){ try{ await dlc.save({filename:name,data:blob}); flashMsg('Enregistré : '+name); }catch(e){ if(e&&e.code==='declined') flashMsg('Téléchargement annulé'); else flashMsg('Téléchargement impossible ici ('+(e&&e.code||'erreur')+')'); } return; } }catch(e){}
+async function save(name,blob){
  saveA(name,blob); flashMsg('Téléchargement : '+name); }
 function saveA(name,blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500); }
 function dl(kind){ keepEdit(); const c=ctx(), doc=D[CUR], out=doc.gen(c), base=`${c.flt}_${CUR}`, ed=EDITS[CUR]?domText():null; const txt=ed?ed:`${doc.t}\n${c.flt} ${c.type} ${c.reg} ${c.dep}-${c.dest} ${c.date}\n${'='.repeat(70)}\n\n${out.txt||''}\n\n${CUR==='plan'?'':NOTE}`; const txt2=window.BRANDTX?BRANDTX(txt):txt;

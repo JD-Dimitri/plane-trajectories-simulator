@@ -6,6 +6,8 @@ A320 New York → Paris, C172), bloc carburant = somme des termes, masse permise
 affichage téléphone sans dépassement ; aucune erreur JavaScript.
 Préparation : python3 tools/build.py --test ; cd tests ; python3 -m http.server 8765 &   puis : python3 calculs.py
 """
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out') + os.sep; os.makedirs(OUT, exist_ok=True)
 import asyncio, sys, re
 from playwright.async_api import async_playwright
 ok_all = True
@@ -58,7 +60,7 @@ async def main():
         m = await b.new_page(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True); m.on('pageerror', lambda e: errs.append(str(e)))
         await start(m, 'a350'); await m.evaluate("CALCF.open()"); await m.wait_for_timeout(400)
         g = await m.evaluate("(()=>{ const r=document.getElementById('calcform').getBoundingClientRect(); return {l:Math.round(r.left), r:Math.round(r.right), sw:document.documentElement.scrollWidth}; })()")
-        await m.screenshot(path='tests/out/calcform_tel.png')
+        await m.screenshot(path=OUT+'calcform_tel.png')
         check('Téléphone : écran de calculs dans l\'écran, sans défilement horizontal', g['l'] >= 0 and g['r'] <= 390 and g['sw'] <= 392, g)
         check('Aucune erreur JavaScript', not errs, errs[:3])
         await b.close()

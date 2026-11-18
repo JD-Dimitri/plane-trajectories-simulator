@@ -8,6 +8,8 @@ Vérifie :
   - aucune erreur JavaScript ; captures écran sur téléphone (390 × 800).
 Préparation : python3 tools/build.py --test ; cd tests ; python3 -m http.server 8765 &   puis : python3 fiche_etapes.py
 """
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out') + os.sep; os.makedirs(OUT, exist_ok=True)
 import asyncio, sys
 from playwright.async_api import async_playwright
 URL = 'http://localhost:8765/final.html'
@@ -56,7 +58,7 @@ async def main():
             await pg.evaluate(f"GD.seen.add({a['i']}); walkBox({a['i']})"); await pg.wait_for_timeout(200)
             vis = await pg.evaluate("!!document.querySelector('#g-wp .ano') && !!document.querySelector('#g-wp .ano svg') && !!document.querySelector('#g-wp details.fi')")
             check(f"{ac} : boîte d'anomalie avec dessin et fiche du point", vis)
-            await pg.screenshot(path='tests/out/ano_desktop_'+ac+'.png')
+            await pg.screenshot(path=OUT+'ano_desktop_'+ac+'.png')
             wrong = (a['ok'] + 1) % 3
             await pg.evaluate(f"document.querySelector('#g-wp .ano [data-c=\"{wrong}\"]').click()"); await pg.wait_for_timeout(150)
             w = await pg.evaluate("({ko:!!document.querySelector('#g-wp .ano .ko'), done:GD.ano.done})")
@@ -88,15 +90,15 @@ async def main():
         await mp.evaluate("const i=document.getElementById('intro'); if(i&&!i.hidden){ const b=i.querySelector('[data-sim]'); if(b) b.click(); else i.hidden=true; }"); await mp.wait_for_timeout(1800)
         st2 = await mp.evaluate("(()=>{ const d=document.getElementById('rtprop'); if(!d) return null; const r=d.getBoundingClientRect(); return {l:Math.round(r.left), r:Math.round(r.right)}; })()")
         check('Téléphone : la proposition apparaît après l\'introduction, dans l\'écran', st2 is not None and st2['l'] >= 0 and st2['r'] <= 390, st2)
-        await mp.screenshot(path='tests/out/rtprop_mobile.png')
+        await mp.screenshot(path=OUT+'rtprop_mobile.png')
         await mp.evaluate("const d=document.getElementById('rtprop'); if(d) d.remove();")
         k = await mp.evaluate("GD.steps.findIndex(s=>s.walk&&/Tour/.test(s.t))")
         await mp.evaluate(f"goStep({k}); GD.fiOpen=true; renderGuide(); if(GD.ano){{ GD.seen.add(GD.ano.i); walkBox(GD.ano.i); }}"); await mp.wait_for_timeout(400)
-        await mp.screenshot(path='tests/out/ano_mobile.png')
+        await mp.screenshot(path=OUT+'ano_mobile.png')
         ov = await mp.evaluate("(()=>{ const g=document.getElementById('guide').getBoundingClientRect(); return {w:Math.round(g.width), right:Math.round(g.right), sw:document.documentElement.scrollWidth}; })()")
         check('Téléphone : guide et fiche dans l\'écran, sans défilement horizontal', ov['right'] <= 390 and ov['sw'] <= 392, ov)
         await mp.evaluate("goStep(15)"); await mp.wait_for_timeout(300)
-        await mp.screenshot(path='tests/out/fiche_mobile_decollage.png')
+        await mp.screenshot(path=OUT+'fiche_mobile_decollage.png')
         check('Aucune erreur JavaScript', not errs, errs[:3])
         await b.close()
     sys.exit(0 if ok_all else 1)

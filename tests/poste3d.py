@@ -9,6 +9,8 @@ Téléphone : un toucher sur un écran 3D l'agrandit. Après un clic, bouger la 
 Aucune erreur JavaScript.
 Préparation : python3 tools/build.py --test ; cd tests ; python3 -m http.server 8765 &   puis : python3 poste3d.py [ac …]
 """
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out') + os.sep; os.makedirs(OUT, exist_ok=True)
 import asyncio, sys
 from playwright.async_api import async_playwright
 ACS = sys.argv[1:] or ['a320', 'a350', 'b777', 'lj60', 'c172', 'h125', 'r44', 's76']
@@ -79,7 +81,7 @@ async def main():
         await start(m, ACS[0]); pts = await m.evaluate(PROJ); s0 = next((h for h in pts if h['on'] and h['act'] == 'scr'), None)
         if s0: await m.touchscreen.tap(s0['x'], s0['y']); await m.wait_for_timeout(500)
         z = await m.evaluate(OPEN['scr'])
-        await m.screenshot(path='tests/out/p3_tel.png')
+        await m.screenshot(path=OUT+'p3_tel.png')
         check('Téléphone : toucher un écran du poste 3D l\'agrandit', s0 and z, s0 and s0['label'])
         check('Aucune erreur JavaScript', not errs, errs[:3]); await b.close()
     sys.exit(0 if ok_all else 1)

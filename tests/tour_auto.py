@@ -6,6 +6,8 @@ simulée en accéléré (pas de 0,1 s) : tous les points du tour doivent être c
 et le tour doit durer moins de 6 min simulées. Une capture téléphone du Learjet pendant le tour est enregistrée.
 Préparation : python3 tools/build.py --test ; cd tests ; python3 -m http.server 8765 &   puis : python3 tour_auto.py [ac …]
 """
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out') + os.sep; os.makedirs(OUT, exist_ok=True)
 import asyncio, sys
 from playwright.async_api import async_playwright
 ACS = sys.argv[1:] or ['lj60', 'a320', 'a350', 'b777', 'c172', 'h125', 'r44', 's76']
@@ -29,7 +31,7 @@ async def main():
             k = await pg.evaluate("GD.steps.findIndex(s=>/Arrivée au parking/.test(s.t))")
             await pg.evaluate(f"goStep({k}); AUTO.on=true;"); await pg.wait_for_timeout(1200)
             r = await pg.evaluate(RUN + "(1200)")   # 1 200 pas de 0,1 s = 2 min, puis un point de mesure
-            if tel: await pg.screenshot(path='tests/out/tour_lj60_tel.png')
+            if tel: await pg.screenshot(path=OUT+'tour_lj60_tel.png')
             r2 = await pg.evaluate(RUN + "(2400)") if not r['done'] else r
             t = r['t'] + (r2['t'] if r2 is not r else 0); mn = min(r['mn'], r2['mn'])
             check(f"{ac} : tour avion automatique terminé ({r2['seen']}/{r2['n']} points en {t // 60} min {t % 60:02d} s simulées), caméra à {mn} m de la coque au plus près",

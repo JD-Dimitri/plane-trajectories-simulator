@@ -14,9 +14,11 @@ Il faut une connexion internet pour three.js et les polices (CDN).
 
 ## Ce que contient le simulateur
 
-- **Monde** : globe 3D réel, aéroports et pistes réels (JFK, CDG, héliports de Manhattan), jour, crépuscule ou nuit, météo réelle (METAR / ATIS).
+- **Monde** : globe 3D réel, aéroports et pistes réels (New York JFK, Paris-CDG, Paris-Orly, Toussus-le-Noble, La Réunion Roland-Garros, héliports de Manhattan), jour, crépuscule ou nuit, météo réelle (METAR / ATIS).
 - **Appareils** : Airbus A320-200, Airbus A350-900 (Rolls-Royce Trent XWB-84), Boeing 777-300ER, Learjet 60, Cessna 172P (avion école), H125, Robinson R44, Sikorsky S-76.
-- **Cockpit A320** : panneau plafond, pédestal, FCU, écrans PFD, ND, E/WD et SD dessinés en direct.
+- **Poste de pilotage 3D** (8 appareils) : planche propre à chaque appareil, écrans qui affichent en direct PFD, ND, E/WD ou EICAS, SD ; casquette avec FCU / MCP, pédestal, panneau plafond, poste fermé ; toucher un instrument l'ouvre (écran agrandi, FCU, plafond, pédestal, radio, commandes) ; bouton « 🛩 Poste 3D » pour la planche 2D.
+- **Cabine passagers** en 3D (plans de cabine, sièges, coffres, offices), dimensions sourcées quand elles existent.
+- **Calculs du pilote de ligne** : partie 9 de l'Académie (14 formules, exemples corrigés, 150 questions) et écran « 🧮 Calculs du vol » relié au dossier de vol ; carte, documents de vol et calculs reprennent le même trajet.
 - **Parcours pilote complet** en étapes numérotées 0 → N : préparation, tour avion, mise sous tension, démarrage, roulage, décollage, croisière, approche, atterrissage, parking.
 - **Modes** (exclusifs) : pédagogique guidé, automatique (observation), sans guide, vol libre, scénarios et pannes, QCM, radio ATC.
 - **Dossier de vol pas à pas** affiché avant le vol : modes expliqués, METAR décodé, tour avion, calculs détaillés (masse et centrage, carburant, V1/VR/V2, vent, descente).
@@ -51,6 +53,14 @@ Les valeurs marquées [ESTIMÉ] sont des approximations pédagogiques et les sys
 | `tests/positionnement.py` | Test de niveau scientifique (30 + 30 questions, niveaux, réponses mélangées) et section « TEST POST PARCOURS ET TESTS - AÉRONAUTIQUE » |
 | `tests/gpu_atelier.py` | Atelier : groupe de parc (GPU) visible au parking, masqué en roulage et en vol |
 | `tests/exam_blanc.py` | Examen blanc piloté par un élève simulé (`perfect` : réussite et décollage ; `wrong` : épreuve éliminatoire) |
+| `tests/calculs.py` | Académie partie 9 et écran « Calculs du vol » (préremplissage, bloc carburant, masses, application au dossier, téléphone) |
+| `tests/fermetures.py` | Toutes les croix ✕ ferment vraiment (vrai clic, toucher, mode d'emploi) |
+| `tests/poste3d.py` | Poste 3D des 8 appareils : écrans en direct, clic sur chaque instrument, survol, retour à la planche 2D, téléphone |
+| `tests/trajets.py` | Carte = documents de vol = calculs pour toutes les missions |
+| `tests/tour_auto.py` | Tour avion automatique des 8 appareils, sans caméra collée à la coque |
+| `tests/aide_modale.py` | Aide « Commandes » en fenêtre modale défilante (téléphone et ordinateur) |
+| `tests/sol_roulage.py` | Atelier : personnel et véhicules au sol retirés avant le roulage |
+| `tests/jump_to_step.py`, `tests/guard_actions.py` | Saut d'étape (ancien test) ; actions incohérentes détectées |
 
 Après une modification dans `src/` :
 
@@ -70,6 +80,8 @@ python3 a350.py
 cp final.html final_rt.html && python3 temps_reel.py final_rt.html
 python3 gpu_atelier.py
 python3 fiche_etapes.py && python3 positionnement.py && python3 cabine_vue.py
+python3 calculs.py && python3 fermetures.py && python3 poste3d.py && python3 trajets.py
+python3 tour_auto.py && python3 aide_modale.py && python3 sol_roulage.py && python3 exam_blanc.py
 ```
 
 Dernière vérification (V10.42) : poste 3D 94/94, cabine 33/33, fermetures 65/65, aide modale 6/6, personnel au sol 5/5, tour avion 9/9, trajets 44/44, fiches 37/37, calculs 17/17, A350 14/14, GPU 10/10. Avant (V10.41) : poste 3D 94/94 (8 appareils + téléphone), trajets 44/44, tour avion automatique 8/8, fermetures 65/65, fiches 37/37, cabine 33/33, calculs 17/17, A350 14/14, saut direct 79/79, temps réel 25/25, GPU 10/10, test de niveau 9/9. Avant (V10.40) : calculs 17/17, fermetures (toutes les ✕ par vrai clic, A350 + C172 + R44 + téléphone) sans échec, fiches d'étape 37/37, A350 14/14, cabine 33/33, GPU 10/10, saut direct 31/31, temps réel 25/25, test de niveau 9/9. Avant (V10.39) : A350 14/14, fiches d'étape 37/37 (8 appareils), cabine 33/33, saut direct A350 + A320 + 777 39/39, temps réel 25/25, test de niveau 9/9. Avant (V10.38) : cabine 29/29, vols automatiques complets (A320, 777, H125, S-76), saut direct 66/66 sur les 7 appareils, temps réel 22/22, GPU 10/10. Vérification antérieure (V8.0) : examen blanc A320 complet réussi (25/25, décollage puis atterrissage et parking) et cas éliminatoire vérifié ; vol automatique complet sans blocage sur les 5 appareils (V7.3).

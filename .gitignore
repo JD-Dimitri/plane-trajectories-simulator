@@ -5,3 +5,4 @@ tests/*.png
 __pycache__/
 tests/final_rt.html
 tests/final_f10.html
+tests/out/

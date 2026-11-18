@@ -5,6 +5,8 @@ les mêmes sur la carte (MAP.pts), le plan de vol du FMS (FPLN) et les documents
 plan de vol OACI) ; l'écran « Calculs du vol » utilise le même départ et la même destination.
 Préparation : python3 tools/build.py --test ; cd tests ; python3 -m http.server 8765 &   puis : python3 trajets.py [--liste]
 """
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out') + os.sep; os.makedirs(OUT, exist_ok=True)
 import asyncio, sys, json
 from playwright.async_api import async_playwright
 ok_all = True
@@ -29,7 +31,7 @@ async def main():
                 await pg.evaluate(f"const i=document.getElementById('intro'); if(i) i.hidden=true; selAC='{ac}'; selMI='{k}'; renderMenu(); $('go').click(); const s=document.getElementById('br-skip'); if(s) s.click();"); await pg.wait_for_timeout(900)
                 out.append(await pg.evaluate(GET))
             except Exception as e: out.append({'mi': k, 'ac': ac, 'err': str(e)[:120]})
-        json.dump(out, open('tests/out/trajets.json', 'w'), ensure_ascii=False, indent=0)
+        json.dump(out, open(OUT+'trajets.json', 'w'), ensure_ascii=False, indent=0)
         for o in out:
             if 'err' in o: check(f"{o['mi']} ({o['ac']})", False, o['err']); continue
             dd = o['docs']; dn = [x[2] for x in dd['pts']]; mn = [x[2] for x in o['map']]

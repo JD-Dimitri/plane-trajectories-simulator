@@ -4,6 +4,8 @@ Téléphone (390 × 844) et ordinateur : la fenêtre tient dans l'écran, son en
 le contenu défile de haut en bas, la ✕ ferme, le fond assombri ferme, Échap ferme. Aucune erreur JavaScript.
 Préparation : python3 tools/build.py --test ; cd tests ; python3 -m http.server 8765 &   puis : python3 aide_modale.py
 """
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out') + os.sep; os.makedirs(OUT, exist_ok=True)
 import asyncio, sys
 from playwright.async_api import async_playwright
 ok_all = True
@@ -31,7 +33,7 @@ async def main():
             c3 = await pg.evaluate("document.getElementById('help').hidden && document.getElementById('helpbg').hidden")
             check(f"{nm} : ferme par la ✕, par le fond et par Échap", c1 and c2 and c3, (c1, c2, c3))
             if nm == 'téléphone':
-                await pg.evaluate("toggleHelp()"); await pg.wait_for_timeout(300); await pg.screenshot(path='tests/out/aide_tel.png')
+                await pg.evaluate("toggleHelp()"); await pg.wait_for_timeout(300); await pg.screenshot(path=OUT+'aide_tel.png')
             await pg.close()
         check('Aucune erreur JavaScript', not errs, errs[:3]); await b.close()
     sys.exit(0 if ok_all else 1)

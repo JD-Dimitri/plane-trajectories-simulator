@@ -373,8 +373,7 @@ let EDIT=false; const EDITS={};
 function keepEdit(){ const p=document.querySelector('#docv .paper'); if(p&&p.isContentEditable) EDITS[CUR]=p.innerHTML; }
 const esc=s=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 /* ---------- export ---------- */
-async function save(name,blob){ try{ const dlc=null;
-  if(dlc){ try{ await dlc.save({filename:name,data:blob}); flashMsg('Enregistré : '+name); }catch(e){ if(e&&e.code==='declined') flashMsg('Téléchargement annulé'); else flashMsg('Téléchargement impossible ici ('+(e&&e.code||'erreur')+')'); } return; } }catch(e){}
+async function save(name,blob){
  saveA(name,blob); flashMsg('Téléchargement : '+name); }
 function saveA(name,blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500); }
 function dl(kind){ keepEdit(); const c=ctx(), doc=D[CUR], out=doc.gen(c), base=`${c.flt}_${CUR}`, ed=EDITS[CUR]?domText():null; const txt=ed?ed:`${doc.t}\n${c.flt} ${c.type} ${c.reg} ${c.dep}-${c.dest} ${c.date}\n${'='.repeat(70)}\n\n${out.txt||''}\n\n${CUR==='plan'?'':NOTE}`; const txt2=window.BRANDTX?BRANDTX(txt):txt;
