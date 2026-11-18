@@ -21,7 +21,8 @@ async def main():
         b = await p.chromium.launch(args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader']); pg = await b.new_page(viewport={'width': 1200, 'height': 800}); errs = []
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto('http://localhost:8765/final.html'); await pg.wait_for_timeout(2000)
-        ms = await pg.evaluate("Object.keys(MISSIONS).filter(k=>MI_AC[k]&&AC[MI_AC[k]]).map(k=>[k,MI_AC[k]])")
+        ms = await pg.evaluate("""Object.keys(AC).flatMap(ac=>Object.keys(MISSIONS).filter(k=>{ const m=MISSIONS[k]; if(!m||!m.start) return false; if(MI_AC[k]) return MI_AC[k]===ac; if(m.ac) return m.ac===ac;
+          const fw=AC[ac].kind==='fw'; return m.fw?fw:(m.rw?!fw:false); }).map(k=>[k,ac]))""")
         out = []
         for k, ac in ms:
             try:
@@ -34,7 +35,8 @@ async def main():
             dd = o['docs']; dn = [x[2] for x in dd['pts']]; mn = [x[2] for x in o['map']]
             ends = (not o['dep'] or dd['dep'] == o['dep']) and (not o['dest'] or dd['dest'] == o['dest']) and dn[:1] == [dd['dep']] and dn[-1:] == [dd['dest']]
             same = dn == mn and all(abs(a[0]-b[0]) < 0.02 and abs(a[1]-b[1]) < 0.02 for a, b in zip(dd['pts'], o['map']))
-            calc = not o['calc'] or (o['calc']['dep'] == dd['dep'] and o['calc']['dest'] == dd['dest'] and o['calc']['d'] > 0)
+            local = dd['dep'] == dd['dest'] and len(dn) == 2   # tour de piste ou vol local sans point : distance nulle, carburant au temps
+            calc = not o['calc'] or (o['calc']['dep'] == dd['dep'] and o['calc']['dest'] == dd['dest'] and (o['calc']['d'] > 0 or local))
             check(f"{o['mi']} ({o['ac']}) : {dd['dep']} → {dd['dest']}, {len(dn)} points, carte = documents = calculs",
                   ends and same and calc, '' if ends and same and calc else f"départ réel {o['dep']} → {o['dest']} ; docs={dn} ; carte={mn} ; calc={o['calc']}")
         check('Aucune erreur JavaScript', not errs, errs[:3]); await b.close()

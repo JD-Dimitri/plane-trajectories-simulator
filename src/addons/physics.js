@@ -54,6 +54,32 @@ if(typeof autoWalk==='function'){ const _a=autoWalk; autoWalk=function(dt){ cons
   const want=Math.hypot(GD.walk.x-px,GD.walk.z-pz); const [x,z]=resolve(px,pz,GD.walk.x,GD.walk.z); GD.walk.x=x; GD.walk.z=z;
   const got=Math.hypot(x-px,z-pz); if(got<want*0.15){ stuck+=dt; if(stuck>2){ stuck=0; const pts=WALKPTS[ACK]||[]; let i=0; while(i<pts.length&&GD.seen.has(i)) i++; if(i<pts.length){ GD.seen.add(i); try{ walkBox(i); }catch(e){} } } } else stuck=0; }; }
 setInterval(()=>{ try{ if(typeof view!=='undefined'&&view==='walk'&&GD&&GD.walk) pushOut(); }catch(e){} },500);
+/* V10.41 (F29) : tour avion automatique qui CONTOURNE l'appareil.
+   Avant : le marcheur visait chaque point en ligne droite et glissait contre la coque (caméra à 40 cm du fuselage, vue « bloquée »
+   sur le Learjet). Maintenant : il vise un point de vue dégagé devant chaque pièce (hors de l'appareil, dans le rayon de contrôle),
+   fait le tour par une ellipse autour de l'appareil quand le chemin direct est barré, regarde où il va puis la pièce contrôlée. */
+function clr(mx,mz,M,k){ let w=1e9; (HULL[k||ACK]||[]).forEach(c=>{ const [d]=segDist(mx,mz,c); w=Math.min(w,d-c[4]-M); }); return w; }
+function ext(k){ let ax=0,az=0; (HULL[k]||[]).forEach(c=>{ ax=Math.max(ax,Math.abs(c[0])+c[4],Math.abs(c[2])+c[4]); az=Math.max(az,Math.abs(c[1])+c[4],Math.abs(c[3])+c[4]); }); return [ax,az]; }
+function freeSeg(ax,az,bx,bz,M){ const n=Math.max(2,Math.ceil(Math.hypot(bx-ax,bz-az)/0.4)); for(let i=1;i<=n;i++){ const t=i/n; if(clr(ax+(bx-ax)*t,az+(bz-az)*t,M)<0) return false; } return true; }
+function standoff(p,R){ let best=null, bd=1e9, alt=null, ac=-1e9;          // point dégagé le plus proche de la pièce, à moins de R
+  for(let k=0;k<16;k++){ const a=k*Math.PI/8, ux=Math.cos(a), uz=Math.sin(a); for(let s=0;s<=R;s+=0.2){ const qx=p[0]+ux*s, qz=p[1]+uz*s, c=clr(qx,qz,1.4);
+      if(c>=0){ if(s<bd){ bd=s; best=[qx,qz]; } break; } if(s>=R-0.2&&c>ac){ ac=c; alt=[qx,qz]; } } }
+  return best||alt||[p[0],p[1]]; }
+const wrapA=a=>{ while(a>Math.PI) a-=2*Math.PI; while(a<-Math.PI) a+=2*Math.PI; return a; };
+if(typeof autoWalk==='function'){ autoWalk=function(dt){ if(!AUTO.on||view!=='walk'||AUTO.stage==='read') return; const pts=WALKPTS[ACK]||[]; let i=0; while(i<pts.length&&GD.seen.has(i)) i++; if(i>=pts.length) return;
+  if(!(HULL[ACK]||[]).length){ const q=m2l(pts[i][0],pts[i][1]), dx=q[0]-GD.walk.x, dz=q[1]-GD.walk.z, d=Math.hypot(dx,dz); if(d<0.3) return; const sp=Math.min(d,1.4*dt); GD.walk.x+=dx/d*sp; GD.walk.z+=dz/d*sp; GD.walk.yaw+=wrapPi(Math.atan2(-dx,-dz)-GD.walk.yaw-LK.yaw)*Math.min(1,dt*3); return; }
+  const R=A.kind==='fw'?3.6:1.9, T=standoff(pts[i],R), [cx,cz]=l2m(GD.walk.x,GD.walk.z), [ax,az]=ext(ACK), ea=ax+2.4, eb=az+2.4;
+  let gx=T[0], gz=T[1], look=false;
+  if(freeSeg(cx,cz,T[0],T[1],0.6)) look=Math.hypot(T[0]-cx,T[1]-cz)<7;
+  else { const tc=Math.atan2(cz/eb,cx/ea), tt=Math.atan2(T[1]/eb,T[0]/ea), dir=Math.sign(wrapA(tt-tc))||1, inside=(cx*cx)/(ea*ea)+(cz*cz)/(eb*eb)<0.95;
+    const th=inside?tc:tc+dir*Math.min(Math.abs(wrapA(tt-tc)),0.35); gx=ea*Math.cos(th); gz=eb*Math.sin(th); }
+  const dx=gx-cx, dz=gz-cz, d=Math.hypot(dx,dz); if(d<0.05){ stuck+=dt; if(stuck>3){ stuck=0; GD.seen.add(i); try{ walkBox(i); }catch(e){} } return; } const sp=Math.min(d,1.5*dt), nx=cx+dx/d*sp, nz=cz+dz/d*sp;
+  const [lx,lz]=m2lv(nx,nz), [ox,oz]=[GD.walk.x,GD.walk.z], r=resolve(ox,oz,lx,lz); GD.walk.x=r[0]; GD.walk.z=r[1];
+  // regard : sens de la marche, puis la pièce contrôlée quand on arrive
+  const fx=look?pts[i][0]:nx+dx/d, fz=look?pts[i][1]:nz+dz/d, [vx,vz]=m2lv(fx-nx,fz-nz);
+  GD.walk.yaw+=wrapPi(Math.atan2(-vx,-vz)-GD.walk.yaw-LK.yaw)*Math.min(1,dt*2.5);
+  if(Math.hypot(r[0]-ox,r[1]-oz)<sp*0.15){ stuck+=dt; if(stuck>3){ stuck=0; GD.seen.add(i); try{ walkBox(i); }catch(e){} } } else stuck=0; }; }
+window.WALKAUTO={standoff,clr,ext};
 /* appareil contre bâtiments : collision = accident */
 let ign=new Set(), t0=0, lastMI=null;
 setInterval(()=>{ try{ if(typeof S==='undefined'||!MI||crashed||paused) return; if(MI!==lastMI){ lastMI=MI; ign=new Set(); t0=performance.now(); }
